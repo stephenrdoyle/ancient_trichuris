@@ -43,32 +43,54 @@ for i in *gz; do echo ${i%_???.fastq.gz}; done | sort | uniq  |  while read NAME
      - some samples are duplicates, and so will need to be merged at some point too.
 
 
+## metadata
+- I have begun to curate the metadata, to get a better idea of what data is actually available, and to ensure that I have consistent informaiton for all samples.
+- The existing naming scheme is not very informative to me at least, and so will rename everything with a simple format
+- GoogleSheet:  https://docs.google.com/spreadsheets/d/1PiapiaZZw0g0i3lN0feXxqEVupvaAuOm0IViXnZPFqk/edit?usp=sharing
+
+
 ## trimming
 - trimming using AdapterRemoval, which seems to be used for a few different ancient DNA projects. I think it is because it trims and merges, which generally improves the mapping scores off some poor qual end of reads.
 - Tool: https://buildmedia.readthedocs.org/media/pdf/adapterremoval/latest/adapterremoval.pdf
 
 
-
+### code
 ```shell
-# PE - modern samples
-while read OLD_NAME NEW_NAME; do \
+
+#!/bin/bash
+# adaptor remove PE - modern samples
+OLD_NAME=${1}
+NEW_NAME=${2}
+
 /nfs/users/nfs_s/sd21/lustre118_link/software/ANCIENT/adapterremoval/bin/AdapterRemoval \
 --file1 ${OLD_NAME}_R1.merged.fastq.gz \
 --file2 ${OLD_NAME}_R2.merged.fastq.gz \
 --basename ${NEW_NAME}_PE \
---trimns --trimqualities --collapse --threads 4; done < modern.list
+--trimns --trimqualities --collapse --threads 4
 
 
-
+#!/bin/bash
 # single end - ancient samples
-while read OLD_NAME NEW_NAME; do \
+OLD_NAME=${1}
+NEW_NAME=${2}
+
 /nfs/users/nfs_s/sd21/lustre118_link/software/ANCIENT/adapterremoval/bin/AdapterRemoval \
 --file1 ${OLD_NAME}_R1.merged.fastq.gz \
 --basename ${NEW_NAME}_SE \
---trimns --trimqualities --threads 4; done < ancient.list
+--trimns --trimqualities --threads 4
 ```
+
+### run the trimming
 ```shell
-bsub.py --threads 4 20 adaptor_remove "./adapterremove_2.sh"
+# main samples
+while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_modern "./run_adapter_remove_PE.sh ${OLD_NAME} ${NEW_NAME}"; done < modern.list
+while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_ancient "./run_adapter_remove_SE.sh ${OLD_NAME} ${NEW_NAME}"; done < ancient.list
+
+# other samples
+while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_others_PE "./run_adapter_remove_PE.sh ${OLD_NAME} ${NEW_NAME}"; done < others_PE.list
+while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_others_SE "./run_adapter_remove_SE.sh ${OLD_NAME} ${NEW_NAME}"; done < others_SE.list
+
+
 ```
 
 
@@ -115,6 +137,8 @@ rm -r ${NEW_NAME}.*tmp*
 ```shell
 # run the mapping jobs
 while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 modern "./run_map_modern.sh ${OLD_NAME} ${NEW_NAME}" ; done < modern.list
+while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 modern "./run_map_modern.sh ${OLD_NAME} ${NEW_NAME}" ; done < others_PE.list
 
 while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 ancient "./run_map_ancient.sh ${OLD_NAME} ${NEW_NAME}" ; done < ancient.list
+while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 modern "./run_map_modern.sh ${OLD_NAME} ${NEW_NAME}" ; done < others_SE.list
 ```
