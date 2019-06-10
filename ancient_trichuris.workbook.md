@@ -5,6 +5,11 @@ for i in *gz; do echo ${i%_???.fastq.gz}; done | sort | uniq  |  while read NAME
 ```
 
 ## trimming
+- trimming using AdapterRemoval, which seems to be used for a few different ancient DNA projects. I think it is because it trims and merges, which generally improves the mapping scores off some poor qual end of reads.
+- https://buildmedia.readthedocs.org/media/pdf/adapterremoval/latest/adapterremoval.pdf
+
+
+
 ```shell
 # PE - modern samples
 while read OLD_NAME NEW_NAME; do \
@@ -31,6 +36,8 @@ bsub.py --threads 4 20 adaptor_remove "./adapterremove_2.sh"
 
 
 ## script for mapping ancient samples
+The "modern" samples have been sequenced using PE reads whereas the "ancient" samples have been sequenced using SE reads. Need to map them a little differently. Below are two mapping scripts for each approach.
+
 ```shell
 #!/bin/bash
 # map SE reads
