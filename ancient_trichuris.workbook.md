@@ -12,7 +12,7 @@ WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
 
 ## Project setup
 ```shell
-mkdir 00_REF 01_RAW 02_MAPPING
+mkdir 00_SCRIPTS 01_REF 02_RAW 03_MAPPING
 ```
 
 
@@ -20,7 +20,7 @@ mkdir 00_REF 01_RAW 02_MAPPING
 - the reference is the unpublished Trichuris trichiura assembly
 
 ```shell
-cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/00_REF
+cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_REF
 
 # make a generic bwa index for mapping later on
 bwa index trichuris_trichiura.fa
@@ -31,10 +31,12 @@ samtools dict trichuris_trichiura.fa > trichuris_trichiura.dict
 
 
 ## get the raw data
-- I received the raw sequnecing data from Peter on a hard drive, and copied all to the lustre environment as is into the directory 01_RAW
+- I received the raw sequnecing data from Peter on a hard drive, and copied all to the lustre environment as is into the directory 02_RAW
 - want to collect all of the fastq files into one place, and then begin processing them
 
 ```shell
+cd ${WORKING_DIR}/02_RAW
+
 for i in *gz; do echo ${i%_???.fastq.gz}; done | sort | uniq  |  while read NAME; do cat ${NAME}* > ${NAME}.merged.fastq.gz; done &
 ```
 - this generated a total of 130 R1 files and 60 R2 files
@@ -58,6 +60,7 @@ for i in *gz; do echo ${i%_???.fastq.gz}; done | sort | uniq  |  while read NAME
 
 ### code
 ```shell
+cd ${WORKING_DIR}/02_RAW
 
 #!/bin/bash
 # adaptor remove PE - modern samples
@@ -85,12 +88,12 @@ NEW_NAME=${2}
 ### run the trimming
 ```shell
 # main samples
-while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_modern "./run_adapter_remove_PE.sh ${OLD_NAME} ${NEW_NAME}"; done < modern.list
-while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_ancient "./run_adapter_remove_SE.sh ${OLD_NAME} ${NEW_NAME}"; done < ancient.list
+while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_modern "${WORKING_DIR}/00_SCRIPTS/run_adapter_remove_PE.sh ${OLD_NAME} ${NEW_NAME}"; done < ${WORKING_DIR}/modern.sample_list
+while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_ancient "${WORKING_DIR}/00_SCRIPTS/run_adapter_remove_SE.sh ${OLD_NAME} ${NEW_NAME}"; done < ${WORKING_DIR}/ancient.sample_list
 
 # other samples
-while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_others_PE "./run_adapter_remove_PE.sh ${OLD_NAME} ${NEW_NAME}"; done < others_PE.list
-while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_others_SE "./run_adapter_remove_SE.sh ${OLD_NAME} ${NEW_NAME}"; done < others_SE.list
+while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_others_PE "${WORKING_DIR}/00_SCRIPTS/run_adapter_remove_PE.sh ${OLD_NAME} ${NEW_NAME}"; done < ${WORKING_DIR}/others_PE.sample_list
+while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_others_SE "${WORKING_DIR}/00_SCRIPTS/run_adapter_remove_SE.sh ${OLD_NAME} ${NEW_NAME}"; done < ${WORKING_DIR}/others_SE.sample_list
 
 
 ```
@@ -108,7 +111,7 @@ OLD_NAME=${1}
 NEW_NAME=${2}
 
 # map the SE reads
-bwa mem -t 4 -R $(echo "@RG\tRG:${NEW_NAME}\tID:${NEW_NAME}\tSM:${NEW_NAME}") -Y -M /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/00_REF/trichuris_trichiura.fa /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_RAW/${NEW_NAME}_SE.truncated |\
+bwa mem -t 4 -R $(echo "@RG\tRG:${NEW_NAME}\tID:${NEW_NAME}\tSM:${NEW_NAME}") -Y -M ${WORKING_DIR}/01_REF/trichuris_trichiura.fa ${WORKING_DIR}/02_RAW/${NEW_NAME}_SE.truncated |\
      samtools view --threads 4 -b - |\
      samtools sort --threads 4 -o ${NEW_NAME}.tmp.sort.SE.bam - ;
 
@@ -136,15 +139,15 @@ OLD_NAME=${1}
 NEW_NAME=${2}
 
 # map the PE reads
-bwa mem -t 4 -R $(echo "@RG\tRG:${NEW_NAME}\tID:${NEW_NAME}\tSM:${NEW_NAME}") -Y -M /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/00_REF/trichuris_trichiura.fa /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_RAW/${NEW_NAME}_PE.pair1.truncated /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_RAW/${NEW_NAME}_PE.pair2.truncated |\
+bwa mem -t 4 -R $(echo "@RG\tRG:${NEW_NAME}\tID:${NEW_NAME}\tSM:${NEW_NAME}") -Y -M ${WORKING_DIR}/01_REF/trichuris_trichiura.fa ${WORKING_DIR}/02_RAW/${NEW_NAME}_PE.pair1.truncated ${WORKING_DIR}/02_RAW/${NEW_NAME}_PE.pair2.truncated |\
      samtools view --threads 4 -b - |\
      samtools sort --threads 4 -o ${NEW_NAME}.tmp.sort.PE.bam - ;
 
 #merge SE reads that are either merged PE reads, or singletons after adapter filtering
-cat /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_RAW/${NEW_NAME}_PE.singleton.truncated /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_RAW/${NEW_NAME}_PE.collapsed.truncated /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_RAW/${NEW_NAME}_PE.collapsed > ${NEW_NAME}_SE.tmp.fastq ;
+cat ${WORKING_DIR}/02_RAW/${NEW_NAME}_PE.singleton.truncated ${WORKING_DIR}/02_RAW/${NEW_NAME}_PE.collapsed.truncated ${WORKING_DIR}/02_RAW/${NEW_NAME}_PE.collapsed > ${NEW_NAME}_SE.tmp.fastq ;
 
 # map SE reads
-bwa mem -t 4 -R $(echo "@RG\tRG:${NEW_NAME}\tID:${NEW_NAME}\tSM:${NEW_NAME}") -Y -M /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/00_REF/trichuris_trichiura.fa ${NEW_NAME}_SE.tmp.fastq | \
+bwa mem -t 4 -R $(echo "@RG\tRG:${NEW_NAME}\tID:${NEW_NAME}\tSM:${NEW_NAME}") -Y -M ${WORKING_DIR}/01_REF/trichuris_trichiura.fa ${NEW_NAME}_SE.tmp.fastq | \
      samtools view --threads 4 -b - |\
      samtools sort --threads 4 -o ${NEW_NAME}.tmp.sort.SE.bam - ;
 
@@ -169,11 +172,13 @@ rm -r ${NEW_NAME}.*tmp*
 
 
 ```shell
+cd ${WORKING_DIR}/03_MAPPING
+
 # run the mapping jobs for modern and ancient samples
-while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 modern "./run_map_modern.sh ${OLD_NAME} ${NEW_NAME}" ; done < modern.list
-while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 modern "./run_map_modern.sh ${OLD_NAME} ${NEW_NAME}" ; done < others_PE.list
+while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_modern "${WORKING_DIR}/00_SCRIPTS/run_map_modern_PE.sh ${OLD_NAME} ${NEW_NAME}" ; done < ${WORKING_DIR}/modern.sample_list
+while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_otherPE "${WORKING_DIR}/00_SCRIPTS/run_map_modern_PE.sh ${OLD_NAME} ${NEW_NAME}" ; done < ${WORKING_DIR}/others_PE.sample_list
 
 # run the mapping jobs for the control and other samples
-while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 ancient "./run_map_ancient.sh ${OLD_NAME} ${NEW_NAME}" ; done < ancient.list
-while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 modern "./run_map_modern.sh ${OLD_NAME} ${NEW_NAME}" ; done < others_SE.list
+while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_ancient "${WORKING_DIR}/00_SCRIPTS/run_map_ancient_SE.sh ${OLD_NAME} ${NEW_NAME}" ; done < ${WORKING_DIR}/ancient.sample_list
+while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_otherSE "${WORKING_DIR}/00_SCRIPTS/run_map_ancient_SE.sh ${OLD_NAME} ${NEW_NAME}" ; done < ${WORKING_DIR}/others_SE.sample_list
 ```
