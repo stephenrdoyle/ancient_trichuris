@@ -26,14 +26,22 @@ samtools dict trichuris_trichiura.fa > trichuris_trichiura.dict
 
 ## get the raw data
 - I received the raw sequnecing data from Peter on a hard drive, and copied all to the lustre environment as is into the directory 01_RAW
+- want to collect all of the fastq files into one place, and then begin processing them
 
 ```shell
 for i in *gz; do echo ${i%_???.fastq.gz}; done | sort | uniq  |  while read NAME; do cat ${NAME}* > ${NAME}.merged.fastq.gz; done &
 ```
+- this generated a total of 130 R1 files and 60 R2 files
+- the difference in number reflects the fact that the "modern" samples have been sequenced using PE reads whereas the "ancient" samples have been sequenced using SE reads. Will need to treat these a little differently later on.
+- there is also a difference in the number of samples with useable data (based on some sample informaiton spreadsheets from MS / PJ), and the total number
+--- some samples are controls
+--- some samples presumably didnt work, and so we excluded from the preliminary analyses
+--- some samples are duplicates, and so will need to be merged at some point too.
+
 
 ## trimming
 - trimming using AdapterRemoval, which seems to be used for a few different ancient DNA projects. I think it is because it trims and merges, which generally improves the mapping scores off some poor qual end of reads.
-- https://buildmedia.readthedocs.org/media/pdf/adapterremoval/latest/adapterremoval.pdf
+- Tool: https://buildmedia.readthedocs.org/media/pdf/adapterremoval/latest/adapterremoval.pdf
 
 
 
@@ -63,7 +71,7 @@ bsub.py --threads 4 20 adaptor_remove "./adapterremove_2.sh"
 
 
 ## script for mapping ancient samples
-The "modern" samples have been sequenced using PE reads whereas the "ancient" samples have been sequenced using SE reads. Need to map them a little differently. Below are two mapping scripts for each approach.
+Need to map them a little differently. Below are two mapping scripts for each approach.
 
 ```shell
 #!/bin/bash
