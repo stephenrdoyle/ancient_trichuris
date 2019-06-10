@@ -14,7 +14,7 @@ WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
 ```shell
 mkdir 00_SCRIPTS 01_REF 02_RAW 03_MAPPING
 ```
-
+---
 
 ## Reference
 - the reference is the unpublished Trichuris trichiura assembly
@@ -28,7 +28,7 @@ bwa index trichuris_trichiura.fa
 # make a generic dict file for SNP calling later on
 samtools dict trichuris_trichiura.fa > trichuris_trichiura.dict
 ```
-
+---
 
 ## get the raw data
 - I received the raw sequnecing data from Peter on a hard drive, and copied all to the lustre environment as is into the directory 02_RAW
@@ -45,14 +45,14 @@ for i in *gz; do echo ${i%_???.fastq.gz}; done | sort | uniq  |  while read NAME
      - some samples are controls
      - some samples presumably didnt work, and so we excluded from the preliminary analyses
      - some samples are duplicates, and so will need to be merged at some point too.
-
+---
 
 ## metadata
 - I have begun to curate the metadata, to get a better idea of what data is actually available, and to ensure that I have consistent informaiton for all samples.
 - The existing naming scheme is not very informative to me at least, and so will rename everything with a simple format
 - GoogleSheet:  https://docs.google.com/spreadsheets/d/1PiapiaZZw0g0i3lN0feXxqEVupvaAuOm0IViXnZPFqk/edit?usp=sharing
 
-
+---
 ## trimming
 - trimming using AdapterRemoval, which seems to be used for a few different ancient DNA projects. I think it is because it trims and merges, which generally improves the mapping scores off some poor qual end of reads.
 - Tool: https://buildmedia.readthedocs.org/media/pdf/adapterremoval/latest/adapterremoval.pdf
@@ -98,7 +98,7 @@ while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_others_SE
 
 ```
 
-
+---
 
 
 ## script for mapping ancient samples
@@ -129,10 +129,11 @@ samtools index -b ${NEW_NAME}.bam;
 
 # clean up unnecessary tmp files
 rm -r ${NEW_NAME}.*tmp*
-
+```
 
 
 # script for mapping modern samples
+```shell
 #!/bin/bash
 # map PE reads
 OLD_NAME=${1}
@@ -182,3 +183,5 @@ while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_otherPE "${WORKI
 while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_ancient "${WORKING_DIR}/00_SCRIPTS/run_map_ancient_SE.sh ${OLD_NAME} ${NEW_NAME}" ; done < ${WORKING_DIR}/ancient.sample_list
 while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_otherSE "${WORKING_DIR}/00_SCRIPTS/run_map_ancient_SE.sh ${OLD_NAME} ${NEW_NAME}" ; done < ${WORKING_DIR}/others_SE.sample_list
 ```
+
+---
