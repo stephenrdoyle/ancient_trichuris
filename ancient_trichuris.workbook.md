@@ -1,5 +1,32 @@
+## working directory
+```shell
+cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
+```
+
+
+## Project setup
+```shell
+mkdir 00_REF 01_RAW
+```
+
+
+## Reference
+- the reference is the unpublished Trichuris trichiura assembly
+
+```shell
+cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/00_REF
+
+# make a generic bwa index for mapping later on
+bwa index trichuris_trichiura.fa
+
+# make a generic dict file for SNP calling later on
+samtools dict trichuris_trichiura.fa > trichuris_trichiura.dict
+```
+
 
 ## get the raw data
+- I received the raw sequnecing data from Peter on a hard drive, and copied all to the lustre environment as is into the directory 01_RAW
+
 ```shell
 for i in *gz; do echo ${i%_???.fastq.gz}; done | sort | uniq  |  while read NAME; do cat ${NAME}* > ${NAME}.merged.fastq.gz; done &
 ```
