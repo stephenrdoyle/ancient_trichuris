@@ -1,3 +1,6 @@
+# Population genomics of modern and ancient Trichuris trichiura
+
+
 ## working directory
 ```shell
 cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
