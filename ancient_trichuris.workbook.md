@@ -5,12 +5,14 @@
 ## working directory
 ```shell
 cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
+WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
+
 ```
 
 
 ## Project setup
 ```shell
-mkdir 00_REF 01_RAW
+mkdir 00_REF 01_RAW 02_MAPPING
 ```
 
 
@@ -105,11 +107,24 @@ Need to map them a little differently. Below are two mapping scripts for each ap
 OLD_NAME=${1}
 NEW_NAME=${2}
 
-bwa mem -t 4 -R $(echo "@RG\tRG:${NEW_NAME}\tID:${NEW_NAME}\tSM:${NEW_NAME}") -Y -M /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/00_REF/trichuris_trichiura.fa ${NEW_NAME}_SE.truncated | samtools view --threads 4 -b - | samtools sort --threads 4 -o ${NEW_NAME}.tmp.sort.SE.bam - ;
+# map the SE reads
+bwa mem -t 4 -R $(echo "@RG\tRG:${NEW_NAME}\tID:${NEW_NAME}\tSM:${NEW_NAME}") -Y -M /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/00_REF/trichuris_trichiura.fa /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_RAW/${NEW_NAME}_SE.truncated |\
+     samtools view --threads 4 -b - |\
+     samtools sort --threads 4 -o ${NEW_NAME}.tmp.sort.SE.bam - ;
+
+# mark duplicate reads
 java -Xmx20g -jar /nfs/users/nfs_s/sd21/lustre118_link/software/picard-tools-2.5.0/picard.jar MarkDuplicates INPUT=${NEW_NAME}.tmp.sort.SE.bam OUTPUT=${NEW_NAME}.tmp2.bam METRICS_FILE=${NEW_NAME}.tmp.metrics TMP_DIR=$PWD/${NEW_NAME}.tmp;
+
+# generate mapping stats from unfilted bam
 samtools flagstat ${NEW_NAME}.tmp2.bam > ${NEW_NAME}.flagstat;
+
+# filter bam to only contain mapped reads
 samtools view --threads 4 -F 4 -b -o ${NEW_NAME}.bam ${NEW_NAME}.tmp2.bam;
+
+# index the filtered bam
 samtools index -b ${NEW_NAME}.bam;
+
+# clean up unnecessary tmp files
 rm -r ${NEW_NAME}.*tmp*
 
 
@@ -120,25 +135,45 @@ rm -r ${NEW_NAME}.*tmp*
 OLD_NAME=${1}
 NEW_NAME=${2}
 
-bwa mem -t 4 -R $(echo "@RG\tRG:${NEW_NAME}\tID:${NEW_NAME}\tSM:${NEW_NAME}") -Y -M /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/00_REF/trichuris_trichiura.fa ${NEW_NAME}_PE.pair1.truncated ${NEW_NAME}_PE.pair2.truncated | samtools view --threads 4 -b - | samtools sort --threads 4 -o ${NEW_NAME}.tmp.sort.PE.bam - ;
-#merge SE reads
-cat ${NEW_NAME}_PE.singleton.truncated ${NEW_NAME}_PE.collapsed.truncated ${NEW_NAME}_PE.collapsed > ${NEW_NAME}_SE.tmp.fastq ;
+# map the PE reads
+bwa mem -t 4 -R $(echo "@RG\tRG:${NEW_NAME}\tID:${NEW_NAME}\tSM:${NEW_NAME}") -Y -M /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/00_REF/trichuris_trichiura.fa /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_RAW/${NEW_NAME}_PE.pair1.truncated /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_RAW/${NEW_NAME}_PE.pair2.truncated |\
+     samtools view --threads 4 -b - |\
+     samtools sort --threads 4 -o ${NEW_NAME}.tmp.sort.PE.bam - ;
+
+#merge SE reads that are either merged PE reads, or singletons after adapter filtering
+cat /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_RAW/${NEW_NAME}_PE.singleton.truncated /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_RAW/${NEW_NAME}_PE.collapsed.truncated /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_RAW/${NEW_NAME}_PE.collapsed > ${NEW_NAME}_SE.tmp.fastq ;
+
 # map SE reads
-bwa mem -t 4 -R $(echo "@RG\tRG:${NEW_NAME}\tID:${NEW_NAME}\tSM:${NEW_NAME}") -Y -M /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/00_REF/trichuris_trichiura.fa ${NEW_NAME}_SE.tmp.fastq | samtools view --threads 4 -b - | samtools sort --threads 4 -o ${NEW_NAME}.tmp.sort.SE.bam - ;
+bwa mem -t 4 -R $(echo "@RG\tRG:${NEW_NAME}\tID:${NEW_NAME}\tSM:${NEW_NAME}") -Y -M /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/00_REF/trichuris_trichiura.fa ${NEW_NAME}_SE.tmp.fastq | \
+     samtools view --threads 4 -b - |\
+     samtools sort --threads 4 -o ${NEW_NAME}.tmp.sort.SE.bam - ;
+
+# merge PE and SE bams
 samtools merge ${NEW_NAME}.tmp.bam ${NEW_NAME}.tmp.sort.PE.bam ${NEW_NAME}.tmp.sort.SE.bam;
+
+# mark duplicate reads
 java -Xmx20g -jar /nfs/users/nfs_s/sd21/lustre118_link/software/picard-tools-2.5.0/picard.jar MarkDuplicates INPUT=${NEW_NAME}.tmp.bam OUTPUT=${NEW_NAME}.tmp2.bam METRICS_FILE=${NEW_NAME}.tmp.metrics TMP_DIR=$PWD/${NEW_NAME}.tmp;
+
+# generate mapping stats from unfilted bam
 samtools flagstat ${NEW_NAME}.tmp2.bam > ${NEW_NAME}.flagstat;
+
+# filter bam to only contain mapped reads
 samtools view --threads 4 -F 4 -b -o ${NEW_NAME}.bam ${NEW_NAME}.tmp2.bam;
+
+# index the filtered bam
 samtools index -b ${NEW_NAME}.bam;
+
+# clean up unnecessary tmp files
 rm -r ${NEW_NAME}.*tmp*
 ```
 
 
 ```shell
-# run the mapping jobs
+# run the mapping jobs for modern and ancient samples
 while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 modern "./run_map_modern.sh ${OLD_NAME} ${NEW_NAME}" ; done < modern.list
 while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 modern "./run_map_modern.sh ${OLD_NAME} ${NEW_NAME}" ; done < others_PE.list
 
+# run the mapping jobs for the control and other samples
 while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 ancient "./run_map_ancient.sh ${OLD_NAME} ${NEW_NAME}" ; done < ancient.list
 while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 modern "./run_map_modern.sh ${OLD_NAME} ${NEW_NAME}" ; done < others_SE.list
 ```
