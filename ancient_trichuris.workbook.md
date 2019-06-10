@@ -38,9 +38,9 @@ for i in *gz; do echo ${i%_???.fastq.gz}; done | sort | uniq  |  while read NAME
 - this generated a total of 130 R1 files and 60 R2 files
 - the difference in number reflects the fact that the "modern" samples have been sequenced using PE reads whereas the "ancient" samples have been sequenced using SE reads. Will need to treat these a little differently later on.
 - there is also a difference in the number of samples with useable data (based on some sample informaiton spreadsheets from MS / PJ), and the total number
-- - some samples are controls
-- - some samples presumably didnt work, and so we excluded from the preliminary analyses
-- - some samples are duplicates, and so will need to be merged at some point too.
+     - some samples are controls
+     - some samples presumably didnt work, and so we excluded from the preliminary analyses
+     - some samples are duplicates, and so will need to be merged at some point too.
 
 
 ## trimming
