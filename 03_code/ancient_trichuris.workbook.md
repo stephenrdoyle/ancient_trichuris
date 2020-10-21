@@ -200,7 +200,9 @@ mv CONTROL_* MAPPED_CONTROL
 
 multiqc *flagstat --title mapping
 ```
-[Mapping report](../04_analysis/mapping_multiqc_report.html) 
+[Mapping multiQC report](../04_analysis/mapping_multiqc_report.html)
+
+
 
 
 <!-- ```shell
