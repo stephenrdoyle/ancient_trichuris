@@ -197,6 +197,9 @@ cat AN_LTU_VIL_EN_001_SE.truncated AN_LTU_VIL_EN_002_SE.truncated > AN_LTU_VIL_E
 cat AN_NLD_KAM_EN_001_SE.truncated AN_NLD_KAM_EN_002_SE.truncated > AN_NLD_KAM_EN_0012_SE.truncated; rm AN_NLD_KAM_EN_001_SE.truncated AN_NLD_KAM_EN_002_SE.truncated
 cat AN_NLD_KAM_EN_003_SE.truncated AN_NLD_KAM_EN_004_SE.truncated > AN_NLD_KAM_EN_0034_SE.truncated; rm AN_NLD_KAM_EN_003_SE.truncated AN_NLD_KAM_EN_004_SE.truncated
 cat AN_NLD_ZWO_EN_001_SE.truncated AN_NLD_ZWO_NA_002_SE.truncated > AN_NLD_ZWO_EN_0012_SE.truncated; rm AN_NLD_ZWO_EN_001_SE.truncated AN_NLD_ZWO_NA_002_SE.truncated
+
+# make a new sample list to work from using new names
+ls -1 AN* | cut -c-18 > ../ancient.sample_list_v2
 ```
 
 
@@ -292,7 +295,7 @@ while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_modern "${WORKIN
 while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_otherPE "${WORKING_DIR}/00_SCRIPTS/run_map_modern_PE.sh ${OLD_NAME} ${NEW_NAME}" ; done < ${WORKING_DIR}/others_PE.sample_list
 
 # run the mapping jobs for the control and other samples
-while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_ancient "${WORKING_DIR}/00_SCRIPTS/run_map_ancient_SE.sh ${OLD_NAME} ${NEW_NAME}" ; done < ${WORKING_DIR}/ancient.sample_list
+#while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_ancient "${WORKING_DIR}/00_SCRIPTS/run_map_ancient_SE.sh ${OLD_NAME} ${NEW_NAME}" ; done < ${WORKING_DIR}/ancient.sample_list_v2
 while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_otherSE "${WORKING_DIR}/00_SCRIPTS/run_map_ancient_SE.sh ${OLD_NAME} ${NEW_NAME}" ; done < ${WORKING_DIR}/others_SE.sample_list
 
 mkdir MAPPED_OTHER
@@ -300,6 +303,11 @@ mv OTHER_M* MAPPED_OTHER
 
 mkdir MAPPED_CONTROL
 mv CONTROL_* MAPPED_CONTROL
+
+
+# rerun of ancient samples due to name change
+while read NEW_NAME; do bsub.py --threads 4 20 mapping_ancient "${WORKING_DIR}/00_SCRIPTS/run_map_ancient_SE.sh NULL ${NEW_NAME}" ; done < ${WORKING_DIR}/ancient.sample_list_v2
+
 
 
 multiqc *flagstat --title mapping
@@ -322,18 +330,24 @@ The mapping shows that there is variable mapping rates, and that for some sample
 ```bash
 # run kraken on the modern PE trimmed reads
 while read OLD_NAME NEW_NAME; do
-     bsub.py 10 kraken2 "kraken2 --db /lustre/scratch118/infgen/pathogen/pathpipe/kraken/minikraken_20190423/minikraken2_v1_8GB
-     --report ${WORKING_DIR}/02_RAW/${NEW_NAME}.kraken2report
-     --paired ${WORKING_DIR}/02_RAW/${NEW_NAME}_PE.pair1.truncated
+     bsub.py 10 kraken2 "kraken2 --db /lustre/scratch118/infgen/pathogen/pathpipe/kraken/minikraken_20190423/minikraken2_v1_8GB \
+     --report ${WORKING_DIR}/02_RAW/${NEW_NAME}.kraken2report \
+     --paired ${WORKING_DIR}/02_RAW/${NEW_NAME}_PE.pair1.truncated \
      ${WORKING_DIR}/02_RAW/${NEW_NAME}_PE.pair2.truncated";
 done < ${WORKING_DIR}/modern.sample_list
 
 # run kraken on the ancient SE trimmed reads
-while read OLD_NAME NEW_NAME; do
-     bsub.py 10 kraken2_SE "kraken2 --db /lustre/scratch118/infgen/pathogen/pathpipe/kraken/minikraken_20190423/minikraken2_v1_8GB
-     --report ${WORKING_DIR}/02_RAW/${NEW_NAME}.kraken2report
+# while read OLD_NAME NEW_NAME; do
+#      bsub.py 10 kraken2_SE "kraken2 --db /lustre/scratch118/infgen/pathogen/pathpipe/kraken/minikraken_20190423/minikraken2_v1_8GB
+#      --report ${WORKING_DIR}/02_RAW/${NEW_NAME}.kraken2report
+#      ${WORKING_DIR}/02_RAW/${NEW_NAME}_SE.truncated";
+# done < ${WORKING_DIR}/ancient.sample_list
+
+while read NEW_NAME; do
+     bsub.py 10 kraken2_SE "kraken2 --db /lustre/scratch118/infgen/pathogen/pathpipe/kraken/minikraken_20190423/minikraken2_v1_8GB \
+     --report ${WORKING_DIR}/02_RAW/${NEW_NAME}.kraken2report \
      ${WORKING_DIR}/02_RAW/${NEW_NAME}_SE.truncated";
-done < ${WORKING_DIR}/ancient.sample_list
+done < ${WORKING_DIR}/ancient.sample_list_v2
 
 # once the kraken runs have completed, run multiqc .
 multiqc *kraken2report --title kraken
@@ -356,13 +370,25 @@ multiqc *kraken2report --title kraken
 # To view deamination-derived damage patterns in a simple table, without separating CpG sites
 #samtools view AN_DNK_COG_EN_002.bam | python pmdtools.0.60.py --deamination
 
+# modern samples
 while read -r OLD_NAME NEW_NAME; do
 # To compute deamination-derived damage patterns separating CpG and non-CpG sites
 samtools view ${NEW_NAME}.bam | head -n 10000 | pmdtools --platypus --requirebaseq 30 > PMD_temp.txt ;
 
 R CMD BATCH ${WORKING_DIR}/00_SCRIPTS/plotPMD.R ;
 
-mv deamination_plot.png ${NEW_NAME}.deamination_plot.png ; done < <( cat ${WORKING_DIR}/modern.sample_list ${WORKING_DIR}/ancient.sample_list )
+mv deamination_plot.png ${NEW_NAME}.deamination_plot.png ; done < ${WORKING_DIR}/modern.sample_list
+
+# ancient samples
+while read -r NEW_NAME; do
+# To compute deamination-derived damage patterns separating CpG and non-CpG sites
+samtools view ${NEW_NAME}.bam | head -n 10000 | pmdtools --platypus --requirebaseq 30 > PMD_temp.txt ;
+
+R CMD BATCH ${WORKING_DIR}/00_SCRIPTS/plotPMD.R ;
+
+mv deamination_plot.png ${NEW_NAME}.deamination_plot.png ; done < ancient.sample_list_v2
+
+
 
 # once finished, move all the plots into a new directory
 mkdir ${WORKING_DIR}/04_ANALYSES/deamination && mv ${WORKING_DIR}/03_MAPPING/*deamination_plot.png ${WORKING_DIR}/04_ANALYSES/deamination
@@ -438,7 +464,12 @@ ggsave("deamination_plot.png", height=5, width=10)
 ```bash
 while read -r OLD_NAME NEW_NAME; do
      bsub.py 10 --threads 4 trim_bams "${WORKING_DIR}/00_SCRIPTS/run_trimreads_in_bam.sh ${NEW_NAME}";
-done < <( cat ${WORKING_DIR}/modern.sample_list ${WORKING_DIR}/ancient.sample_list )
+done < ${WORKING_DIR}/modern.sample_list
+
+while read -r NEW_NAME; do
+     bsub.py 10 --threads 4 trim_bams "${WORKING_DIR}/00_SCRIPTS/run_trimreads_in_bam.sh ${NEW_NAME}";
+done < ${WORKING_DIR}/ancient.sample_list_v2
+
 
 
 where "run_trimreads_in_bam.sh" is:
