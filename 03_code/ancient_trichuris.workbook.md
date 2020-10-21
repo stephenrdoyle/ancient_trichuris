@@ -2,6 +2,14 @@
 ## Background
 
 
+1. Reference
+2. Processing raw reads
+     - trimming
+     - kraken check
+3. mapping
+
+
+
 ## working directory
 ```shell
 cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
@@ -101,7 +109,7 @@ while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_others_SE
 ---
 
 
-## script for mapping ancient samples
+## mapping
 Need to map them a little differently. Below are two mapping scripts for each approach.
 
 ```shell
@@ -183,5 +191,45 @@ while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_otherPE "${WORKI
 while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_ancient "${WORKING_DIR}/00_SCRIPTS/run_map_ancient_SE.sh ${OLD_NAME} ${NEW_NAME}" ; done < ${WORKING_DIR}/ancient.sample_list
 while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_otherSE "${WORKING_DIR}/00_SCRIPTS/run_map_ancient_SE.sh ${OLD_NAME} ${NEW_NAME}" ; done < ${WORKING_DIR}/others_SE.sample_list
 ```
+
+```shell
+mkdir MAPPED_OTHER
+mv OTHER_M* MAPPED_OTHER
+
+mkdir MAPPED_CONTROL
+mv CONTROL_* MAPPED_CONTROL
+```
+
+
+```shell
+# generate bamstats
+for i in *.bam; do
+     bsub.py --queue small --threads 4 2 stats "samtools stats -r ../01_REF/trichuris_trichiura.fa --threads 4 ${i} \> ${i}.stats" ; done
+```
+
+
+### Kraken
+The mapping shows that there is variable mappig rates, and that for some samples there is very poor mapping. This is preticularly the case for the ancient samples, which is to be expected to a degree, given they are both old and collected from the environment. Kraken might give some insight into this, given they might be heavily contaminated with bacteria etc.
+
+```bash
+# run kraken on the modern PE trimmed reads
+while read OLD_NAME NEW_NAME; do
+     bsub.py 10 kraken2 "kraken2 --db /lustre/scratch118/infgen/pathogen/pathpipe/kraken/minikraken_20190423/minikraken2_v1_8GB
+     --report ${WORKING_DIR}/02_RAW/${NEW_NAME}.kraken2report
+     --paired ${WORKING_DIR}/02_RAW/${NEW_NAME}_PE.pair1.truncated
+     ${WORKING_DIR}/02_RAW/${NEW_NAME}_PE.pair2.truncated";
+done < ${WORKING_DIR}/modern.sample_list
+
+# run kraken on the ancient SE trimmed reads
+while read OLD_NAME NEW_NAME; do
+     bsub.py 10 kraken2_SE "kraken2 --db /lustre/scratch118/infgen/pathogen/pathpipe/kraken/minikraken_20190423/minikraken2_v1_8GB
+     --report ${WORKING_DIR}/02_RAW/${NEW_NAME}.kraken2report
+     ${WORKING_DIR}/02_RAW/${NEW_NAME}_SE.truncated";
+done < ${WORKING_DIR}/ancient.sample_list
+
+# once the kraken runs have completed, run multiqc .
+multiqc *kraken2report --title kraken
+```
+[Kraken MultiQC report](../04_analysis/kraken_multiqc_report.html)
 
 ---
