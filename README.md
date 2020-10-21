@@ -2,7 +2,7 @@
 
 This repository contains the analysis workflow for a project focused on modern and ancient sampling of *Trichuris trichuria* in collaboration with Peter Nejsum and Martin Soe.
 
-
+[Workbook](03_code/ancient_trichuris.workbook.md)
 
 
 
