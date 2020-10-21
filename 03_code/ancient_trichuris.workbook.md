@@ -181,7 +181,7 @@ NEW_NAME=${2}
 
 
 
-### merge duplicate ancient read sets
+### FIX: merge duplicate ancient read sets
 These seem to have been a single sample, extracted twice (or in two ways, perhaps two washes of a column) and sequenced individually. Given the low coverage, these should be merged (I think).
 ```bash
 # merge the duplicated set, renaming with a unique name that refers to both the originals, and then remove the originals
@@ -331,6 +331,8 @@ for i in *.bam; do
 The mapping shows that there is variable mapping rates, and that for some samples there is very poor mapping. This is particularly the case for the ancient samples, which is to be expected to a degree, given they are both old and collected from the environment. Kraken might give some insight into this, given they might be heavily contaminated with bacteria etc.
 
 ```bash
+module load kraken2/2.0.8_beta
+
 # run kraken on the modern PE trimmed reads
 while read OLD_NAME NEW_NAME; do
      bsub.py 10 kraken2 "kraken2 --db /lustre/scratch118/infgen/pathogen/pathpipe/kraken/minikraken_20190423/minikraken2_v1_8GB \
@@ -347,7 +349,7 @@ done < ${WORKING_DIR}/modern.sample_list
 # done < ${WORKING_DIR}/ancient.sample_list
 
 while read NEW_NAME; do
-     bsub.py 10 kraken2_SE "kraken2 --db /lustre/scratch118/infgen/pathogen/pathpipe/kraken/minikraken_20190423/minikraken2_v1_8GB \
+     bsub.py 5 kraken2_SE "kraken2 --db /lustre/scratch118/infgen/pathogen/pathpipe/kraken/minikraken_20190423/minikraken2_v1_8GB \
      --report ${WORKING_DIR}/02_RAW/${NEW_NAME}.kraken2report \
      ${WORKING_DIR}/02_RAW/${NEW_NAME}_SE.truncated";
 done < ${WORKING_DIR}/ancient.sample_list_v2
