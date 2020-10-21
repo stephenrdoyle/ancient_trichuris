@@ -1,15 +1,68 @@
 # Population genomics of modern and ancient Trichuris trichiura
+
+## Contents
+
+1. Background
+2. Reference
+3. Processing raw reads
+     - trimming
+4. mapping
+     - kraken check of raw reads post mapping
+5. QC
+     - deamination damage
+     - trim bams to correct for damage
+
+
+
+***
 ## Background
 
 
-1. Reference
-2. Processing raw reads
-     - trimming
-3. mapping
-     - kraken check of raw reads post mapping
+### Sampling (from martins slides - need to check this against samples i have)
+- Modern genomes  from human hosts (49)
+     - Human worm isolates (35)
+          - Uganda (12), China (7), Ecuador (8), Honduras (8)
+     - Human egg isolates (14)
+          - Cameroon (5), Ethiopia (4), Tanzania (5)
+
+- Modern genomes  from non-human hosts (7)
+     - Worm isolates (7)
+          - Baboon – Denmark (2), Colobus - Spain (2), Leaf-Monkey – China (3)
+
+- Ancient samples (19 samples from 10 sites)
+     - 4-500 BC: Qala’at al-Bahrain (1) –  in analysis
+     - 300 BC: Tollundmanden, DK (1) – in analysis
+     - 1000 AD: Viborg, DK (2) – 2x Mito + 0,01x/0,16x NG
+     - 1350 AD : Kampen, Netherlands (2) – 2x Mito + 1,8x/4,7x NG
+     - 1350-1400 AD: Odense, DK (4) – in analysis
+     - 1500-1600 AD: Zwolle, Netherlands (1) – Mito + 2,3x NG
+     - 1550-1580 AD: Vilnius, Lithuania (1) – in analysis
+     - 1600-1800 AD: Gl. Strand, CPH, DK (4) – in analysis
+     - 1680 AD: Kultorvet, CPH, DK (2) – in analysis
+     - 1700 AD: Adelgade, CPH, DK (1) – in analysis
+
+
+### Overarching questions
+- describe new genome?
+- how similar are worms from humans and animals?
+- how similar are modern and ancient samples?
+- global dispersal timing?
+- evidence of selection around beta-tubulin?>
+     - might apply to some modern samples
+
+
+### Downstream analyses
+- PCA
+     - whole genomes modern
+     - mtDNA genomes all
+- faststructure
+- treemix
+- MSMC
 
 
 
+
+***
 ## working directory
 ```shell
 cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
@@ -366,48 +419,4 @@ samtools index ${NAME}.trimmed.bam
 
 
 
-## Sampling map
-- Modern genomes  from human hosts (49)
-     - Human worm isolates (35)
-          - Uganda (12), China (7), Ecuador (8), Honduras (8)
-     - Human egg isolates (14)
-          - Cameroon (5), Ethiopia (4), Tanzania (5)
-
-- Modern genomes  from non-human hosts (7)
-     - Worm isolates (7)
-          - Baboon – Denmark (2), Colobus - Spain (2), Leaf-Monkey – China (3)
-
-- Ancient samples (19 samples from 10 sites)
-     - 4-500 BC: Qala’at al-Bahrain (1) –  in analysis
-     - 300 BC: Tollundmanden, DK (1) – in analysis
-     - 1000 AD: Viborg, DK (2) – 2x Mito + 0,01x/0,16x NG
-     - 1350 AD : Kampen, Netherlands (2) – 2x Mito + 1,8x/4,7x NG
-     - 1350-1400 AD: Odense, DK (4) – in analysis
-     - 1500-1600 AD: Zwolle, Netherlands (1) – Mito + 2,3x NG
-     - 1550-1580 AD: Vilnius, Lithuania (1) – in analysis
-     - 1600-1800 AD: Gl. Strand, CPH, DK (4) – in analysis
-     - 1680 AD: Kultorvet, CPH, DK (2) – in analysis
-     - 1700 AD: Adelgade, CPH, DK (1) – in analysis
-
-
-
-
-
-## Overarching questions
-- describe new genome?
-- how similar are worms from humans and animals?
-- how similar are modern and ancient samples?
-- global dispersal timing?
-- evidence of selection around beta-tubulin?>
-     - might apply to some modern samples
-
-
-
-## Downstream analyses
-- PCA
-     - whole genomes modern
-     - mtDNA genomes all
-- faststructure
-- treemix
-- MSMC
 ---
