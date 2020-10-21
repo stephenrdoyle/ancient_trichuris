@@ -141,7 +141,7 @@ rm -r ${NEW_NAME}.*tmp*
 ```
 
 
-# script for mapping modern samples - these are all paired-end (PE) reads 
+### script for mapping modern samples - these are all paired-end (PE) reads 
 ```shell
 #!/bin/bash
 # map PE reads
