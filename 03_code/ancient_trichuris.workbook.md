@@ -137,33 +137,8 @@ pf data --type lane --id 6929_8 -l ./ --filetype fastq
 - trimming using AdapterRemoval, which seems to be used for a few different ancient DNA projects. I think it is because it trims and merges, which generally improves the mapping scores off some poor qual end of reads.
 - Tool: https://buildmedia.readthedocs.org/media/pdf/adapterremoval/latest/adapterremoval.pdf
 
-
-### code
-```shell
+```bash
 cd ${WORKING_DIR}/02_RAW
-
-#!/bin/bash
-# adaptor remove PE - modern samples
-OLD_NAME=${1}
-NEW_NAME=${2}
-
-/nfs/users/nfs_s/sd21/lustre118_link/software/ANCIENT/adapterremoval/bin/AdapterRemoval \
---file1 ${OLD_NAME}_R1.merged.fastq.gz \
---file2 ${OLD_NAME}_R2.merged.fastq.gz \
---basename ${NEW_NAME}_PE \
---trimns --trimqualities --collapse --threads 4
-
-
-#!/bin/bash
-# single end - ancient samples
-OLD_NAME=${1}
-NEW_NAME=${2}
-
-/nfs/users/nfs_s/sd21/lustre118_link/software/ANCIENT/adapterremoval/bin/AdapterRemoval \
---file1 ${OLD_NAME}_R1.merged.fastq.gz \
---basename ${NEW_NAME}_SE \
---trimns --trimqualities --threads 4
-```
 
 ### run the trimming
 ```shell
@@ -175,13 +150,41 @@ while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_ancient "
 while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_others_PE "${WORKING_DIR}/00_SCRIPTS/run_adapter_remove_PE.sh ${OLD_NAME} ${NEW_NAME}"; done < ${WORKING_DIR}/others_PE.sample_list
 while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_others_SE "${WORKING_DIR}/00_SCRIPTS/run_adapter_remove_SE.sh ${OLD_NAME} ${NEW_NAME}"; done < ${WORKING_DIR}/others_SE.sample_list
 
+```
+where "run_adapter_remove_PE.sh" is:
+```bash
+#!/bin/bash
+# adaptor remove PE - modern samples
+OLD_NAME=${1}
+NEW_NAME=${2}
+
+/nfs/users/nfs_s/sd21/lustre118_link/software/ANCIENT/adapterremoval/bin/AdapterRemoval \
+--file1 ${OLD_NAME}_R1.merged.fastq.gz \
+--file2 ${OLD_NAME}_R2.merged.fastq.gz \
+--basename ${NEW_NAME}_PE \
+--trimns --trimqualities --collapse --threads 4
 
 ```
+
+and where "run_adapter_remove_SE.sh" is:
+```bash
+#!/bin/bash
+# single end - ancient samples
+OLD_NAME=${1}
+NEW_NAME=${2}
+
+/nfs/users/nfs_s/sd21/lustre118_link/software/ANCIENT/adapterremoval/bin/AdapterRemoval \
+--file1 ${OLD_NAME}_R1.merged.fastq.gz \
+--basename ${NEW_NAME}_SE \
+--trimns --trimqualities --threads 4
+```
+
+
 
 ### merge duplicate ancient read sets
 These seem to have been a single sample, extracted twice (or in two ways, perhaps two washes of a column) and sequenced individually. Given the low coverage, these should be merged (I think).
 ```bash
-# merge the duplicated set, renaming with a unique name that refers to both the originals, and then remove the originals 
+# merge the duplicated set, renaming with a unique name that refers to both the originals, and then remove the originals
 cat AN_DNK_COG_EN_001_SE.truncated AN_DNK_COG_EN_002_SE.truncated > AN_DNK_COG_EN_0012_SE.truncated; rm AN_DNK_COG_EN_001_SE.truncated AN_DNK_COG_EN_002_SE.truncated
 cat AN_DNK_COG_EN_003_SE.truncated AN_DNK_COG_EN_004_SE.truncated > AN_DNK_COG_EN_0034_SE.truncated; rm AN_DNK_COG_EN_003_SE.truncated AN_DNK_COG_EN_004_SE.truncated
 cat AN_DNK_COG_EN_005_SE.truncated AN_DNK_COG_EN_006_SE.truncated > AN_DNK_COG_EN_0056_SE.truncated; rm AN_DNK_COG_EN_005_SE.truncated AN_DNK_COG_EN_006_SE.truncated
