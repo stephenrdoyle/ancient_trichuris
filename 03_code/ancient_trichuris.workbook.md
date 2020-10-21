@@ -30,16 +30,16 @@
           - Baboon – Denmark (2), Colobus - Spain (2), Leaf-Monkey – China (3)
 
 - Ancient samples (19 samples from 10 sites)
-     - 4-500 BC: Qala’at al-Bahrain (1) –  in analysis
-     - 300 BC: Tollundmanden, DK (1) – in analysis
-     - 1000 AD: Viborg, DK (2) – 2x Mito + 0,01x/0,16x NG
-     - 1350 AD : Kampen, Netherlands (2) – 2x Mito + 1,8x/4,7x NG
-     - 1350-1400 AD: Odense, DK (4) – in analysis
-     - 1500-1600 AD: Zwolle, Netherlands (1) – Mito + 2,3x NG
-     - 1550-1580 AD: Vilnius, Lithuania (1) – in analysis
-     - 1600-1800 AD: Gl. Strand, CPH, DK (4) – in analysis
-     - 1680 AD: Kultorvet, CPH, DK (2) – in analysis
-     - 1700 AD: Adelgade, CPH, DK (1) – in analysis
+     - 4-500 BC: Qala’at al-Bahrain (1) –  in analysis - **can't find this data**
+     - 300 BC: Tollundmanden, DK (1) – in analysis - **can't find this data**
+     - 1000 AD: Viborg, DK (2) – 2x Mito + 0,01x/0,16x NG **can't find this data**
+     - 1350 AD : Kampen, Netherlands (2) – 2x Mito + 1,8x/4,7x NG - yes
+     - 1350-1400 AD: Odense, DK (4) – in analysis - yes
+     - 1500-1600 AD: Zwolle, Netherlands (1) – Mito + 2,3x NG - yes
+     - 1550-1580 AD: Vilnius, Lithuania (1) – in analysis - yes
+     - 1600-1800 AD: Gl. Strand, CPH, DK (4) – in analysis - yes
+     - 1680 AD: Kultorvet, CPH, DK (2) – in analysis - yes
+     - 1700 AD: Adelgade, CPH, DK (1) – in analysis - yes
 
 
 ### Overarching questions
@@ -58,6 +58,11 @@
 - faststructure
 - treemix
 - MSMC
+- genome-wide patterns of genetic diversity
+     - Pi
+     - Tajimas D
+     - Fst
+
 
 
 
@@ -172,6 +177,37 @@ while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_others_SE
 
 
 ```
+
+### merge duplicate ancient read sets
+These seem to have been a single sample, extracted twice (or in two ways, perhaps two washes of a column) and sequenced individually. Given the low coverage, these should be merged (I think).
+```bash
+# merge the  
+cat AN_DNK_COG_EN_001_SE.truncated AN_DNK_COG_EN_002_SE.truncated > AN_DNK_COG_EN_0012_SE.truncated; rm AN_DNK_COG_EN_001_SE.truncated AN_DNK_COG_EN_002_SE.truncated
+cat AN_DNK_COG_EN_003_SE.truncated AN_DNK_COG_EN_004_SE.truncated > AN_DNK_COG_EN_0034_SE.truncated; rm AN_DNK_COG_EN_003_SE.truncated AN_DNK_COG_EN_004_SE.truncated
+cat AN_DNK_COG_EN_005_SE.truncated AN_DNK_COG_EN_006_SE.truncated > AN_DNK_COG_EN_0056_SE.truncated; rm AN_DNK_COG_EN_005_SE.truncated AN_DNK_COG_EN_006_SE.truncated
+cat AN_DNK_COG_EN_007_SE.truncated AN_DNK_COG_EN_008_SE.truncated > AN_DNK_COG_EN_0078_SE.truncated; rm AN_DNK_COG_EN_007_SE.truncated AN_DNK_COG_EN_008_SE.truncated
+cat AN_DNK_COK_EN_001_SE.truncated AN_DNK_COK_EN_002_SE.truncated > AN_DNK_COK_EN_0012_SE.truncated; rm AN_DNK_COK_EN_001_SE.truncated AN_DNK_COK_EN_002_SE.truncated
+cat AN_DNK_COK_EN_003_SE.truncated AN_DNK_COK_EN_004_SE.truncated > AN_DNK_COK_EN_0034_SE.truncated; rm AN_DNK_COK_EN_003_SE.truncated AN_DNK_COK_EN_004_SE.truncated
+cat AN_DNK_OBM_EN_001_SE.truncated AN_DNK_OBM_EN_002_SE.truncated > AN_DNK_OBM_EN_0012_SE.truncated; rm AN_DNK_OBM_EN_001_SE.truncated AN_DNK_OBM_EN_002_SE.truncated
+cat AN_DNK_OBM_EN_003_SE.truncated AN_DNK_OBM_EN_004_SE.truncated > AN_DNK_OBM_EN_0034_SE.truncated; rm AN_DNK_OBM_EN_003_SE.truncated AN_DNK_OBM_EN_004_SE.truncated
+cat AN_DNK_OBM_EN_005_SE.truncated AN_DNK_OBM_EN_006_SE.truncated > AN_DNK_OBM_EN_0056_SE.truncated; rm AN_DNK_OBM_EN_005_SE.truncated AN_DNK_OBM_EN_006_SE.truncated
+cat AN_DNK_OBM_EN_007_SE.truncated AN_DNK_OBM_EN_008_SE.truncated > AN_DNK_OBM_EN_0078_SE.truncated; rm AN_DNK_OBM_EN_007_SE.truncated AN_DNK_OBM_EN_008_SE.truncated
+cat AN_DNK_OBM_EN_009_SE.truncated AN_DNK_OBM_EN_010_SE.truncated > AN_DNK_OBM_EN_0910_SE.truncated; rm AN_DNK_OBM_EN_009_SE.truncated AN_DNK_OBM_EN_010_SE.truncated
+cat AN_LTU_VIL_EN_001_SE.truncated AN_LTU_VIL_EN_002_SE.truncated > AN_LTU_VIL_EN_0012_SE.truncated; rm AN_LTU_VIL_EN_001_SE.truncated AN_LTU_VIL_EN_002_SE.truncated
+cat AN_NLD_KAM_EN_001_SE.truncated AN_NLD_KAM_EN_002_SE.truncated > AN_NLD_KAM_EN_0012_SE.truncated; rm AN_NLD_KAM_EN_001_SE.truncated AN_NLD_KAM_EN_002_SE.truncated
+cat AN_NLD_KAM_EN_003_SE.truncated AN_NLD_KAM_EN_004_SE.truncated > AN_NLD_KAM_EN_0034_SE.truncated; rm AN_NLD_KAM_EN_003_SE.truncated AN_NLD_KAM_EN_004_SE.truncated
+cat AN_NLD_ZWO_EN_001_SE.truncated AN_NLD_ZWO_NA_002_SE.truncated > AN_NLD_ZWO_EN_0012_SE.truncated; rm AN_NLD_ZWO_EN_001_SE.truncated AN_NLD_ZWO_NA_002_SE.truncated
+```
+
+
+```bash
+# clean up
+rm *discarded *settings
+
+```
+
+
+
 
 ---
 
@@ -392,15 +428,24 @@ ggsave("deamination_plot.png", height=5, width=10)
 ![AN_DNK_COG_EN_002.deamination_plot](../04_analysis/AN_DNK_COG_EN_002.deamination_plot.png)
 
 - clearly a CT bias in the first two bases of the ancient sample, that doesnt seem to be present in the modern sample
+     - not present in all samples I dont think, but in quite a few that I have checked.
 - simplest solution is to remove the first two bases from all reads before moving forward
 
 
 
 
-### trim
+### trim bases from reads in bam
+```bash
+while read -r OLD_NAME NEW_NAME; do
+     bsub.py 10 --threads 4 trim_bams "${WORKING_DIR}/00_SCRIPTS/run_trimreads_in_bam.sh ${NEW_NAME}";
+done < <( cat ${WORKING_DIR}/modern.sample_list ${WORKING_DIR}/ancient.sample_list )
+
+
+where "run_trimreads_in_bam.sh" is:
 ```
-#--- Can be used for UDGhalf protocols to clip off -n bases of each read
 #!/bin/bash
+
+# trim left and right bases from reads in a bam.
 
 NAME=${1}
 
@@ -408,8 +453,8 @@ bamutils_clip_left=2
 bamutils_clip_right=2
 
 
-bamUtils trimBam ${NAME}.pmd.bam tmp.bam -L ${bamutils_clip_left} -R ${bamutils_clip_right}
-samtools sort -@ ${cpus} tmp.bam -o ${NAME}.trimmed.bam
+bamUtils trimBam ${NAME}.bam tmp.bam -L ${bamutils_clip_left} -R ${bamutils_clip_right}
+samtools sort -@ 4 tmp.bam -o ${NAME}.trimmed.bam
 samtools index ${NAME}.trimmed.bam
 ```
 
