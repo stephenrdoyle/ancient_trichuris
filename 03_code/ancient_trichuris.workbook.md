@@ -141,7 +141,7 @@ rm -r ${NEW_NAME}.*tmp*
 ```
 
 
-### script for mapping modern samples - these are all paired-end (PE) reads 
+### script for mapping modern samples - these are all paired-end (PE) reads
 ```shell
 #!/bin/bash
 # map PE reads
@@ -213,8 +213,8 @@ for i in *.bam; do
 ``` -->
 
 
-### Kraken
-The mapping shows that there is variable mappig rates, and that for some samples there is very poor mapping. This is preticularly the case for the ancient samples, which is to be expected to a degree, given they are both old and collected from the environment. Kraken might give some insight into this, given they might be heavily contaminated with bacteria etc.
+### Kraken of trimmed reads post mapping
+The mapping shows that there is variable mapping rates, and that for some samples there is very poor mapping. This is preticularly the case for the ancient samples, which is to be expected to a degree, given they are both old and collected from the environment. Kraken might give some insight into this, given they might be heavily contaminated with bacteria etc.
 
 ```bash
 # run kraken on the modern PE trimmed reads
