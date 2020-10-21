@@ -190,22 +190,24 @@ while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_otherPE "${WORKI
 # run the mapping jobs for the control and other samples
 while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_ancient "${WORKING_DIR}/00_SCRIPTS/run_map_ancient_SE.sh ${OLD_NAME} ${NEW_NAME}" ; done < ${WORKING_DIR}/ancient.sample_list
 while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_otherSE "${WORKING_DIR}/00_SCRIPTS/run_map_ancient_SE.sh ${OLD_NAME} ${NEW_NAME}" ; done < ${WORKING_DIR}/others_SE.sample_list
-```
 
-```shell
 mkdir MAPPED_OTHER
 mv OTHER_M* MAPPED_OTHER
 
 mkdir MAPPED_CONTROL
 mv CONTROL_* MAPPED_CONTROL
+
+
+multiqc *flagstat --title mapping
 ```
+[Mapping report](../04_analysis/mapping_multiqc_report.html) 
 
 
-```shell
+<!-- ```shell
 # generate bamstats
 for i in *.bam; do
-     bsub.py --queue small --threads 4 2 stats "samtools stats -r ../01_REF/trichuris_trichiura.fa --threads 4 ${i} \> ${i}.stats" ; done
-```
+     bsub.py --queue small --threads 4 2 stats "samtools stats -r ${WORKING_DIR}/01_REF/trichuris_trichiura.fa --threads 4 ${i} \> ${i}.stats" ; done
+``` -->
 
 
 ### Kraken
@@ -231,5 +233,14 @@ done < ${WORKING_DIR}/ancient.sample_list
 multiqc *kraken2report --title kraken
 ```
 [Kraken MultiQC report](../04_analysis/kraken_multiqc_report.html)
+- the output shows most samples have a small degree of contamination based on hits in the kraken database
+- non have a lot of contamination, whcih is slightly surprising
+- this alone doesnt explain the mismapping, althoguh, it simply may mean that the putative contaminant is not present in the kraken databased
+- could try
+     - blasting some sequences
+     - mapping to other reference - are there other nematodes in these environmental ancient samples?
+
+
+
 
 ---
