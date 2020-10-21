@@ -246,4 +246,108 @@ multiqc *kraken2report --title kraken
 
 
 
+
+
+## Damage
+```bash
+# To view deamination-derived damage patterns in a simple table, without separating CpG sites
+#samtools view AN_DNK_COG_EN_002.bam | python pmdtools.0.60.py --deamination
+
+while read -r OLD_NAME NEW_NAME; do
+# To compute deamination-derived damage patterns separating CpG and non-CpG sites
+samtools view ${NEW_NAME}.bam | head -n 50000 | pmdtools --platypus --requirebaseq 30 > PMD_temp.txt ;
+
+R CMD BATCH ${WORKING_DIR}/00_SCRIPTS/plotPMD.R ;
+
+mv deamination_plot.png ${NEW_NAME}.deamination_plot.png ; done < <( cat ${WORKING_DIR}/modern.sample_list ${WORKING_DIR}/ancient.sample_list )
+```
+- clearly a CT bias in the first two bases of the ancient sample, that doesnt seem to be present in the modern sample
+- simplest solution is to remove the first two bases from all reads before moving forward
+
+
+where "plotPMD.R" is:
+```R
+# script to make deamination frequency plots from PMD data
+
+# load libraries
+require(reshape2)
+require(patchwork)
+require(ggplot2)
+require(dplyr)
+require(tidyverse)
+
+# read data from PMD, example "samtools view AN_DNK_COG_EN_002.bam | head -n 100000 | pmdtools --platypus --requirebaseq 30 > PMD_temp.txt"
+data <- read.table("PMD_temp.txt", header=T)
+
+data2 <- melt(data,id.vars="z")
+
+# split into 5' and 3' datasets, and add some variables for plotting
+data_5 <- data2 %>%
+     filter(str_detect(variable, "5")) %>%
+     mutate(base_substitution = if_else(str_detect(variable,"GA"), "G-to-A", if_else(str_detect(variable,"CT"), "C-to-T", "other"))) %>%
+     mutate(CpG_state = if_else(str_detect(variable,"CpG"), "CpG", "non-CpG"))
+
+data_3 <- data2 %>%
+     filter(str_detect(variable, "3")) %>%
+     mutate(base_substitution = if_else(str_detect(variable,"GA"), "G-to-A", if_else(str_detect(variable,"CT"), "C-to-T", "other"))) %>%
+     mutate(CpG_state = if_else(str_detect(variable,"CpG"), "CpG", "non-CpG"))
+
+# make plots
+plot_5 <- ggplot(data_5, aes(z, value, colour = base_substitution, group = variable, linetype = CpG_state, size = base_substitution)) +
+     geom_line() +
+     ylim(0, 0.2) +
+     theme_bw() +
+     scale_colour_manual(values = c("other" = "black", "C-to-T" = "red" , "G-to-A" = "blue"))+
+     scale_size_manual(values=c("other" = 0.5, "C-to-T" = 1 , "G-to-A" = 1))+
+     scale_linetype_manual(values = c("CpG" = "dashed", "non-CpG" = "solid")) +
+     labs(x="Distance from 5' end of sequence read", y="Mismatch frequency")
+
+plot_3 <- ggplot(data_3, aes(z, value, colour = base_substitution, group = variable, linetype = CpG_state, size = base_substitution)) +
+     geom_line() +
+     ylim(0, 0.2) +
+     theme_bw() +
+     scale_colour_manual(values = c("other" = "black", "C-to-T" = "red" , "G-to-A" = "blue"))+
+     scale_size_manual(values=c("other" = 0.5, "C-to-T" = 1 , "G-to-A" = 1))+
+     scale_linetype_manual(values = c("CpG" = "dashed", "non-CpG" = "solid")) +
+     labs(x="Distance from 3' end of sequence read", y="Mismatch frequency")
+
+# bring it together
+plot_5 + plot_3 + plot_layout(guides = "collect")
+
+# save it
+ggsave("deamination_plot.png")
+
+```
+
+```bash
+
+R CMD BATCH ${WORKING_DIR}/00_SCRIPTS/plotPMD.R
+
+mv deamination_plot.png ${NAME}.deamination_plot.png
+```
+
+
+
+
+
+
+
+
+### trim
+```
+#--- Can be used for UDGhalf protocols to clip off -n bases of each read
+#!/bin/bash
+
+NAME=${1}
+
+bamutils_clip_left=2
+bamutils_clip_right=2
+
+
+bamUtils trimBam ${NAME}.pmd.bam tmp.bam -L ${bamutils_clip_left} -R ${bamutils_clip_right}
+samtools sort -@ ${cpus} tmp.bam -o ${NAME}.trimmed.bam
+samtools index ${NAME}.trimmed.bam
+```
+
+
 ---
