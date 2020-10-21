@@ -5,8 +5,8 @@
 1. Reference
 2. Processing raw reads
      - trimming
-     - kraken check
 3. mapping
+     - kraken check of raw reads post mapping
 
 
 
@@ -112,6 +112,7 @@ while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_others_SE
 ## mapping
 Need to map them a little differently. Below are two mapping scripts for each approach.
 
+### script for mapping the ancient samples - these are all single end (SE) reads
 ```shell
 #!/bin/bash
 # map SE reads
@@ -140,7 +141,7 @@ rm -r ${NEW_NAME}.*tmp*
 ```
 
 
-# script for mapping modern samples
+# script for mapping modern samples - these are all paired-end (PE) reads 
 ```shell
 #!/bin/bash
 # map PE reads
@@ -200,7 +201,7 @@ mv CONTROL_* MAPPED_CONTROL
 
 multiqc *flagstat --title mapping
 ```
-[Mapping multiQC report](../04_analysis/mapping_multiqc_report.html)
+[Mapping MultiQC report](../04_analysis/mapping_multiqc_report.html)
 
 
 
