@@ -26,6 +26,16 @@ mkdir 00_SCRIPTS 01_REF 02_RAW 03_MAPPING
 
 ## Reference
 - the reference is the unpublished Trichuris trichiura assembly
+- genome stats
+     - sum = 80573711, n = 113, ave = 713041.69, largest = 29164577
+     - N50 = 11299416, n = 2
+     - N60 = 9167782, n = 3
+     - N70 = 5100676, n = 5
+     - N80 = 2017282, n = 7
+     - N90 = 643749, n = 14
+     - N100 = 1808, n = 113
+     - N_count = 250000
+     - Gaps = 25
 
 ```shell
 cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_REF
@@ -46,6 +56,10 @@ samtools dict trichuris_trichiura.fa > trichuris_trichiura.dict
 cd ${WORKING_DIR}/02_RAW
 
 for i in *gz; do echo ${i%_???.fastq.gz}; done | sort | uniq  |  while read NAME; do cat ${NAME}* > ${NAME}.merged.fastq.gz; done &
+
+# sample used in the Foth 2014 genome paper
+pf data --type lane --id 6929_8 -l ./ --filetype fastq
+
 ```
 - this generated a total of 130 R1 files and 60 R2 files
 - the difference in number reflects the fact that the "modern" samples have been sequenced using PE reads whereas the "ancient" samples have been sequenced using SE reads. Will need to treat these a little differently later on.
@@ -214,7 +228,7 @@ for i in *.bam; do
 
 
 ### Kraken of trimmed reads post mapping
-The mapping shows that there is variable mapping rates, and that for some samples there is very poor mapping. This is preticularly the case for the ancient samples, which is to be expected to a degree, given they are both old and collected from the environment. Kraken might give some insight into this, given they might be heavily contaminated with bacteria etc.
+The mapping shows that there is variable mapping rates, and that for some samples there is very poor mapping. This is particularly the case for the ancient samples, which is to be expected to a degree, given they are both old and collected from the environment. Kraken might give some insight into this, given they might be heavily contaminated with bacteria etc.
 
 ```bash
 # run kraken on the modern PE trimmed reads
@@ -320,15 +334,12 @@ ggsave("deamination_plot.png", height=5, width=10)
 ```
 
 - Example of a modern sample  
-[]()
+[MN_CHN_GUA_HS_001.deamination_plot](../04_analysis/MN_CHN_GUA_HS_001.deamination_plot.png)
 - Example of a ancient sample  
 [AN_DNK_COG_EN_001.deamination_plot](../04_analysis/AN_DNK_COG_EN_001.deamination_plot.png)
 
 - clearly a CT bias in the first two bases of the ancient sample, that doesnt seem to be present in the modern sample
 - simplest solution is to remove the first two bases from all reads before moving forward
-
-
-
 
 
 
@@ -383,6 +394,7 @@ samtools index ${NAME}.trimmed.bam
 
 
 ## Overarching questions
+- describe new genome?
 - how similar are worms from humans and animals?
 - how similar are modern and ancient samples?
 - global dispersal timing?
