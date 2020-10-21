@@ -386,9 +386,9 @@ ggsave("deamination_plot.png", height=5, width=10)
 
 ```
 
-- Example of a modern sample  
+- Example of a modern sample (MN_CHN_GUA_HS_001) 
 ![MN_CHN_GUA_HS_001.deamination_plot](../04_analysis/MN_CHN_GUA_HS_001.deamination_plot.png)
-- Example of a ancient sample  
+- Example of a ancient sample (AN_DNK_COG_EN_001)  
 ![AN_DNK_COG_EN_001.deamination_plot](../04_analysis/AN_DNK_COG_EN_001.deamination_plot.png)
 
 - clearly a CT bias in the first two bases of the ancient sample, that doesnt seem to be present in the modern sample
