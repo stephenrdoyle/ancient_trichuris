@@ -2,7 +2,13 @@
 
 This repository contains the analysis workflow for a project focused on modern and ancient sampling of *Trichuris trichuria* in collaboration with Peter Nejsum and Martin Soe.
 
-[Workbook](03_code/ancient_trichuris.workbook.md)
+This analysis extends that of Martin Soe, who had been working toward a manuscript entitled:
+
+"Exploring globally distributed ancient and modern whole genomes of the human whipworm, Trichuris trichiura"
+M.J. Søe, M. Sikora, P. Nejsum, M.E. Allentoft, M. Betson, I. Merkyte, K. Randsborg, K. Haase, J.T. Christensen, O. Nielsen, M.M. Hald, P. Ilsøe, P. Cooper, L. Peng, X-Q. Zhu, R. Habraken, J. Surin, A. Sanchez, G.A.F. Sandoval, C. Cutillas?, D. Modry, B. Levecke,, B.L. Fredensborg, E. Willerslev, K.H. Kjær, C.M.O. Kapel
+
+
+Current analyses: [Workbook](03_code/ancient_trichuris.workbook.md)
 
 
 
