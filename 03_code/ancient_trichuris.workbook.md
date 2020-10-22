@@ -503,12 +503,9 @@ samtools index ${NAME}.trimmed.bam
 
 
 
-### World sampling map
-
+## World sampling map
+Given it is a "global diversity" study, worth having a world map with sampling sites, distinction between ancient and modern samples, and the fact that some some from humans, animals, and the environment (ancient).
 ```R
-
-
-
 # load libraries
 library(ggplot2)
 library(dplyr)
