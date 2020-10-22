@@ -529,9 +529,9 @@ ggplot() +
   geom_text_repel(data = data, aes(x = LONG, y = LAT, label = paste0(COUNTRY," (",REGION,")"))) +
   theme_void() +
   ylim(-55,85) +
-  labs(colour="")
+  labs(colour="", shape="")
 
-ggsave("worldmap_samplingsites.png", height=5, width=10)
+ggsave("worldmap_samplingsites.png", height=5, width=12)
 ```
 ![worldmap_samplingsites](../04_analysis/worldmap_samplingsites.png)
 
