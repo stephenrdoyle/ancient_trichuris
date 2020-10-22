@@ -506,6 +506,8 @@ samtools index ${NAME}.trimmed.bam
 ## World sampling map
 Given it is a "global diversity" study, worth having a world map with sampling sites, distinction between ancient and modern samples, and the fact that some some from humans, animals, and the environment (ancient).
 ```R
+setwd("/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/MAP")
+
 # load libraries
 library(ggplot2)
 library(dplyr)
@@ -523,12 +525,14 @@ data <- read.table("map_metadata.txt", header=T, sep="\t")
 ggplot() +
   geom_polygon(data = world_map, aes(x = world_map$long, y = world_map$lat, group = world_map$group), fill="grey90") +
   geom_point(data = data, aes(x = LONG, y = LAT, colour = SAMPLE_AGE, shape = SAMPLE_LOCATION), size=3) +
-  geom_text_repel(data = data, aes(x = LONG, y = LAT, label = paste0(COUNTRY," (",REGION,")"))) +
+  geom_text_repel(data = data, aes(x = LONG, y = LAT, label = paste0(COUNTRY," (",REGION,"); n = ", SAMPLE_N)), size=3) +        
   theme_void() +
   ylim(-55,85) +
   labs(colour="", shape="")
 
+# save it
 ggsave("worldmap_samplingsites.png", height=5, width=12)
+#ggsave("worldmap_samplingsites.pdf", height=5, width=12)
 ```
 ![worldmap_samplingsites](../04_analysis/worldmap_samplingsites.png)
 
