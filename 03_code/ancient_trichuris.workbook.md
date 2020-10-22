@@ -8,9 +8,12 @@
      - trimming
 4. mapping
      - kraken check of raw reads post mapping
-5. QC
      - deamination damage
      - trim bams to correct for damage
+5. Variant calling
+     - Step 1
+     - Step 2
+     - Step 3
 
 
 
@@ -623,7 +626,7 @@ bsub.py --queue hugemem --threads 30 200 merge_vcfs "./${i}"; done
 
 
 ### Step 3. Split merged GVCF into individual sequences, and then genotype to generate a VCF
-```
+```bash 
 # split each chromosome up into separate jobs, and run genotyping on each individually.   
 n=1
 while read SEQUENCE; do
