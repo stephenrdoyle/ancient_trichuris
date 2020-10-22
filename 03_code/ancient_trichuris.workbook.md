@@ -475,7 +475,7 @@ while read -r NEW_NAME; do
      bsub.py 10 --threads 4 trim_bams "${WORKING_DIR}/00_SCRIPTS/run_trimreads_in_bam.sh ${NEW_NAME}";
 done < ${WORKING_DIR}/ancient.sample_list_v2
 
-
+```
 
 where "run_trimreads_in_bam.sh" is:
 ```
