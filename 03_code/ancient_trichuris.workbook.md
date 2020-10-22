@@ -47,9 +47,16 @@
 
 ### Overarching questions
 - describe new genome?
-- how similar are worms from humans and animals?
-- how similar are modern and ancient samples?
-- global dispersal timing?
+- global population structure
+     - PCA (nuclear / mtDNA)
+     - structure
+     - dispersal - MSMC (difference in popn size between human and animals?)
+- admixture
+     - from ancient to modern
+     - from humans to animals
+          - treemix / admixture / D-statistics
+- genome-wide evidence of selection
+
 - evidence of selection around beta-tubulin?>
      - might apply to some modern samples
 
@@ -516,7 +523,7 @@ rm ${NAME}.tmp.bam
 ```bash
 # load gatk
 module load gatk/4.1.4.1
-
+module load common-apps/htslib/1.9.229
 ```
 ### Step 1. make GVCFs per sample
 ```bash
@@ -527,14 +534,13 @@ cd ${WORKING_DIR}/04_VARIANTS/GVCFS
 # create bam list using full path to bams - this allows bams to be anywhere
 ls ${WORKING_DIR}/03_MAPPING/*.trimmed.bam > ${WORKING_DIR}/04_VARIANTS/bam.list   
 
-BAM_LIST=${WORKING_DIR}/04_VARIANTS/bam.list.test
+BAM_LIST=${WORKING_DIR}/04_VARIANTS/bam.list
 REFERENCE=${WORKING_DIR}/01_REF/trichuris_trichiura.fa
 
 # make a sequences list to allow splitting jobs per scaffold/contig
 grep ">" ${WORKING_DIR}/01_REF/trichuris_trichiura.fa | sed -e 's/>//g' > ${WORKING_DIR}/04_VARIANTS/sequences.list
 
 ulimit -c unlimited
-#/software/pathogen/external/apps/usr/local/gatk-4.0.3.0/gatk-package-4.0.3.0-local.jar
 
 # make jobs
 while read BAM; do \
@@ -557,7 +563,10 @@ while read BAM; do \
 
 	echo -e "--output ${PWD}/${SAMPLE}_GATK_HC_GVCF/${SAMPLE}.gvcf.gz; tabix -p vcf ${PWD}/${SAMPLE}_GATK_HC_GVCF/${SAMPLE}.gvcf.gz" >> ${SAMPLE}_GATK_HC_GVCF/run_gather_${SAMPLE}_gvcf;
 
-	echo -e "rm ${PWD}/${SAMPLE}_GATK_HC_GVCF/*.tmp.* && mv ${PWD}/${SAMPLE}_GATK_HC_GVCF/*.[oe] ${SAMPLE}_GATK_HC_GVCF/LOGFILES && cd ${PWD} && mv ${PWD}/${SAMPLE}_GATK_HC_GVCF ${PWD}/${SAMPLE}_GATK_HC_GVCF_complete" > ${SAMPLE}_GATK_HC_GVCF/run_clean_${SAMPLE};
+	echo -e "rm ${PWD}/${SAMPLE}_GATK_HC_GVCF/*.tmp.* && \\
+          mv ${PWD}/${SAMPLE}_GATK_HC_GVCF/*.[oe] ${PWD}/${SAMPLE}_GATK_HC_GVCF/LOGFILES && \\
+          cd ${PWD} && \\
+          mv ${PWD}/${SAMPLE}_GATK_HC_GVCF ${PWD}/${SAMPLE}_GATK_HC_GVCF_complete" > ${SAMPLE}_GATK_HC_GVCF/run_clean_${SAMPLE};
 
 	chmod a+x ${SAMPLE}_GATK_HC_GVCF/run_*
 
@@ -566,7 +575,7 @@ while read BAM; do \
 	ID="U$(date +%s)"
 
 	#submit job array to call variants put scaffold / contig
-	bsub -q long -R'span[hosts=1] select[mem>15000] rusage[mem=15000]' -n 6 -M15000 -J GATK_HC_${ID}_[1-$JOBS]%100 -e ${SAMPLE}_GATK_HC_GVCF/GATK_HC_${ID}_[1-$JOBS].e -o ${SAMPLE}_GATK_HC_GVCF/GATK_HC_${ID}_[1-$JOBS].o "./${SAMPLE}_GATK_HC_GVCF/run_hc_${SAMPLE}.*job_\$LSB_JOBINDEX"
+	bsub -q long -R'span[hosts=1] select[mem>15000] rusage[mem=15000]' -n 6 -M15000 -J GATK_HC_${ID}_[1-${JOBS}]%100 -e ${SAMPLE}_GATK_HC_GVCF/GATK_HC_${ID}_[1-${JOBS}].e -o ${SAMPLE}_GATK_HC_GVCF/GATK_HC_${ID}_[1-${JOBS}].o "./${SAMPLE}_GATK_HC_GVCF/run_hc_${SAMPLE}.*job_\$LSB_JOBINDEX"
 
 	#submit job to gather gvcfs into a single, per sample gvcf
 	bsub -q normal -w "done(GATK_HC_${ID}_[1-$JOBS])" -R'span[hosts=1] select[mem>500] rusage[mem=500]' -n 1 -M500 -J GATK_HC_${ID}_gather_gvcfs -e ${SAMPLE}_GATK_HC_GVCF/GATK_HC_${ID}_gather_gvcfs.e -o ${SAMPLE}_GATK_HC_GVCF/GATK_HC_${ID}_gather_gvcfs.o "./${SAMPLE}_GATK_HC_GVCF/run_gather_${SAMPLE}_gvcf"
@@ -626,7 +635,7 @@ bsub.py --queue hugemem --threads 30 200 merge_vcfs "./${i}"; done
 
 
 ### Step 3. Split merged GVCF into individual sequences, and then genotype to generate a VCF
-```bash 
+```bash
 # split each chromosome up into separate jobs, and run genotyping on each individually.   
 n=1
 while read SEQUENCE; do
