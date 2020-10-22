@@ -500,4 +500,39 @@ samtools index ${NAME}.trimmed.bam
 
 
 
+
+
+
+### World sampling map
+
+```R
+
+
+
+# load libraries
+library(ggplot2)
+library(dplyr)
+require(maps)
+require(viridis)
+library(ggrepel)
+
+# load world data
+world_map <- map_data("world")
+
+# load metadata
+data <- read.table("map_metadata.txt", header=T, sep="\t")
+
+# make a map
+ggplot() +
+  geom_polygon(data = world_map, aes(x = world_map$long, y = world_map$lat, group = world_map$group), fill="grey90") +
+  geom_point(data = data, aes(x = LONG, y = LAT, colour = SAMPLE_AGE, shape = SAMPLE_LOCATION), size=3) +
+  geom_text_repel(data = data, aes(x = LONG, y = LAT, label = paste0(COUNTRY," (",REGION,")"))) +
+  theme_void() +
+  ylim(-55,85) +
+  labs(colour="")
+
+ggsave("worldmap_samplingsites.png", height=5, width=10)
+```
+![worldmap_samplingsites](../04_analysis/worldmap_samplingsites.png)
+
 ---
