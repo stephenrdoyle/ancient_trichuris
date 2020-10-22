@@ -52,12 +52,18 @@
 
 
 ### Downstream analyses
-- PCA
-     - whole genomes modern
-     - mtDNA genomes all
-- faststructure
-- treemix
-- MSMC
+- relatedness
+     - PCA https://speciationgenomics.github.io/pca/
+          - whole genomes modern
+          - mtDNA genomes all
+     - faststructure
+- admixture
+     - treemix
+          - tutorial: https://speciationgenomics.github.io/Treemix/
+     - admixtools https://github.com/uqrmaie1/admixtools
+          - D statistics
+- population history
+     - MSMC
 - genome-wide patterns of genetic diversity
      - Pi
      - Tajimas D
@@ -466,13 +472,16 @@ ggsave("deamination_plot.png", height=5, width=10)
 
 
 ### trim bases from reads in bam
+Using "bamUtils trimBam" to remove the 5' and 3' 2 bp from mapped reads
 ```bash
+# trim modern samples
 while read -r OLD_NAME NEW_NAME; do
-     bsub.py 10 --threads 4 trim_bams "${WORKING_DIR}/00_SCRIPTS/run_trimreads_in_bam.sh ${NEW_NAME}";
+     bsub.py 5 --threads 4 trim_bams "${WORKING_DIR}/00_SCRIPTS/run_trimreads_in_bam.sh ${NEW_NAME}";
 done < ${WORKING_DIR}/modern.sample_list
 
+# trim ancient samples
 while read -r NEW_NAME; do
-     bsub.py 10 --threads 4 trim_bams "${WORKING_DIR}/00_SCRIPTS/run_trimreads_in_bam.sh ${NEW_NAME}";
+     bsub.py 5 --threads 4 trim_bams "${WORKING_DIR}/00_SCRIPTS/run_trimreads_in_bam.sh ${NEW_NAME}";
 done < ${WORKING_DIR}/ancient.sample_list_v2
 
 ```
@@ -488,18 +497,159 @@ NAME=${1}
 bamutils_clip_left=2
 bamutils_clip_right=2
 
-
-bamUtils trimBam ${NAME}.bam tmp.bam -L ${bamutils_clip_left} -R ${bamutils_clip_right}
-samtools sort -@ 4 tmp.bam -o ${NAME}.trimmed.bam
+bamUtils trimBam ${NAME}.bam ${NAME}.tmp.bam -L ${bamutils_clip_left} -R ${bamutils_clip_right}
+samtools sort -@ 4 ${NAME}.tmp.bam -o ${NAME}.trimmed.bam
 samtools index ${NAME}.trimmed.bam
+rm ${NAME}.tmp.bam
+
+```
+
+
+
+## SNP calling
+- Using GATK haplotypecaller to call SNPs
+- First pass QC: --min-base-quality-score 20 --minimum-mapping-quality 30
+- scripts below split jobs by sample and by sequence, generating GVCFs, and then once done, merging them back together again. It does this by generating small jobs submitted in arrays to perform tasks in parallel, greatly speeding up the overall job time.
+```bash
+# load gatk
+module load gatk/4.1.4.1
+
+```
+### Step 1. make GVCFs per sample
+```bash
+
+mkdir ${WORKING_DIR}/04_VARIANTS/GVCFS
+cd ${WORKING_DIR}/04_VARIANTS/GVCFS
+
+# create bam list using full path to bams - this allows bams to be anywhere
+ls ${WORKING_DIR}/03_MAPPING/*.trimmed.bam > ${WORKING_DIR}/04_VARIANTS/bam.list   
+
+BAM_LIST=${WORKING_DIR}/04_VARIANTS/bam.list.test
+REFERENCE=${WORKING_DIR}/01_REF/trichuris_trichiura.fa
+
+# make a sequences list to allow splitting jobs per scaffold/contig
+grep ">" ${WORKING_DIR}/01_REF/trichuris_trichiura.fa | sed -e 's/>//g' > ${WORKING_DIR}/04_VARIANTS/sequences.list
+
+ulimit -c unlimited
+#/software/pathogen/external/apps/usr/local/gatk-4.0.3.0/gatk-package-4.0.3.0-local.jar
+
+# make jobs
+while read BAM; do \
+	n=1
+	SAMPLE=$( echo ${BAM} | awk -F '/' '{print $NF}' | sed -e 's/.trimmed.bam//g' )  
+	mkdir ${SAMPLE}_GATK_HC_GVCF
+	mkdir ${SAMPLE}_GATK_HC_GVCF/LOGFILES
+	echo "gatk GatherVcfsCloud \\" > ${SAMPLE}_GATK_HC_GVCF/run_gather_${SAMPLE}_gvcf
+	while read SEQUENCE; do
+	echo -e "gatk HaplotypeCaller \\
+          --input ${BAM} \\
+          --output ${SAMPLE}_GATK_HC_GVCF/${n}.${SAMPLE}.${SEQUENCE}.tmp.gvcf.gz \\
+          --reference ${REFERENCE} \\
+          --intervals ${SEQUENCE} \\
+          --annotation DepthPerAlleleBySample --annotation Coverage --annotation ExcessHet --annotation FisherStrand --annotation MappingQualityRankSumTest --annotation RMSMappingQuality \\
+          --min-base-quality-score 20 --minimum-mapping-quality 30 \\
+          --emit-ref-confidence GVCF " > ${SAMPLE}_GATK_HC_GVCF/run_hc_${SAMPLE}.${SEQUENCE}.tmp.job_${n};
+	echo -e "--input ${PWD}/${SAMPLE}_GATK_HC_GVCF/${n}.${SAMPLE}.${SEQUENCE}.tmp.gvcf.gz \\" >> ${SAMPLE}_GATK_HC_GVCF/run_gather_${SAMPLE}_gvcf;
+	let "n+=1"; done < ${WORKING_DIR}/04_VARIANTS/sequences.list;
+
+	echo -e "--output ${PWD}/${SAMPLE}_GATK_HC_GVCF/${SAMPLE}.gvcf.gz; tabix -p vcf ${PWD}/${SAMPLE}_GATK_HC_GVCF/${SAMPLE}.gvcf.gz" >> ${SAMPLE}_GATK_HC_GVCF/run_gather_${SAMPLE}_gvcf;
+
+	echo -e "rm ${PWD}/${SAMPLE}_GATK_HC_GVCF/*.tmp.* && mv ${PWD}/${SAMPLE}_GATK_HC_GVCF/*.[oe] ${SAMPLE}_GATK_HC_GVCF/LOGFILES && cd ${PWD} && mv ${PWD}/${SAMPLE}_GATK_HC_GVCF ${PWD}/${SAMPLE}_GATK_HC_GVCF_complete" > ${SAMPLE}_GATK_HC_GVCF/run_clean_${SAMPLE};
+
+	chmod a+x ${SAMPLE}_GATK_HC_GVCF/run_*
+
+	# setup job conditions
+	JOBS=$( ls -1 ${SAMPLE}_GATK_HC_GVCF/run_hc_* | wc -l )
+	ID="U$(date +%s)"
+
+	#submit job array to call variants put scaffold / contig
+	bsub -q long -R'span[hosts=1] select[mem>15000] rusage[mem=15000]' -n 6 -M15000 -J GATK_HC_${ID}_[1-$JOBS]%100 -e ${SAMPLE}_GATK_HC_GVCF/GATK_HC_${ID}_[1-$JOBS].e -o ${SAMPLE}_GATK_HC_GVCF/GATK_HC_${ID}_[1-$JOBS].o "./${SAMPLE}_GATK_HC_GVCF/run_hc_${SAMPLE}.*job_\$LSB_JOBINDEX"
+
+	#submit job to gather gvcfs into a single, per sample gvcf
+	bsub -q normal -w "done(GATK_HC_${ID}_[1-$JOBS])" -R'span[hosts=1] select[mem>500] rusage[mem=500]' -n 1 -M500 -J GATK_HC_${ID}_gather_gvcfs -e ${SAMPLE}_GATK_HC_GVCF/GATK_HC_${ID}_gather_gvcfs.e -o ${SAMPLE}_GATK_HC_GVCF/GATK_HC_${ID}_gather_gvcfs.o "./${SAMPLE}_GATK_HC_GVCF/run_gather_${SAMPLE}_gvcf"
+
+	# clean up
+	bsub -q normal -w "done(GATK_HC_${ID}_gather_gvcfs)" -R'span[hosts=1] select[mem>500] rusage[mem=500]' -n 1 -M500 -J GATK_HC_${ID}_clean -e ${SAMPLE}_GATK_HC_GVCF/GATK_HC_${ID}_clean.e -o ${SAMPLE}_GATK_HC_GVCF/GATK_HC_${ID}_clean.o "./${SAMPLE}_GATK_HC_GVCF/run_clean_${SAMPLE}"
+
+	sleep 1
+done < ${BAM_LIST}
+```
+### Step 2. Gather the GVCFs to generate a merged GVCF
+```bash
+#echo "gatk-4.0.3.0 GatherVcfsCloud \\" > run_gather_${SAMPLE}_gvcf
+#echo -e "--input ${SAMPLE}_GATK_HC_GVCF/${n}.${SAMPLE}.${SEQUENCE}.g.vcf.tmp \\" >> run_gather_${SAMPLE}_gvcf
+#
+# echo -e "--output ${SAMPLE}.g.vcf" >> run_gather_${SAMPLE}_gvcf
+# chmod a+x run_gather_${SAMPLE}_gvcf
+
+mkdir ${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED
+cd ${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED
+
+ls -1 ../GATK_HC/*complete/*gz > gvcf.list
+
+GVCF_LIST=${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED/gvcf.list
+REFEERENCE=${WORKING_DIR}/01_REF/trichuris_trichiura.fa
+
+# echo -e "java -Xmx15G -jar /software/pathogen/external/apps/usr/local/gatk-4.0.3.0/gatk-package-4.0.3.0-local.jar CombineGVCFs -R ${REFERENCE} \\" > run_merge_gvcfs
+# while read SAMPLE; do
+# echo -e "--variant ${SAMPLE} \\" >> run_merge_gvcfs;
+#    done < ${GVCF_LIST}
+#    echo -e "--output cohort.g.vcf.gz" >> run_merge_gvcfs
+
+# chmod a+x run_merge_gvcfs
+# bsub.py --queue hugemem --threads 30 200 merge_vcfs "./run_merge_gvcfs"
+# threads make a big difference, even thoguh they are not a parameter in the tool
+
+
+# make a sequences list to allow splitting jobs per scaffold/contig
+grep ">" ${WORKING_DIR}/01_REF/trichuris_trichiura.fa | sed -e 's/>//g' > ${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED/sequences.list
+
+n=1
+while read SEQUENCE; do
+echo -e "gatk CombineGVCFs -R ${REFERENCE} --intervals ${SEQUENCE} \\" > ${n}.run_merge_gvcfs_${SEQUENCE}
+while read SAMPLE; do
+echo -e "--variant ${SAMPLE} \\" >> ${n}.run_merge_gvcfs_${SEQUENCE};
+   done < ${GVCF_LIST}
+   echo -e "--output ${SEQUENCE}.cohort.g.vcf.gz" >> ${n}.run_merge_gvcfs_${SEQUENCE};
+   let "n+=1"; done < sequences.list
+
+chmod a+x *run_merge_gvcfs*
+
+for i in *run_merge_gvcfs*; do
+bsub.py --queue hugemem --threads 30 200 merge_vcfs "./${i}"; done
 ```
 
 
 
 
+### Step 3. Split merged GVCF into individual sequences, and then genotype to generate a VCF
+```
+# split each chromosome up into separate jobs, and run genotyping on each individually.   
+n=1
+while read SEQUENCE; do
+echo -e "gatk GenotypeGVCFs \
+-R ${REFERENCE} \
+-V ${SEQUENCE}.cohort.g.vcf.gz \
+--intervals ${SEQUENCE} \
+--annotation DepthPerAlleleBySample --annotation Coverage --annotation ExcessHet --annotation FisherStrand --annotation MappingQualityRankSumTest --annotation RMSMappingQuality \
+--min-base-quality-score 20 --minimum-mapping-quality 30 \
+-O ${n}.${SEQUENCE}.cohort.vcf.gz" > run_hc_genotype.${SEQUENCE}.tmp.job_${n};
+let "n+=1"; done < sequences.list
 
+chmod a+x run_hc_genotype*
 
+mkdir LOGFILES
 
+	# setup job conditions
+	JOBS=$( ls -1 run_hc_* | wc -l )
+	ID="U$(date +%s)"
+
+# ln -s /lustre/scratch118/infgen/team133/sd21/hc/GENOME/POPULATION_DIVERSITY/MAPPING/cohort.g.vcf.gz
+# ln -s /lustre/scratch118/infgen/team133/sd21/hc/GENOME/POPULATION_DIVERSITY/MAPPING/cohort.g.vcf.gz.tbi
+
+bsub -q yesterday -R'span[hosts=1] select[mem>20000] rusage[mem=20000]' -n 6 -M20000 -J GATK_HC_GENOTYPE_${ID}_[1-$JOBS] -e LOGFILES/GATK_HC_GENOTYPE_${ID}_[1-$JOBS].e -o LOGFILES/GATK_HC_GENOTYPE_${ID}_[1-$JOBS].o "./run_hc_*\$LSB_JOBINDEX"
+
+```
 
 
 
@@ -528,7 +678,7 @@ ggplot() +
   geom_text_repel(data = data, aes(x = LONG, y = LAT, label = paste0(COUNTRY," (",REGION,"); n = ", SAMPLE_N)), size=3) +        
   theme_void() +
   ylim(-55,85) +
-  labs(colour="", shape="")
+  labs(title="A", colour="", shape="")
 
 # save it
 ggsave("worldmap_samplingsites.png", height=5, width=12)
