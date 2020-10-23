@@ -47,7 +47,9 @@
 
 ### Overarching questions
 - describe new genome?
+     - basic assembly stats
 - global population structure
+     - worldmap
      - PCA (nuclear / mtDNA)
      - structure
      - dispersal - MSMC (difference in popn size between human and animals?)
@@ -55,9 +57,14 @@
      - from ancient to modern
      - from humans to animals
           - treemix / admixture / D-statistics
-- genome-wide evidence of selection
+- genome-wide diversity
+     - similar to oncho popgen paper
+          - nucleotide diversity (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5512550/; Fig2)
+               - human vs animals (nucleotide div, Tajimas D)
+               - Fst (human vs animal)
+               - Fst (two clades of human Tt)
 
-- evidence of selection around beta-tubulin?>
+- evidence of selection around beta-tubulin?
      - might apply to some modern samples
 
 
@@ -73,7 +80,7 @@
      - admixtools https://github.com/uqrmaie1/admixtools
           - D statistics
 - population history
-     - MSMC
+     - MSMC / SMC++ (https://github.com/popgenmethods/smcpp)
 - genome-wide patterns of genetic diversity
      - Pi
      - Tajimas D
@@ -523,6 +530,8 @@ rm ${NAME}.tmp.bam
 ```bash
 # load gatk
 module load gatk/4.1.4.1
+
+# also need htslib for tabix
 module load common-apps/htslib/1.9.229
 ```
 ### Step 1. make GVCFs per sample
@@ -588,34 +597,21 @@ done < ${BAM_LIST}
 ```
 ### Step 2. Gather the GVCFs to generate a merged GVCF
 ```bash
-#echo "gatk-4.0.3.0 GatherVcfsCloud \\" > run_gather_${SAMPLE}_gvcf
-#echo -e "--input ${SAMPLE}_GATK_HC_GVCF/${n}.${SAMPLE}.${SEQUENCE}.g.vcf.tmp \\" >> run_gather_${SAMPLE}_gvcf
-#
-# echo -e "--output ${SAMPLE}.g.vcf" >> run_gather_${SAMPLE}_gvcf
-# chmod a+x run_gather_${SAMPLE}_gvcf
-
+# make a new directory for the merged GVCFS
 mkdir ${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED
 cd ${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED
 
-ls -1 ../GATK_HC/*complete/*gz > gvcf.list
+# make a list of GVCFs to be merged
+ls -1 ${WORKING_DIR}/04_VARIANTS/GVCFS/*complete/*gz > gvcf.list
 
 GVCF_LIST=${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED/gvcf.list
 REFEERENCE=${WORKING_DIR}/01_REF/trichuris_trichiura.fa
-
-# echo -e "java -Xmx15G -jar /software/pathogen/external/apps/usr/local/gatk-4.0.3.0/gatk-package-4.0.3.0-local.jar CombineGVCFs -R ${REFERENCE} \\" > run_merge_gvcfs
-# while read SAMPLE; do
-# echo -e "--variant ${SAMPLE} \\" >> run_merge_gvcfs;
-#    done < ${GVCF_LIST}
-#    echo -e "--output cohort.g.vcf.gz" >> run_merge_gvcfs
-
-# chmod a+x run_merge_gvcfs
-# bsub.py --queue hugemem --threads 30 200 merge_vcfs "./run_merge_gvcfs"
-# threads make a big difference, even thoguh they are not a parameter in the tool
 
 
 # make a sequences list to allow splitting jobs per scaffold/contig
 grep ">" ${WORKING_DIR}/01_REF/trichuris_trichiura.fa | sed -e 's/>//g' > ${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED/sequences.list
 
+# setup the run files
 n=1
 while read SEQUENCE; do
 echo -e "gatk CombineGVCFs -R ${REFERENCE} --intervals ${SEQUENCE} \\" > ${n}.run_merge_gvcfs_${SEQUENCE}
@@ -623,12 +619,14 @@ while read SAMPLE; do
 echo -e "--variant ${SAMPLE} \\" >> ${n}.run_merge_gvcfs_${SEQUENCE};
    done < ${GVCF_LIST}
    echo -e "--output ${SEQUENCE}.cohort.g.vcf.gz" >> ${n}.run_merge_gvcfs_${SEQUENCE};
-   let "n+=1"; done < sequences.list
+   let "n+=1"; done < ${WORKING_DIR}/04_VARIANTS/sequences.list
 
 chmod a+x *run_merge_gvcfs*
 
+# run
 for i in *run_merge_gvcfs*; do
 bsub.py --queue hugemem --threads 30 200 merge_vcfs "./${i}"; done
+# threads make a big difference, even thoguh they are not a parameter in the tool
 ```
 
 
@@ -646,19 +644,17 @@ echo -e "gatk GenotypeGVCFs \
 --annotation DepthPerAlleleBySample --annotation Coverage --annotation ExcessHet --annotation FisherStrand --annotation MappingQualityRankSumTest --annotation RMSMappingQuality \
 --min-base-quality-score 20 --minimum-mapping-quality 30 \
 -O ${n}.${SEQUENCE}.cohort.vcf.gz" > run_hc_genotype.${SEQUENCE}.tmp.job_${n};
-let "n+=1"; done < sequences.list
+let "n+=1"; done < ${WORKING_DIR}/04_VARIANTS/sequences.list
 
 chmod a+x run_hc_genotype*
 
 mkdir LOGFILES
 
-	# setup job conditions
-	JOBS=$( ls -1 run_hc_* | wc -l )
-	ID="U$(date +%s)"
+# setup job conditions
+JOBS=$( ls -1 run_hc_* | wc -l )
+ID="U$(date +%s)"
 
-# ln -s /lustre/scratch118/infgen/team133/sd21/hc/GENOME/POPULATION_DIVERSITY/MAPPING/cohort.g.vcf.gz
-# ln -s /lustre/scratch118/infgen/team133/sd21/hc/GENOME/POPULATION_DIVERSITY/MAPPING/cohort.g.vcf.gz.tbi
-
+# run
 bsub -q yesterday -R'span[hosts=1] select[mem>20000] rusage[mem=20000]' -n 6 -M20000 -J GATK_HC_GENOTYPE_${ID}_[1-$JOBS] -e LOGFILES/GATK_HC_GENOTYPE_${ID}_[1-$JOBS].e -o LOGFILES/GATK_HC_GENOTYPE_${ID}_[1-$JOBS].o "./run_hc_*\$LSB_JOBINDEX"
 
 ```
