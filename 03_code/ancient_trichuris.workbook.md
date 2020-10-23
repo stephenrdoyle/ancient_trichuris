@@ -35,7 +35,7 @@
 - Ancient samples (19 samples from 10 sites)
      - 4-500 BC: Qala’at al-Bahrain (1) –  in analysis - **can't find this data**
      - 300 BC: Tollundmanden, DK (1) – in analysis - **can't find this data**
-     - 1000 AD: Viborg, DK (2) – 2x Mito + 0,01x/0,16x NG **can't find this data**
+     - 1000 AD: Viborg, DK (2) – 2x Mito + 0,01x/0,16x NG
      - 1350 AD : Kampen, Netherlands (2) – 2x Mito + 1,8x/4,7x NG - yes
      - 1350-1400 AD: Odense, DK (4) – in analysis - yes
      - 1500-1600 AD: Zwolle, Netherlands (1) – Mito + 2,3x NG - yes
@@ -92,7 +92,7 @@
 
 ***
 ## working directory
-```shell
+```bash
 cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
 WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
 
@@ -227,6 +227,24 @@ cat AN_NLD_ZWO_EN_001_SE.truncated AN_NLD_ZWO_NA_002_SE.truncated > AN_NLD_ZWO_E
 # make a new sample list to work from using new names
 ls -1 AN* | cut -c-18 > ../ancient.sample_list_v2
 ```
+
+### FIX: additional samples to include
+```bash
+
+# found some additional samples I had not initially included - they were misclassified in the "other", so correcting them and add to the "ancient.sample_list_v2"
+mv OTHER_MSOE43_027_SE.truncated AN_DNK_VIB_EN_001_SE.truncated
+mv OTHER_MSOE44_028_SE.truncated AN_DNK_VIB_EN_002_SE.truncated
+mv OTHER_MSOE45_029_SE.truncated AN_DNK_VIB_EN_003_SE.truncated
+mv OTHER_MSOE46B_030_SE.truncated AN_DNK_VIB_EN_004_SE.truncated
+mv OTHER_MSOE46C_031_SE.truncated AN_DNK_VIB_EN_005_SE.truncated
+
+cat AN_DNK_VIB_EN_001_SE.truncated AN_DNK_VIB_EN_002_SE.truncated > AN_DNK_VIB_EN_0012_SE.truncated; rm AN_DNK_VIB_EN_001_SE.truncated AN_DNK_VIB_EN_002_SE.truncated
+cat AN_DNK_VIB_EN_003_SE.truncated AN_DNK_VIB_EN_004_SE.truncated AN_DNK_VIB_EN_005_SE.truncated > AN_DNK_VIB_EN_345_SE.truncated; rm AN_DNK_VIB_EN_003_SE.truncated AN_DNK_VIB_EN_004_SE.truncated AN_DNK_VIB_EN_005_SE.truncated
+
+ls -1 AN_DNK_VIB_EN_0012_SE.truncated AN_DNK_VIB_EN_345_SE.truncated | cut -c-18 > ../ancient.sample_list_v2
+```
+
+
 
 
 ```bash
