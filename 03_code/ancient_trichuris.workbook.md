@@ -559,9 +559,16 @@ mkdir ${WORKING_DIR}/04_VARIANTS/GVCFS
 cd ${WORKING_DIR}/04_VARIANTS/GVCFS
 
 # create bam list using full path to bams - this allows bams to be anywhere
-ls ${WORKING_DIR}/03_MAPPING/*.trimmed.bam > ${WORKING_DIR}/04_VARIANTS/bam.list   
+ls ${WORKING_DIR}/03_MAPPING/*.trimmed.bam > ${WORKING_DIR}/04_VARIANTS/bam.list_new
+
+#new bams
+#   ls ${WORKING_DIR}/03_MAPPING/AN_DNK_VIB_EN_0012.trimmed.bam ${WORKING_DIR}/03_MAPPING/AN_DNK_VIB_EN_345.trimmed.bam > ${WORKING_DIR}/04_VARIANTS/bam.list_new
 
 BAM_LIST=${WORKING_DIR}/04_VARIANTS/bam.list
+
+# rerun with new bams
+BAM_LIST=${WORKING_DIR}/04_VARIANTS/bam.list_new
+
 REFERENCE=${WORKING_DIR}/01_REF/trichuris_trichiura.fa
 
 # make a sequences list to allow splitting jobs per scaffold/contig
