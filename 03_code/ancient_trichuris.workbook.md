@@ -563,11 +563,12 @@ ls ${WORKING_DIR}/03_MAPPING/*.trimmed.bam > ${WORKING_DIR}/04_VARIANTS/bam.list
 
 #new bams
 #   ls ${WORKING_DIR}/03_MAPPING/AN_DNK_VIB_EN_0012.trimmed.bam ${WORKING_DIR}/03_MAPPING/AN_DNK_VIB_EN_345.trimmed.bam > ${WORKING_DIR}/04_VARIANTS/bam.list_new
+#  ls ${WORKING_DIR}/03_MAPPING/AN_DNK_COA_EN_012.trimmed.bam  > ${WORKING_DIR}/04_VARIANTS/bam.list_new
 
 BAM_LIST=${WORKING_DIR}/04_VARIANTS/bam.list
 
 # rerun with new bams
-BAM_LIST=${WORKING_DIR}/04_VARIANTS/bam.list_new
+#BAM_LIST=${WORKING_DIR}/04_VARIANTS/bam.list_new
 
 REFERENCE=${WORKING_DIR}/01_REF/trichuris_trichiura.fa
 
@@ -627,14 +628,11 @@ mkdir ${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED
 cd ${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED
 
 # make a list of GVCFs to be merged
-ls -1 ${WORKING_DIR}/04_VARIANTS/GVCFS/*complete/*gz > gvcf.list
+ls -1 ${WORKING_DIR}/04_VARIANTS/GVCFS/*complete/*gz > ${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED/gvcf.list
 
 GVCF_LIST=${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED/gvcf.list
-REFEERENCE=${WORKING_DIR}/01_REF/trichuris_trichiura.fa
+REFERENCE=${WORKING_DIR}/01_REF/trichuris_trichiura.fa
 
-
-# make a sequences list to allow splitting jobs per scaffold/contig
-grep ">" ${WORKING_DIR}/01_REF/trichuris_trichiura.fa | sed -e 's/>//g' > ${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED/sequences.list
 
 # setup the run files
 n=1
@@ -650,7 +648,7 @@ chmod a+x *run_merge_gvcfs*
 
 # run
 for i in *run_merge_gvcfs*; do
-bsub.py --queue hugemem --threads 30 200 merge_vcfs "./${i}"; done
+bsub.py --queue long --threads 4 10 merge_vcfs "./${i}"; done
 # threads make a big difference, even thoguh they are not a parameter in the tool
 ```
 
@@ -667,7 +665,6 @@ echo -e "gatk GenotypeGVCFs \
 -V ${SEQUENCE}.cohort.g.vcf.gz \
 --intervals ${SEQUENCE} \
 --annotation DepthPerAlleleBySample --annotation Coverage --annotation ExcessHet --annotation FisherStrand --annotation MappingQualityRankSumTest --annotation RMSMappingQuality \
---min-base-quality-score 20 --minimum-mapping-quality 30 \
 -O ${n}.${SEQUENCE}.cohort.vcf.gz" > run_hc_genotype.${SEQUENCE}.tmp.job_${n};
 let "n+=1"; done < ${WORKING_DIR}/04_VARIANTS/sequences.list
 
@@ -680,9 +677,30 @@ JOBS=$( ls -1 run_hc_* | wc -l )
 ID="U$(date +%s)"
 
 # run
-bsub -q yesterday -R'span[hosts=1] select[mem>20000] rusage[mem=20000]' -n 6 -M20000 -J GATK_HC_GENOTYPE_${ID}_[1-$JOBS] -e LOGFILES/GATK_HC_GENOTYPE_${ID}_[1-$JOBS].e -o LOGFILES/GATK_HC_GENOTYPE_${ID}_[1-$JOBS].o "./run_hc_*\$LSB_JOBINDEX"
+bsub -q long -R'span[hosts=1] select[mem>10000] rusage[mem=10000]' -n 4 -M10000 -J GATK_HC_GENOTYPE_${ID}_[1-$JOBS] -e LOGFILES/GATK_HC_GENOTYPE_${ID}_[1-$JOBS].e -o LOGFILES/GATK_HC_GENOTYPE_${ID}_[1-$JOBS].o "./run_hc_*\$LSB_JOBINDEX"
 
 ```
+
+
+### Step 4. Bring the files together
+```bash
+# make list of vcfs
+ls -1 *.cohort.vcf.gz | sort -n > vcf_files.list
+
+# merge them
+vcf-concat --files vcf_files.list > Trichuris_trichiura.cohort.vcf;
+bzgip Trichuris_trichiura.cohort.vcf;
+tabix -p vcf Trichuris_trichiura.cohort.vcf.gz
+
+# clean up
+rm run*
+rm ^[0-9]*
+rm *.g.vcf.gz*
+
+```
+
+
+
 
 
 
