@@ -877,3 +877,5 @@ ggplot(data, aes(x=V11,xend=V12,y=reorder(paste0(V1," (",V4,")"),V11,FUN=mean),y
 
 ggsave("samplingsites_time.png", height=5, width=5)
 ```
+![samplingsites_time](../04_analysis/samplingsites_time.png)
+samplingsites_time.png
