@@ -416,6 +416,8 @@ multiqc *kraken2report --title kraken
 # To view deamination-derived damage patterns in a simple table, without separating CpG sites
 #samtools view AN_DNK_COG_EN_002.bam | python pmdtools.0.60.py --deamination
 
+mkdir ${WORKING_DIR}/03_MAPPING/DEAMINATION
+
 # modern samples
 while read -r OLD_NAME NEW_NAME; do
 # To compute deamination-derived damage patterns separating CpG and non-CpG sites
@@ -423,7 +425,7 @@ samtools view ${NEW_NAME}.bam | head -n 10000 | pmdtools --platypus --requirebas
 
 R CMD BATCH ${WORKING_DIR}/00_SCRIPTS/plotPMD.R ;
 
-mv deamination_plot.png ${NEW_NAME}.deamination_plot.png ; done < ${WORKING_DIR}/modern.sample_list
+mv deamination_plot.png ${WORKING_DIR}/03_MAPPING/DEAMINATION/${NEW_NAME}.deamination_plot.png ; done < ${WORKING_DIR}/modern.sample_list
 
 # ancient samples
 while read -r NEW_NAME; do
@@ -432,7 +434,7 @@ samtools view ${NEW_NAME}.bam | head -n 10000 | pmdtools --platypus --requirebas
 
 R CMD BATCH ${WORKING_DIR}/00_SCRIPTS/plotPMD.R ;
 
-mv deamination_plot.png ${NEW_NAME}.deamination_plot.png ; done < ancient.sample_list_v2
+mv deamination_plot.png ${WORKING_DIR}/03_MAPPING/DEAMINATION/${NEW_NAME}.deamination_plot.png ; done < ancient.sample_list_v2
 
 
 
@@ -519,6 +521,9 @@ while read -r NEW_NAME; do
      bsub.py 5 --threads 4 trim_bams "${WORKING_DIR}/00_SCRIPTS/run_trimreads_in_bam.sh ${NEW_NAME}";
 done < ${WORKING_DIR}/ancient.sample_list_v2
 
+
+# once done, clean up
+rm *[0-9].bam*
 ```
 
 where "run_trimreads_in_bam.sh" is:
@@ -538,6 +543,57 @@ samtools index ${NAME}.trimmed.bam
 rm ${NAME}.tmp.bam
 
 ```
+
+### Genome coverage
+```bash
+# run coverage stats
+bsub.py --queue long 5 cov "~sd21/bash_scripts/run_cov_stats 100000"
+
+# extract mtDNA and nuclear (mean & stddev) data
+for i in *trimmed.chr.cov; do
+     name=${i%.trimmed.chr.cov};
+     nuc=$(grep -v "MITO" ${i%.trimmed.chr.cov}.100000_window.cov | datamash mean 5 sstdev 5 );
+     mtDNA=$(grep "MITO" ${i} | cut -f5 );
+     echo -e "${name}\t${nuc}\t${mtDNA}";
+done > nuc_mtDNA_coverage.stat
+
+```
+where "run_cov_stats" is:
+```bash
+##########################################################################################
+# run_cov_stats
+##########################################################################################
+
+# Usage: ~sd21/bash_scripts/run_cov_stats < window size >
+
+module load bamtools/2.5.1--he860b03_5
+
+WINDOW=$1
+
+for i in *.bam
+do
+
+bamtools header -in ${i} | grep "^@SQ" | awk -F'[:\t]' '{printf $3"\t"1"\t"$5"\n"}' OFS="\t" > ${i%.bam}.chr.bed
+bamtools header -in ${i} | grep "^@SQ" | awk -F'[:\t]' '{printf $3"\t"$5"\n"}' OFS="\t" > ${i%.bam}.chr.genome
+
+bedtools makewindows -g ${i%.bam}.chr.genome -w ${WINDOW} > ${i%.bam}.${WINDOW}_window.bed
+
+samtools bedcov -Q 20 ${i%.bam}.chr.bed ${i} | awk -F'\t' '{printf $1"\t"$2"\t"$3"\t"$4"\t"$4/($3-$2)"\n"}' OFS="\t" > ${i%.bam}.chr.cov
+samtools bedcov -Q 20 ${i%.bam}.${WINDOW}_window.bed ${i} | awk -F'\t' '{printf $1"\t"$2"\t"$3"\t"$4"\t"$4/($3-$2)"\n"}' OFS="\t" > ${i%.bam}.${WINDOW}_window.cov
+
+rm ${i%.bam}.chr.bed ${i%.bam}.${WINDOW}_window.bed ${i%.bam}.chr.genome
+
+done
+
+for i in *.chr.cov; do printf "${i}\n" > ${i}.tmp | awk '{print $5}' OFS="\t" ${i} >> ${i}.tmp; done
+paste *.tmp > coverage_stats.summary
+rm *.tmp
+```
+
+- this data will go into a supplementary table
+
+
+
 
 
 
@@ -707,6 +763,9 @@ rm *.g.vcf.gz*
 ```
 
 ## SNPable
+Using Heng Li's "SNPable regions" to identify unique regions fo the genome in which mapping tends to be more reliable. Martin did this, so thought i'd give it a go to be consistent
+
+http://lh3lh3.users.sourceforge.net/snpable.shtml
 ```bash
 cd ~/lustre118_link/trichuris_trichiura/01_REF/SNPABLE
 
@@ -760,14 +819,16 @@ done
 #60449735
 
 ```
-- given the genome is 80573711 bp, the proportion of type 3 postions (n=60449735) is 75.02%
+- given the genome is 80573711 bp, the proportion of type 3 postions (n = 60449735) is 75.02%
+- this is an interesting strategy - perhaps worth exploring for other projects, esp when just popgen SNPs are being used (not every position for, eg, SNPeff).
 
 
 
 
 
 
-## World sampling map
+## Sampling sites
+### World map
 Given it is a "global diversity" study, worth having a world map with sampling sites, distinction between ancient and modern samples, and the fact that some some from humans, animals, and the environment (ancient).
 ```R
 setwd("/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/MAP")
@@ -778,18 +839,19 @@ library(dplyr)
 require(maps)
 require(viridis)
 library(ggrepel)
+library(patchwork)
 
 # load world data
 world_map <- map_data("world")
 
 # load metadata
-data <- read.table("map_metadata.txt", header=T, sep="\t")
+data <- read.delim("map_metadata.txt", sep="\t", header=T)
 
 # make a map
 ggplot() +
   geom_polygon(data = world_map, aes(x = world_map$long, y = world_map$lat, group = world_map$group), fill="grey90") +
-  geom_point(data = data, aes(x = LONG, y = LAT, colour = SAMPLE_AGE, shape = SAMPLE_LOCATION), size=3) +
-  geom_text_repel(data = data, aes(x = LONG, y = LAT, label = paste0(COUNTRY," (",REGION,"); n = ", SAMPLE_N)), size=3) +        
+  geom_point(data = data, aes(x = LONGITUDE, y = LATITUDE, colour = SAMPLE_AGE, shape = SAMPLE_LOCATION), size=3) +
+  geom_text_repel(data = data, aes(x = LONGITUDE, y = LATITUDE, label = paste0(COUNTRY," (",REGION_ID,"); n = ", SAMPLE_N)), size=3) +        
   theme_void() +
   ylim(-55,85) +
   labs(title="A", colour="", shape="")
@@ -800,4 +862,18 @@ ggsave("worldmap_samplingsites.png", height=5, width=12)
 ```
 ![worldmap_samplingsites](../04_analysis/worldmap_samplingsites.png)
 
----
+### Sampling timepoints
+```R
+library(ggplot2)
+
+data <- read.delim("ancient_times.txt",header=F,sep="\t")
+
+ggplot(data, aes(x=V11,xend=V12,y=reorder(paste0(V1," (",V4,")"),V11,FUN=mean),yend=paste0(V1," (",V4,")"), colour=V10)) +
+     geom_segment(size=5) +
+     xlim(1000,2020) +
+     labs(x = "Estimated age of sampling site (AD)", y = "", colour = "Sample site") +
+     scale_y_discrete(limits=rev) +
+     theme_bw() + theme(legend.position="bottom")
+
+ggsave("samplingsites_time.png", height=5, width=5)
+```
