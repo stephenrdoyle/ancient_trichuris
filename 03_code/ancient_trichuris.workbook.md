@@ -689,7 +689,7 @@ ls -1 *.cohort.vcf.gz | sort -n > vcf_files.list
 
 # merge them
 vcf-concat --files vcf_files.list > Trichuris_trichiura.cohort.vcf;
-bzgip Trichuris_trichiura.cohort.vcf;
+bgzip Trichuris_trichiura.cohort.vcf;
 tabix -p vcf Trichuris_trichiura.cohort.vcf.gz
 
 # clean up
@@ -698,6 +698,69 @@ rm ^[0-9]*
 rm *.g.vcf.gz*
 
 ```
+
+
+### Step 5. Filter the VCF
+```bash
+
+
+```
+
+## SNPable
+```bash
+cd ~/lustre118_link/trichuris_trichiura/01_REF/SNPABLE
+
+cp ../trichuris_trichiura.fa .
+
+# make reads from the reference genome
+~sd21/lustre118_link/software/SNP_CALLING/seqbility-20091110/splitfa trichuris_trichiura.fa 35 | split -l 20000000
+
+# index the reference
+bwa index trichuris_trichiura.fa
+
+# map the reads generated from the reference back to the reference
+echo -e 'for i in x*; do bwa aln -R 1000000 -O 3 -E 3 trichuris_trichiura.fa ${i} > ${i}.sai; done' > run_bwa
+chmod a+x run_bwa
+bsub.py 10 bwaaln ./run_bwa
+
+# once mapping is completed, compress to save space
+gzip *out.sam
+
+# make the raw mask
+gzip -dc x??.out.sam.gz | ~/lustre118_link/software/SNP_CALLING/seqbility-20091110/gen_raw_mask.pl > rawMask_35.fa
+
+# make the final mask
+~/lustre118_link/software/SNP_CALLING/seqbility-20091110/gen_mask -l 35 -r 0.5 rawMask_35.fa > mask_35_50.fa
+
+# make bed files per chromosome of the category 3 positions,
+python makeMappabilityMask.py
+
+# position categories
+# c=3: the majortiy of overlapping 35-mers are mapped uniquely and without 1-mismatch (or 1-difference, depending on the BWA command line) hits.
+# c=2: the majority of overlapping 35-mers are unique and c!=3.
+# c=1: the majority of overlapping 35-mers are non-unique.
+# c=0: all the 35-mers overlapping x cannot be mapped due to excessive ambiguous bases.
+
+# count how many positions for each position in the genome
+for i in 0 1 2 3; do
+echo -e "SNPtype: ${i}";  
+cat mask_35_50.fa | grep -v ">" | grep -o "${i}" | wc -l;
+done
+
+#SNPtype: 0
+#249900
+
+#SNPtype: 1
+#13754267
+
+#SNPtype: 2
+#6119809
+
+#SNPtype: 3
+#60449735
+
+```
+- given the genome is 80573711 bp, the proportion of type 3 postions (n=60449735) is 75.02%
 
 
 
