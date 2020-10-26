@@ -679,6 +679,9 @@ while read BAM; do \
 	sleep 1
 done < ${BAM_LIST}
 ```
+
+
+
 ### Step 2. Gather the GVCFs to generate a merged GVCF
 ```bash
 # make a new directory for the merged GVCFS
