@@ -646,8 +646,10 @@ while read BAM; do \
           --output ${SAMPLE}_GATK_HC_GVCF/${n}.${SAMPLE}.${SEQUENCE}.tmp.gvcf.gz \\
           --reference ${REFERENCE} \\
           --intervals ${SEQUENCE} \\
-          --annotation DepthPerAlleleBySample --annotation Coverage --annotation ExcessHet --annotation FisherStrand --annotation MappingQualityRankSumTest --annotation RMSMappingQuality \\
-          --min-base-quality-score 20 --minimum-mapping-quality 30 \\
+          --heterozygosity 0.015 \\
+          --indel-heterozygosity 0.01 \\
+          --annotation DepthPerAlleleBySample --annotation Coverage --annotation ExcessHet --annotation FisherStrand --annotation MappingQualityRankSumTest --annotation StrandOddsRatio --annotation RMSMappingQuality --annotation ReadPosRankSumTest --annotation DepthPerSampleHC --annotation QualByDepth \\
+          --min-base-quality-score 20 --minimum-mapping-quality 30 --standard-min-confidence-threshold-for-calling 30 \\
           --emit-ref-confidence GVCF " > ${SAMPLE}_GATK_HC_GVCF/run_hc_${SAMPLE}.${SEQUENCE}.tmp.job_${n};
 	echo -e "--input ${PWD}/${SAMPLE}_GATK_HC_GVCF/${n}.${SAMPLE}.${SEQUENCE}.tmp.gvcf.gz \\" >> ${SAMPLE}_GATK_HC_GVCF/run_gather_${SAMPLE}_gvcf;
 	let "n+=1"; done < ${WORKING_DIR}/04_VARIANTS/sequences.list;
@@ -720,7 +722,9 @@ echo -e "gatk GenotypeGVCFs \
 -R ${REFERENCE} \
 -V ${SEQUENCE}.cohort.g.vcf.gz \
 --intervals ${SEQUENCE} \
---annotation DepthPerAlleleBySample --annotation Coverage --annotation ExcessHet --annotation FisherStrand --annotation MappingQualityRankSumTest --annotation RMSMappingQuality \
+--heterozygosity 0.015 \
+--indel-heterozygosity 0.01 \
+--annotation DepthPerAlleleBySample --annotation Coverage --annotation ExcessHet --annotation FisherStrand --annotation MappingQualityRankSumTest --annotation StrandOddsRatio --annotation RMSMappingQuality --annotation ReadPosRankSumTest --annotation DepthPerSampleHC --annotation QualByDepth \
 -O ${n}.${SEQUENCE}.cohort.vcf.gz" > run_hc_genotype.${SEQUENCE}.tmp.job_${n};
 let "n+=1"; done < ${WORKING_DIR}/04_VARIANTS/sequences.list
 
