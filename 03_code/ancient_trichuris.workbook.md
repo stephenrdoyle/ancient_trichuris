@@ -372,7 +372,7 @@ for i in *.bam; do
 The mapping shows that there is variable mapping rates, and that for some samples there is very poor mapping. This is particularly the case for the ancient samples, which is to be expected to a degree, given they are both old and collected from the environment. Kraken might give some insight into this, given they might be heavily contaminated with bacteria etc.
 
 ```bash
-module load kraken2/2.0.8_beta
+module load kraken2/2.0.8_beta=pl526h6bb024c_0-c1
 
 # run kraken on the modern PE trimmed reads
 while read OLD_NAME NEW_NAME; do
@@ -400,7 +400,7 @@ multiqc *kraken2report --title kraken
 ```
 [Kraken MultiQC report](../04_analysis/kraken_multiqc_report.html)
 - the output shows most samples have a small degree of contamination based on hits in the kraken database
-- non have a lot of contamination, whcih is slightly surprising
+- non have a lot of contamination, which is slightly surprising
 - this alone doesnt explain the mismapping, althoguh, it simply may mean that the putative contaminant is not present in the kraken databased
 - could try
      - blasting some sequences
@@ -757,12 +757,7 @@ rm *.g.vcf.gz*
 
 
 ### Step 5. Filter the VCF
-```bash
-
-
-```
-
-## SNPable
+#### SNPable
 Using Heng Li's "SNPable regions" to identify unique regions fo the genome in which mapping tends to be more reliable. Martin did this, so thought i'd give it a go to be consistent
 
 http://lh3lh3.users.sourceforge.net/snpable.shtml
@@ -823,6 +818,26 @@ done
 - this is an interesting strategy - perhaps worth exploring for other projects, esp when just popgen SNPs are being used (not every position for, eg, SNPeff).
 
 
+#### Hard filters
+```bash
+mkdir ${WORKING_DIR}/04_VARIANTS/SNP_FILTER
+cd ${WORKING_DIR}/04_VARIANTS/SNP_FILTER
+
+# run hard filter
+${WORKING_DIR}/00_SCRIPTS/run_variant-hardfilter.sh TT ${WORKING_DIR}/01_REF/trichuris_trichiura.fa ${WORKING_DIR}/04_VARIANTS/04_VARIANTS/Trichuris_trichiura.cohort.vcf.gz
+
+vcftools --vcf TT.filtered-2.vcf.recode.vcf
+#> After filtering, kept 73 out of 73 Individuals
+#> After filtering, kept 9240001 out of a possible 9240001 Sites
+
+# apply the SNPable mask
+vcftools --vcf TT.filtered-2.vcf.recode.vcf --bed ${WORKING_DIR}/01_REF/SNPABLE/mask.bed
+
+# After filtering, kept 8371588 out of a possible 9240001 Sites
+```
+
+
+
 
 
 
@@ -878,4 +893,187 @@ ggplot(data, aes(x=V11,xend=V12,y=reorder(paste0(V1," (",V4,")"),V11,FUN=mean),y
 ggsave("samplingsites_time.png", height=5, width=5)
 ```
 ![samplingsites_time](../04_analysis/samplingsites_time.png)
-samplingsites_time.png
+
+
+
+
+
+
+
+
+
+### PCA of mtDNA genotypes
+```bash
+#--- filter
+bcftools-1.9 view -e 'FORMAT/DP[0]<10 | MQ[*]<30' 7.hcontortus_chr_mtDNA_arrow_pilon.cohort.vcf.gz | bcftools-1.9 view -i 'TYPE="snp" & AF>0.01' -O z -o allsamples.mtDNA.filtered.vcf.gz
+
+awk -F '[_]' '{print $0,$1,$2}' OFS="\t" samples.list > samples.pops.list
+```
+
+
+```R
+# load libraries
+library(gdsfmt)
+library(SNPRelate)
+library(ggplot2)
+
+vcf.in <- "allsamples.mtDNA.filtered.vcf.gz"
+gds<-snpgdsVCF2GDS(vcf.in, "mtDNA.gds", method="biallelic.only")
+
+genofile <- snpgdsOpen(gds)
+
+pca	<-	snpgdsPCA(genofile, num.thread=2,autosome.only = F)
+
+pops<-	read.table("samples.pops.list",header=F)
+
+tab <- data.frame(sample.id = pca$sample.id,
+                  EV1 = pca$eigenvect[,1],    # the first eigenvector
+                  EV2 = pca$eigenvect[,2],
+                  EV3 = pca$eigenvect[,3],
+                  EV4 = pca$eigenvect[,4],
+                  EV5 = pca$eigenvect[,5],
+                  EV6 = pca$eigenvect[,6],    # the second eigenvector
+                  COUNTRY = pops$V2,
+                  POP = pops$V3,
+                  stringsAsFactors = FALSE)
+
+plot(tab$EV2, tab$EV1, xlab="eigenvector 2", ylab="eigenvector 1",pch=20,cex=2,col=pops$V2)
+```
+
+```R
+# load libraries
+library(vcfR)
+library(poppr)
+library(ape)
+library(RColorBrewer)
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+library(patchwork)
+
+metadata<-read.table("sample_metadata_colours.list",header=T,comment.char="",sep="\t")
+
+rubi.VCF <- read.vcfR("allsamples.mtDNA.filtered.vcf.gz")
+pop.data <- read.table("samples.pops.list", sep = "\t", header = F)
+gl.rubi <- vcfR2genlight(rubi.VCF)
+ploidy(gl.rubi) <- 1
+
+pop(gl.rubi) <- metadata$country
+
+# distance matrix from genlight object
+#x.dist <- poppr::bitwise.dist(gl.rubi)
+
+# make a tree
+#tree <- aboot(gl.rubi, tree = "upgma", distance = bitwise.dist, sample = 100, showtree = F, cutoff = 50, quiet = T)
+#write.tree(tree, file="MyNewickTreefile.nwk")
+
+#cols <- brewer.pal(n = nPop(gl.rubi), name = "Dark2")
+#plot.phylo(tree, cex = 0.3, font = 2, adj = 0)
+#nodelabels(tree$node.label, adj = c(1.3, -0.5), frame = "n", cex = 0.3,font = 3, xpd = TRUE)
+#legend(35,10,c("CA","OR","WA"),cols, border = FALSE, bty = "n")
+#legend('topleft', legend = c("CA","OR","WA"),fill = cols, border = FALSE, bty = "n", cex = 2)
+#axis(side = 1)
+#title(xlab = "Genetic distance (proportion of loci that are different)")
+
+# pca
+rubi.pca <- glPca(gl.rubi, nf = 10)
+var_frac <- rubi.pca$eig/sum(rubi.pca$eig)*100
+rubi.pca.scores <- as.data.frame(rubi.pca$scores)
+rubi.pca.scores$pop <- pop(gl.rubi)
+rubi.pca.scores$strain <- metadata$strain
+set.seed(9)
+
+
+#--- plot eigenvectors
+barplot(100*rubi.pca$eig/sum(rubi.pca$eig), col = heat.colors(50), main="PCA Eigenvalues")
+title(ylab="Percent of variance\nexplained", line = 2)
+title(xlab="Eigenvalues", line = 1)
+
+
+#--- plot PCA
+#p12 <- ggplot(rubi.pca.scores, aes(x=PC1, y=PC2, colour=pop, label=pop)) + geom_point(size=2)+ theme_bw() + geom_text_repel(data = subset(rubi.pca.scores, pop == "ZAI" ))
+#p34 <- ggplot(rubi.pca.scores, aes(x=PC3, y=PC4, colour=pop, label=pop)) + geom_point(size=2)+ theme_bw() + geom_text_repel(data = subset(rubi.pca.scores, pop == "ZAI" ))
+#p56 <- ggplot(rubi.pca.scores, aes(x=PC5, y=PC6, colour=pop, label=pop)) + geom_point(size=2)+ theme_bw() + geom_text_repel(data = subset(rubi.pca.scores, pop == "ZAI" ))
+#p12 + p34 + p56
+
+country_colours_shapes1 <- c("#31A197","#E15956","#EF724B","#D35E5C","#606EB8","#6570B0","#34AFE7","#6973A8","#3C9C93","#6E75A0","#C56462","#B76968","#A64EB4","#727898","#A96F6E","#9B7474","#3FA8D8","#8D7A7A")
+country_colours_shapes2 <-c("16","16","16","16","17","16","16","17","16","16","16","16","17","16","16","16","17","16")
+country_colours_shapes3 <-c("0.5","0.5","0.5","0.5","1","0.5","0.5","1","0.5","0.5","0.5","0.5","1","0.5","0.5","0.5","1","0.5")
+
+country_colours_shapes <- rbind(country_colours_shapes1,country_colours_shapes2,country_colours_shapes3)
+
+#add names to the data
+colnames(country_colours_shapes) <- c("Australia","Benin","Brazil","Cape_Verde","Switzerland","France","Guadeloupe","United_Kingdom","Indonesia","Italy","Morocco","Namibia","Pakistan","Portugal","South_Africa","São_Tomé","USA","DRC")
+
+# sort the columns by name - this is really important.
+country_colours_shapes <- country_colours_shapes[ , order(names(as.data.frame(country_colours_shapes)))]
+
+PC1_variance <- formatC(head(rubi.pca$eig)[1]/sum(rubi.pca$eig)*100)
+PC2_variance <- formatC(head(rubi.pca$eig)[2]/sum(rubi.pca$eig)*100)
+#--- note: formatC() limits output to two decimal places
+
+ggplot(rubi.pca.scores, aes(x=PC1, y=PC2, colour=pop, label=pop, shape=pop)) +
+          geom_point(data = subset(rubi.pca.scores, pop == "Australia" | pop == "Benin" | pop == "Brazil" | pop == "Cape_Verde" | pop == "France" | pop == "Guadeloupe" | pop == "Indonesia" | pop == "Italy" | pop == "Morocco" | pop == "Namibia" | pop == "Portugal" | pop == "South_Africa" | pop == "São_Tomé"| pop == "DRC"), size=3,alpha=0.8)+
+          geom_point(data = subset(rubi.pca.scores, pop == "Switzerland" | pop == "USA" | pop== "Pakistan" | pop == "United_Kingdom"), size=3,alpha=0.8)+
+          theme_bw()+
+          scale_colour_manual(values = country_colours_shapes[1,])+
+          scale_shape_manual(values = as.numeric(country_colours_shapes[2,]))+
+          labs(x=paste("PC1: ",PC1_variance,"% variance"),y=paste("PC2: ",PC2_variance,"% variance"))+
+          geom_text_repel(data = subset(rubi.pca.scores[grep("^GB_ISEN1_001", row.names(rubi.pca.scores)),]),label="ISE.N1",show.legend = FALSE,point.padding=1)
+
+ggsave("global_diversity_mtDNA_SNPs.pdf",height=6,width=7.5,useDingbats = FALSE)
+ggsave("global_diversity_mtDNA_SNPs.png",height=6,width=7.5)
+
+```
+
+
+
+https://evodify.com/gatk-in-non-model-organism/
+
+
+
+
+
+### Genome scope
+Using genomescope to estimate heterozygosity from a couple of samples which can be used as an input to GATK genotyping
+```bash
+WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
+
+mkdir ${WORKING_DIR}/02_RAW/GENOMESCOPE
+cd  ${WORKING_DIR}/02_RAW/GENOMESCOPE
+
+
+jellyfish=/nfs/users/nfs_s/sd21/lustre118_link/software/COMPARATIVE_GENOMICS/jellyfish-2.2.6/bin/jellyfish
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/nfs/users/nfs_s/sd21/lustre118_link/software/COMPARATIVE_GENOMICS/jellyfish-2.2.6/lib
+genomescope=/nfs/users/nfs_s/sd21/lustre118_link/software/COMPARATIVE_GENOMICS/genomescope/genomescope.R
+
+echo -e "
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/nfs/users/nfs_s/sd21/lustre118_link/software/COMPARATIVE_GENOMICS/jellyfish-2.2.6/lib" > run_jellyfish2genomescope
+
+while read OLD_NAME NEW_NAME; do
+     echo -e "
+     # run jellyfish to count kmers
+     ${jellyfish} count -C -m 17 -s 1000000000 -t 10 ${WORKING_DIR}/02_RAW/${NEW_NAME}_PE.pair*.truncated -o ${NEW_NAME}.jellyfish.kmercount; \\
+     # run jellyfish to make a histogram of kmers for input to genomescope
+     ${jellyfish} histo -t 10 ${NEW_NAME}.jellyfish.kmercount > ${NEW_NAME}.jellyfish.histo;
+     # run genomescope
+     Rscript ${genomescope} ${NEW_NAME}.jellyfish.histo 17 100 ${NEW_NAME}.genomescope_out 1000" >> run_jellyfish2genomescope
+done < ${WORKING_DIR}/modern.sample_list
+
+chmod a+x run_jellyfish2genomescope
+
+bsub.py --queue long --threads 10 20 jellyfish "./run_jellyfish2genomescope"
+
+
+
+
+
+```
+- once completed, opened histo files in genomescope (http://qb.cshl.edu/genomescope/)
+- generally, the sequencing coverage was too low for this to work well. For most samples, the model failed to converge. However, some did work, shown below.
+- heterozygosities:
+     - MN_UGA_DK_HS_001: 0.0157
+          - Model converged het:0.0157 kcov:6.82 err:0.00251 model fit:0.184 len:71832293
+     - MN_UGA_KAB_HS_001:  0.0229
+          - Model converged het:0.0229 kcov:7.33 err:0.00403 model fit:0.442 len:71863652
+- GATK uses a heterozygosity default of 0.001, which is at least 10-fold lower than data here. Worth changing.
