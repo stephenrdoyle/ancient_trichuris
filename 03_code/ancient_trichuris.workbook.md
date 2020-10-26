@@ -1076,7 +1076,10 @@ bsub.py --queue long --threads 10 20 jellyfish "./run_jellyfish2genomescope"
           - Model converged het:0.0157 kcov:6.82 err:0.00251 model fit:0.184 len:71832293
      - MN_UGA_KAB_HS_001:  0.0229
           - Model converged het:0.0229 kcov:7.33 err:0.00403 model fit:0.442 len:71863652
+     - MN_UGA_KAB_HS_006: 0.0175
+          - Model converged het:0.0175 kcov:8.87 err:0.0138 model fit:0.431 len:77034118
 - GATK uses a heterozygosity default of 0.001, which is at least 10-fold lower than data here. Worth changing.
 
 eg.
 ![genomescope_MN_UGA_DK_HS_001](../04_analysis/genomescope_MN_UGA_DK_HS_001.png)
+![genomescope_MN_UGA_DK_HS_001.log](../04_analysis/genomescope_MN_UGA_DK_HS_001.log.png)
