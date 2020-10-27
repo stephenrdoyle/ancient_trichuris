@@ -602,6 +602,9 @@ rm *.tmp
 - First pass QC: --min-base-quality-score 20 --minimum-mapping-quality 30
 - scripts below split jobs by sample and by sequence, generating GVCFs, and then once done, merging them back together again. It does this by generating small jobs submitted in arrays to perform tasks in parallel, greatly speeding up the overall job time.
 ```bash
+# working dir
+WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
+
 # load gatk
 module load gatk/4.1.4.1
 
@@ -698,17 +701,17 @@ REFERENCE=${WORKING_DIR}/01_REF/trichuris_trichiura.fa
 # setup the run files
 n=1
 while read SEQUENCE; do
-echo -e "gatk CombineGVCFs -R ${REFERENCE} --intervals ${SEQUENCE} \\" > ${n}.run_merge_gvcfs_${SEQUENCE}
+echo -e "gatk CombineGVCFs -R ${REFERENCE} --intervals ${SEQUENCE} \\" > ${n}.run_merge_gvcfs.tmp.${SEQUENCE}
 while read SAMPLE; do
-echo -e "--variant ${SAMPLE} \\" >> ${n}.run_merge_gvcfs_${SEQUENCE};
+echo -e "--variant ${SAMPLE} \\" >> ${n}.run_merge_gvcfs.tmp.${SEQUENCE};
    done < ${GVCF_LIST}
-   echo -e "--output ${SEQUENCE}.cohort.g.vcf.gz" >> ${n}.run_merge_gvcfs_${SEQUENCE};
+   echo -e "--output ${SEQUENCE}.cohort.g.vcf.gz" >> ${n}.run_merge_gvcfs.tmp.${SEQUENCE};
    let "n+=1"; done < ${WORKING_DIR}/04_VARIANTS/sequences.list
 
-chmod a+x *run_merge_gvcfs*
+chmod a+x *.run_merge_gvcfs.tmp.*
 
 # run
-for i in *run_merge_gvcfs*; do
+for i in *.run_merge_gvcfs.tmp.*; do
 bsub.py --queue long --threads 4 10 merge_vcfs "./${i}"; done
 # threads make a big difference, even thoguh they are not a parameter in the tool
 ```
