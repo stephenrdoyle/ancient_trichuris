@@ -1404,10 +1404,38 @@ done
 |Trichuris_trichiura.cohort.nuclearSNPs.filtered.vcf|9755825|638344|
 
 ```
-gatk VariantsToTable \
- -R ${REFERENCE} \
- -V GVCFall.vcf \
- -F CHROM -F POS -GF GT -GF DP \
- -o GVCFall.DP.table
 
+bsub.py 1 select_mitoSNPs_GT \
+"gatk VariantsToTable \
+ --reference ${REFERENCE} \
+ --variant ${VCF%.vcf.gz}.mitoSNPs.filtered.vcf \
+ --fields CHROM --fields POS --genotype-fields GT --genotype-fields DP \
+ --output GVCFall.DP.table"
+
+
+for((i=1, start=1, end=$inc; i < ncol/inc + 1; i++, start+=inc, end+=inc))
+ncol=$(awk 'NR==1{print NF}' GVCFall.DP.table)
+for ((i=3; i<=${ncol}; i +=2)); do cut -f $i,$((i+1)) GVCFall.DP.table | awk '$1 != "./." {print $2}' > $i.DP; done
 ```
+```R
+nameList <- c()
+for (i in 3:147) { # 21 - odd number for 10 samples
+  if (i %% 2==1) nameList <- append(nameList,paste0(i,".DP"))
+}
+
+qlist <- matrix(nrow = 73, ncol = 3) # define number of samples (10 samples here)
+qlist <- data.frame(qlist, row.names=nameList)
+colnames(qlist)<-c('5%', '10%', '99%')
+
+png("GVCFall.DP.png", height=1600, width=1200)
+par(mar=c(5, 3, 3, 2), cex=1.5, mfrow=c(8,4)) # define number of plots for your sample
+for (i in 1:73) {
+  DP <- read.table(nameList[i], header = T)
+  qlist[i,] <- quantile(DP[,1], c(.05, .1, .99), na.rm=T)
+  d <- density(DP[,1], from=0, to=100, bw=1, na.rm=T)
+  plot(d, xlim = c(0,100), main=nameList[i], col="blue", xlab = dim(DP)[1], lwd=2)
+  abline(v=qlist[i,c(1,3)], col='red', lwd=3)
+}
+dev.off()
+```
+![GVCFall.DP.png](GVCFall.DP.png)
