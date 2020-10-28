@@ -1322,7 +1322,9 @@ fun_variant_summaries(VCF_mito,"mitochondrial")
 fun_variant_summaries(VCF_nuclear,"nuclear")
 
 ```
+- mitochondrial_variant_summaries
 ![plot_variant_summaries](../04_analysis/plot_mitochondrial_variant_summaries.png)
+- nuclear_variant_summaries
 ![plot_variant_summaries](../04_analysis/plot_nuclear_variant_summaries.png)
 
 - Table: mitochondrial_variant_quantiles
