@@ -1307,7 +1307,7 @@ ReadPosRankSum_quant$name <- "ReadPosRankSum"
 quantiles <- bind_rows(QUAL_quant,DP_quant, QD_quant, FS_quant, MQ_quant, MQRankSum_quant, SOR_quant, ReadPosRankSum_quant)
 quantiles$name <- c("QUAL_Indels","QUAL_SNPs","DP_indels","DP_SNPs", "QD_indels","QD_SNPs", "FS_indels","FS_SNPs", "MQ_indels","MQ_SNPs", "MQRankSum_indels","MQRankSum_SNPs", "SOR_indels","SOR_SNPs","ReadPosRankSum_indels","ReadPosRankSum_SNPs")
 
-png(paste0("table_",title,"_variant_quantiles.png"),bg = "white")
+png(paste0("table_",title,"_variant_quantiles.png"), width=1000,height=600,bg = "white")
 print(quantiles)
 grid.table(quantiles)
 dev.off()
