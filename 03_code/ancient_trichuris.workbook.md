@@ -1226,7 +1226,7 @@ QUAL_quant <- quantile(data$QUAL, c(.01,.99), na.rm=T)
 QUAL <- ggplot(data, aes(x=QUAL, fill=Variant)) + geom_density(alpha=.3) +
           geom_vline(xintercept=0, size=0.7, col="red") +
            geom_vline(xintercept=c(QUAL_quant[2], QUAL_quant[3]), size=0.7, col="blue") +
-           xlim(0,1000) +
+           xlim(0,10000) +
            theme_bw() + labs(title=paste0(title,": QUAL"))
 
 
@@ -1283,7 +1283,7 @@ ReadPosRankSum <- ggplot(data, aes(x=ReadPosRankSum, fill=Variant)) + geom_densi
 
 plot <- QUAL + DP + QD + FS + MQ + MQRankSum + SOR + ReadPosRankSum + plot_layout(ncol=2)
 print(plot)
-ggsave(paste0("plot_",title,"_variant_summaries.png"), height=20, width=15)
+ggsave(paste0("plot_",title,"_variant_summaries.png"), height=20, width=15, device=cairo_ps)
 
 
 # generate a table of quantiles for each variant feature
@@ -1308,16 +1308,19 @@ quantiles <- bind_rows(QUAL_quant,DP_quant, QD_quant, FS_quant, MQ_quant, MQRank
 quantiles$name <- c("QUAL_Indels","QUAL_SNPs","DP_indels","DP_SNPs", "QD_indels","QD_SNPs", "FS_indels","FS_SNPs", "MQ_indels","MQ_SNPs", "MQRankSum_indels","MQRankSum_SNPs", "SOR_indels","SOR_SNPs","ReadPosRankSum_indels","ReadPosRankSum_SNPs")
 
 png(paste0("table_",title,"_variant_quantiles.png"), width=480,height=480,bg = "white")
+print(quantiles)
 grid.table(quantiles)
 dev.off()
 
 
 }
 
+fun_variant_summaries(VCF_mito,"mitochondrial")
+
 fun_variant_summaries(VCF_nuclear,"nuclear")
 
 
-fun_variant_summaries(VCF_mito,"mitochondrial")
+
 
 
 
@@ -1329,5 +1332,5 @@ fun_variant_summaries(VCF_mito,"mitochondrial")
 
 
 ```
-![plot_variant_summaries](../04_analysis/plot_mitochondrial_variants_variant_summaries.png)
-![plot_variant_summaries](../04_analysis/table_mitochondrial_variants_variant_quantiles.png)
+![plot_variant_summaries](../04_analysis/plot_mitochondrial_variant_summaries.png)
+![plot_variant_summaries](../04_analysis/table_mitochondrial_variant_quantiles.png)
