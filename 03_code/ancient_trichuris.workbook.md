@@ -1273,7 +1273,7 @@ SOR <- ggplot(data, aes(x=SOR, fill=Variant)) + geom_density(alpha=.3) +
           geom_vline(xintercept=SOR_quant, size=0.7, col="blue") +
           theme_bw() + labs(title=paste0(title,": SOR"))
 
-# gatk hardfilter: SNP SOR < 4 , INDEL SOR > 10
+# gatk hardfilter: SNP ReadPosRankSum <-10 , INDEL ReadPosRankSum < -20
 ReadPosRankSum_quant <- quantile(data$ReadPosRankSum, c(.01,.99), na.rm=T)
 ReadPosRankSum <- ggplot(data, aes(x=ReadPosRankSum, fill=Variant)) + geom_density(alpha=.3) +
                          geom_vline(xintercept=c(-10,10,-20,20), size=1, colour = c(snps,snps,indels,indels)) + xlim(-10, 10) +
@@ -1283,7 +1283,7 @@ ReadPosRankSum <- ggplot(data, aes(x=ReadPosRankSum, fill=Variant)) + geom_densi
 
 plot <- QUAL + DP + QD + FS + MQ + MQRankSum + SOR + ReadPosRankSum + plot_layout(ncol=2)
 print(plot)
-ggsave(paste0("plot_",title,"_variant_summaries.png"), height=20, width=15, device=cairo_ps)
+ggsave(paste0("plot_",title,"_variant_summaries.png"), height=20, width=15, type="cairo")
 
 
 # generate a table of quantiles for each variant feature
