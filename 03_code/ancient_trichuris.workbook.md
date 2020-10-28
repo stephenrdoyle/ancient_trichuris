@@ -1353,35 +1353,40 @@ fun_variant_summaries(VCF_nuclear,"nuclear")
 
 ```bash
 # apply filtering to SNPs
+WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
 REFERENCE=${WORKING_DIR}/01_REF/trichuris_trichiura.fa
 VCF=${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED/Trichuris_trichiura.cohort.vcf.gz
 
+
+
 bsub.py 1 filter_nuclearSNPs "gatk VariantFiltration \
- --reference ${REFERENCE} \
- --variant ${VCF%.vcf.gz}.nuclearSNPs.vcf \
- --filter-expression 'QUAL < 40 || MQ < 40.00 || SOR > 4.000 || QD < 3.00 || FS > 15.000 || MQRankSum < -3.000 || ReadPosRankSum < -2.000 || ReadPosRankSum > 2.500' \
- --filter-name "SNP_filtered" \
- --output ${VCF%.vcf.gz}.nuclearSNPs.filtered.vcf"
+--reference ${REFERENCE} \
+--variant ${VCF%.vcf.gz}.nuclearSNPs.vcf \
+--filter-expression 'QUAL < 46 || DP < 187 || DP > 915 || MQ < 38.00 || SOR > 3.600 || QD < 3.00 || FS > 9.400 || MQRankSum < -2.800 || ReadPosRankSum < -1.800 || ReadPosRankSum > 2.200' \
+--filter-name "SNP_filtered" \
+--output ${VCF%.vcf.gz}.nuclearSNPs.filtered.vcf"
 
 bsub.py 1 filter_nuclearINDELs "gatk VariantFiltration \
 --reference ${REFERENCE} \
 --variant ${VCF%.vcf.gz}.nuclearINDELs.vcf \
---filter-expression 'QUAL < 30 || MQ < 40.00 || SOR > 4.000 || QD < 3.00 || FS > 15.000 || ReadPosRankSum < -2.000 || ReadPosRankSum > 2.5000' \
+--filter-expression 'QUAL < 30 || DP < 208 || DP > 897 || MQ < 38.00 || SOR > 3.900 || QD < 3.00 || FS > 7.800 || MQRankSum < -3.000 || ReadPosRankSum < -2.200 || ReadPosRankSum > 2.2000' \
 --filter-name "INDEL_filtered" \
 --output ${VCF%.vcf.gz}.nuclearINDELs.filtered.vcf"
+
+
 
 
 bsub.py 1 filter_mitoSNPs "gatk VariantFiltration \
 --reference ${REFERENCE} \
 --variant ${VCF%.vcf.gz}.mitoSNPs.vcf \
---filter-expression 'QUAL < 50 || MQ < 40.00 || SOR > 10.000 || QD < 2.00 || FS > 60.000 || MQRankSum < -5.000 || ReadPosRankSum < -4.000 || ReadPosRankSum > 2.5000' \
+--filter-expression ' QUAL < 66 || DP < 7069 || DP > 29011 || MQ < 41.00 || SOR > 10.000 || QD < 1.3 || FS > 38.00 || MQRankSum < -5.6 || ReadPosRankSum < -3.4 || ReadPosRankSum > 2.5000 ' \
 --filter-name "SNP_filtered" \
 --output ${VCF%.vcf.gz}.mitoSNPs.filtered.vcf"
 
 bsub.py 1 filter_mitoINDELs "gatk VariantFiltration \
 --reference ${REFERENCE} \
 --variant ${VCF%.vcf.gz}.mitoINDELs.vcf \
---filter-expression 'QUAL < 50 || MQ < 40.00 || SOR > 10.000 || QD < 2.00 || FS > 100.000 || ReadPosRankSum < -4.000 || ReadPosRankSum > 2.500' \
+--filter-expression 'QUAL < 70 || DP < 6973 || DP > 27754 || MQ < 40.00 || SOR > 10.000 || QD < 2.90 || FS > 35.000 || ReadPosRankSum < -3.600 || ReadPosRankSum > 2.160' \
 --filter-name "INDEL_filtered" \
 --output ${VCF%.vcf.gz}.mitoINDELs.filtered.vcf"
 
@@ -1398,10 +1403,10 @@ done
 
 | Filtered_VCF | Variants_PASS | Variants_FILTERED |
 | -- | -- | -- |
-|Trichuris_trichiura.cohort.mitoINDELs.filtered.vcf|380|31|
-|Trichuris_trichiura.cohort.mitoSNPs.filtered.vcf|2270|200|
-|Trichuris_trichiura.cohort.nuclearINDELs.filtered.vcf|942632|50254|
-|Trichuris_trichiura.cohort.nuclearSNPs.filtered.vcf|9755825|638344|
+| Trichuris_trichiura.cohort.mitoINDELs.filtered.vcf | 370 | 41 |
+| Trichuris_trichiura.cohort.mitoSNPs.filtered.vcf | 2168 | 302 |
+| Trichuris_trichiura.cohort.nuclearINDELs.filtered.vcf | 923228 | 69658 |
+| Trichuris_trichiura.cohort.nuclearSNPs.filtered.vcf | 9541220 | 852949 |
 
 ```
 
@@ -1467,4 +1472,11 @@ for (i in 1:73) {
        ggsave(paste0(colnames(DP),"mitoALL.filtered.DP.png"))
 }
 ```
+- example of depth plot - these plots have been made for all samples.
 ![GVCFall.DP.png](../04_analysis/AN_DNK_COG_EN_0012.DPmitoALL.filtered.DP.png)
+
+### Filter genotypes based on depth per genotype
+- depth is so variable, so not going to think to hard about this. Want to try capture as many sites in the ancient samples
+- found some papers that used min 3X with at least 80% coverage
+     - eg. https://science.sciencemag.org/content/sci/suppl/2018/07/03/361.6397.81.DC1/aao4776-Leathlobhair-SM.pdf
+```
