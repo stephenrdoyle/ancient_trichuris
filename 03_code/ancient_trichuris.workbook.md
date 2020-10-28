@@ -1223,17 +1223,17 @@ indels <- '#F4CCCA'
 fun_variant_summaries <- function(data, title){
 # gatk hardfilter: SNP & INDEL QUAL < 0
 QUAL_quant <- quantile(data$QUAL, c(.01,.99), na.rm=T)
-QUAL <- ggplot(data, aes(x=QUAL, fill=Variant)) + geom_density(alpha=.3) +
+QUAL <- ggplot(data, aes(x=log10(QUAL), fill=Variant)) + geom_density(alpha=.3) +
           geom_vline(xintercept=0, size=0.7, col="red") +
-           geom_vline(xintercept=c(QUAL_quant[2], QUAL_quant[3]), size=0.7, col="blue") +
-           xlim(0,10000) +
+           geom_vline(xintercept=c(log10(QUAL_quant[2]), log10(QUAL_quant[3])), size=0.7, col="blue") +
+           #xlim(0,10000) +
            theme_bw() + labs(title=paste0(title,": QUAL"))
 
 
 # DP doesnt have a hardfilter
 DP_quant <- quantile(data$DP, c(.01,.99), na.rm=T)
-DP <- ggplot(data, aes(x=DP, fill=Variant)) + geom_density(alpha=0.3) +
-          geom_vline(xintercept=DP_quant, col="blue") +
+DP <- ggplot(data, aes(x=log10(DP), fill=Variant)) + geom_density(alpha=0.3) +
+          geom_vline(xintercept=log10(DP_quant), col="blue") +
           theme_bw() + labs(title=paste0(title,": DP"))
 
 # gatk hardfilter: SNP & INDEL QD < 2
@@ -1245,10 +1245,10 @@ QD <- ggplot(data, aes(x=QD, fill=Variant)) + geom_density(alpha=.3) +
 
 # gatk hardfilter: SNP FS > 60, INDEL FS > 200
 FS_quant <- quantile(data$FS, c(.01,.99), na.rm=T)
-FS <- ggplot(data, aes(x=FS, fill=Variant)) + geom_density(alpha=.3) +
-          geom_vline(xintercept=c(60, 200), size=0.7, col="red") +
-          geom_vline(xintercept=FS_quant, size=0.7, col="blue") +
-          xlim(0,250) +
+FS <- ggplot(data, aes(x=log10(FS), fill=Variant)) + geom_density(alpha=.3) +
+          geom_vline(xintercept=c(log10(60), log10(200)), size=0.7, col="red") +
+          geom_vline(xintercept=log10(FS_quant), size=0.7, col="blue") +
+          #xlim(0,250) +
           theme_bw() + labs(title=paste0(title,": FS"))
 
 # gatk hardfilter: SNP & INDEL MQ < 30
@@ -1260,9 +1260,9 @@ MQ <- ggplot(data, aes(x=MQ, fill=Variant)) + geom_density(alpha=.3) +
 
 # gatk hardfilter: SNP MQRankSum < -20
 MQRankSum_quant <- quantile(data$MQRankSum, c(.01,.99), na.rm=T)
-MQRankSum <- ggplot(data, aes(x=MQRankSum, fill=Variant)) + geom_density(alpha=.3) +
-                    geom_vline(xintercept=-20, size=0.7, col="red") +
-                    geom_vline(xintercept=MQRankSum_quant, size=0.7, col="blue") +
+MQRankSum <- ggplot(data, aes(x=log10(MQRankSum), fill=Variant)) + geom_density(alpha=.3) +
+                    geom_vline(xintercept=log10(-20), size=0.7, col="red") +
+                    geom_vline(xintercept=log10(MQRankSum_quant), size=0.7, col="blue") +
                     theme_bw() + labs(title=paste0(title,": MQRankSum"))
 
 
@@ -1307,7 +1307,7 @@ ReadPosRankSum_quant$name <- "ReadPosRankSum"
 quantiles <- bind_rows(QUAL_quant,DP_quant, QD_quant, FS_quant, MQ_quant, MQRankSum_quant, SOR_quant, ReadPosRankSum_quant)
 quantiles$name <- c("QUAL_Indels","QUAL_SNPs","DP_indels","DP_SNPs", "QD_indels","QD_SNPs", "FS_indels","FS_SNPs", "MQ_indels","MQ_SNPs", "MQRankSum_indels","MQRankSum_SNPs", "SOR_indels","SOR_SNPs","ReadPosRankSum_indels","ReadPosRankSum_SNPs")
 
-png(paste0("table_",title,"_variant_quantiles.png"), width=1000,height=600,bg = "white")
+png(paste0("table_",title,"_variant_quantiles.png"), width=1000,height=500,bg = "white")
 print(quantiles)
 grid.table(quantiles)
 dev.off()
@@ -1329,3 +1329,5 @@ fun_variant_summaries(VCF_nuclear,"nuclear")
 ![plot_variant_summaries](../04_analysis/table_mitochondrial_variant_quantiles.png)
 - Table: nuclear_variant_quantiles
 ![plot_variant_summaries](../04_analysis/table_nuclear_variant_quantiles.png)
+- GATK hard filters are as follows (https://gatk.broadinstitute.org/hc/en-us/articles/360035890471-Hard-filtering-germline-short-variants):
+     -
