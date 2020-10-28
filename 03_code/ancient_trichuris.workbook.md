@@ -1329,5 +1329,7 @@ fun_variant_summaries(VCF_nuclear,"nuclear")
 ![plot_variant_summaries](../04_analysis/table_mitochondrial_variant_quantiles.png)
 - Table: nuclear_variant_quantiles
 ![plot_variant_summaries](../04_analysis/table_nuclear_variant_quantiles.png)
-- GATK hard filters are as follows (https://gatk.broadinstitute.org/hc/en-us/articles/360035890471-Hard-filtering-germline-short-variants):
+
+- GATK hard filters are as follows
+     - (https://gatk.broadinstitute.org/hc/en-us/articles/360035890471-Hard-filtering-germline-short-variants):
      -
