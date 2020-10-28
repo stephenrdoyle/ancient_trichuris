@@ -1334,4 +1334,77 @@ fun_variant_summaries(VCF_nuclear,"nuclear")
 
 - GATK hard filters are as follows
      - (https://gatk.broadinstitute.org/hc/en-us/articles/360035890471-Hard-filtering-germline-short-variants):
-     -
+     - SNPs
+          -filter "QD < 2.0" --filter-name "QD2" \
+          -filter "QUAL < 30.0" --filter-name "QUAL30" \
+          -filter "SOR > 3.0" --filter-name "SOR3" \
+          -filter "FS > 60.0" --filter-name "FS60" \
+          -filter "MQ < 40.0" --filter-name "MQ40" \
+          -filter "MQRankSum < -12.5" --filter-name "MQRankSum-12.5" \
+          -filter "ReadPosRankSum < -8.0" --filter-name "ReadPosRankSum-8" \
+     - INDELs
+          -filter "QD < 2.0" --filter-name "QD2" \
+         -filter "QUAL < 30.0" --filter-name "QUAL30" \
+         -filter "FS > 200.0" --filter-name "FS200" \
+         -filter "ReadPosRankSum < -20.0" --filter-name "ReadPosRankSum-20" \
+- based on the plots / quantiles data, using the distributions seems to be even more stringent that the GATK hardfiltering
+- I think using the quantiles are the correct way to proceed.
+
+
+```bash
+# apply filtering to SNPs
+REFERENCE=${WORKING_DIR}/01_REF/trichuris_trichiura.fa
+VCF=${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED/Trichuris_trichiura.cohort.vcf.gz
+
+bsub.py 1 filter_nuclearSNPs "gatk VariantFiltration \
+ --reference ${REFERENCE} \
+ --variant ${VCF%.vcf.gz}.nuclearSNPs.vcf \
+ --filter-expression 'QUAL < 40 || MQ < 40.00 || SOR > 4.000 || QD < 3.00 || FS > 15.000 || MQRankSum < -3.000 || ReadPosRankSum < -2.000 || ReadPosRankSum > 2.500' \
+ --filter-name "SNP_filtered" \
+ --output ${VCF%.vcf.gz}.nuclearSNPs.filtered.vcf"
+
+bsub.py 1 filter_nuclearINDELs "gatk VariantFiltration \
+--reference ${REFERENCE} \
+--variant ${VCF%.vcf.gz}.nuclearINDELs.vcf \
+--filter-expression 'QUAL < 30 || MQ < 40.00 || SOR > 4.000 || QD < 3.00 || FS > 15.000 || ReadPosRankSum < -2.000 || ReadPosRankSum > 2.5000' \
+--filter-name "INDEL_filtered" \
+--output ${VCF%.vcf.gz}.nuclearINDELs.filtered.vcf"
+
+
+bsub.py 1 filter_mitoSNPs "gatk VariantFiltration \
+--reference ${REFERENCE} \
+--variant ${VCF%.vcf.gz}.mitoSNPs.vcf \
+--filter-expression 'QUAL < 50 || MQ < 40.00 || SOR > 10.000 || QD < 2.00 || FS > 60.000 || MQRankSum < -5.000 || ReadPosRankSum < -4.000 || ReadPosRankSum > 2.5000' \
+--filter-name "SNP_filtered" \
+--output ${VCF%.vcf.gz}.mitoSNPs.filtered.vcf"
+
+bsub.py 1 filter_mitoINDELs "gatk VariantFiltration \
+--reference ${REFERENCE} \
+--variant ${VCF%.vcf.gz}.mitoINDELs.vcf \
+--filter-expression 'QUAL < 50 || MQ < 40.00 || SOR > 10.000 || QD < 2.00 || FS > 100.000 || ReadPosRankSum < -4.000 || ReadPosRankSum > 2.500' \
+--filter-name "INDEL_filtered" \
+--output ${VCF%.vcf.gz}.mitoINDELs.filtered.vcf"
+
+# once done, count the filtered sites
+echo -e "Filtered_VCF\tVariants_PASS\tVariants_FILTERED" > filter.stats
+for i in *filtered.vcf; do
+     name=${i}; pass=$( grep -E 'PASS' ${i} | wc -l ); filter=$( grep -E 'filter' ${i} | wc -l );
+     echo -e "${name}\t${pass}\t${filter}" >> filter.stats
+done
+
+# Filtered_VCF	Variants_PASS	Variants_FILTERED
+# Trichuris_trichiura.cohort.mitoINDELs.filtered.vcf	380	31
+# Trichuris_trichiura.cohort.mitoSNPs.filtered.vcf	2270	200
+# Trichuris_trichiura.cohort.nuclearINDELs.filtered.vcf	942632	50254
+# Trichuris_trichiura.cohort.nuclearSNPs.filtered.vcf	9755825	638344
+```
+
+
+```
+gatk VariantsToTable \
+ -R ${REFERENCE} \
+ -V GVCFall.vcf \
+ -F CHROM -F POS -GF GT -GF DP \
+ -o GVCFall.DP.table
+
+```
