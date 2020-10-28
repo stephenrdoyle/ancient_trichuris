@@ -1170,23 +1170,20 @@ QUAL <- ggplot(VCF, aes(x=QUAL, fill=Variant)) + geom_density(alpha=.3) +
 
 
 # DP doesnt have a hardfilter
-#DP_quant <- quantile(VCF$DP, c(.01,.99), na.rm=T)
-DP_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(DP, probs = c(.01,.99)))) %>% unnest_wider(quants)
+DP_quant <- quantile(VCF$DP, c(.01,.99), na.rm=T)
 DP <- ggplot(VCF, aes(x=DP, fill=Variant)) + geom_density(alpha=0.3) + xlim(0,5000) +
           geom_vline(xintercept=DP_quant, col="blue") +
           theme_bw()
 
 # gatk hardfilter: SNP & INDEL QD < 2
-#QD_quant <- quantile(VCF$QD, c(.01,.99), na.rm=T)
-QD_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(QD, probs = c(.01,.99)))) %>% unnest_wider(quants)
+QD_quant <- quantile(VCF$QD, c(.01,.99), na.rm=T)
 QD <- ggplot(VCF, aes(x=QD, fill=Variant)) + geom_density(alpha=.3) +
           geom_vline(xintercept=2, size=0.7, col="red") +
            geom_vline(xintercept=QD_quant, size=0.7, col="blue") +
            theme_bw()
 
 # gatk hardfilter: SNP FS > 60, INDEL FS > 200
-#FS_quant <- quantile(VCF$FS, c(.01,.99), na.rm=T)
-FS_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(FS, probs = c(.01,.99)))) %>% unnest_wider(quants)
+FS_quant <- quantile(VCF$FS, c(.01,.99), na.rm=T)
 FS <- ggplot(VCF, aes(x=FS, fill=Variant)) + geom_density(alpha=.3) +
           geom_vline(xintercept=c(60, 200), size=0.7, col="red") +
           geom_vline(xintercept=FS_quant, size=0.7, col="blue") +
@@ -1194,16 +1191,14 @@ FS <- ggplot(VCF, aes(x=FS, fill=Variant)) + geom_density(alpha=.3) +
           theme_bw()
 
 # gatk hardfilter: SNP & INDEL MQ < 30
-#MQ_quant <- quantile(VCF$MQ, c(.01,.99), na.rm=T)
-MQ_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(MQ, probs = c(.01,.99)))) %>% unnest_wider(quants)
+MQ_quant <- quantile(VCF$MQ, c(.01,.99), na.rm=T)
 MQ <- ggplot(VCF, aes(x=MQ, fill=Variant)) + geom_density(alpha=.3) +
           geom_vline(xintercept=40, size=0.7, col="red") +
           geom_vline(xintercept=MQ_quant, size=0.7, col="blue") +
           theme_bw()
 
 # gatk hardfilter: SNP MQRankSum < -20
-#MQRankSum_quant <- quantile(VCF$MQRankSum, c(.01,.99), na.rm=T)
-MQRankSum_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(MQRankSum, probs = c(.01,.99)))) %>% unnest_wider(quants)
+MQRankSum_quant <- quantile(VCF$MQRankSum, c(.01,.99), na.rm=T)
 MQRankSum <- ggplot(VCF, aes(x=MQRankSum, fill=Variant)) + geom_density(alpha=.3) +
                     geom_vline(xintercept=-20, size=0.7, col="red") +
                     geom_vline(xintercept=MQRankSum_quant, size=0.7, col="blue") +
@@ -1229,7 +1224,7 @@ ReadPosRankSum <- ggplot(VCF, aes(x=ReadPosRankSum, fill=Variant)) + geom_densit
 #grid.arrange(QD, DP, FS, MQ, MQRankSum, SOR, ReadPosRankSum, nrow=4)
 #dev.off()
 
-DP + QD + FS + MQ + MQRankSum + SOR + ReadPosRankSum + plot_layout(ncol=2)
+QUAL + DP + QD + FS + MQ + MQRankSum + SOR + ReadPosRankSum + plot_layout(ncol=2)
 ggsave("plot_variant_summaries.png", height=20, width=15)
 
 
@@ -1253,7 +1248,7 @@ ReadPosRankSum_quant$name <- "ReadPosRankSum"
 
 quantiles <- bind_rows(QUAL_quant,DP_quant, QD_quant, FS_quant, MQ_quant, MQRankSum_quant, SOR_quant, ReadPosRankSum_quant)
 quantiles$name <- c("QUAL_Indels","QUAL_SNPs","DP_indels","DP_SNPs", "QD_indels","QD_SNPs", "FS_indels","FS_SNPs", "MQ_indels","MQ_SNPs", "MQRankSum_indels","MQRankSum_SNPs", "SOR_indels","SOR_SNPs","ReadPosRankSum_indels","ReadPosRankSum_SNPs")
-quantiles <- column_to_rownames(quantiles, var = c("name","Variant"))
+
 
 
 ```
