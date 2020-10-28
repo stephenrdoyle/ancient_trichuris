@@ -1405,63 +1405,85 @@ done
 
 ```
 
+### Merge VCFs
+```bash
+
+bsub.py 1 merge_mito_variants "gatk MergeVcfs \
+--INPUT ${VCF%.vcf.gz}.mitoSNPs.filtered.vcf \
+--INPUT ${VCF%.vcf.gz}.mitoINDELs.filtered.vcf \
+--OUTPUT ${VCF%.vcf.gz}.mitoALL.filtered.vcf"
+
+bsub.py 1 merge_nuclear_variants "gatk MergeVcfs \
+--INPUT ${VCF%.vcf.gz}.nuclearSNPs.filtered.vcf \
+--INPUT ${VCF%.vcf.gz}.nuclearINDELs.filtered.vcf \
+--OUTPUT ${VCF%.vcf.gz}.nuclearALL.filtered.vcf"
+```
+
+
+### Check depth per genotype per sample, and mask low coverage gts
+```
 bsub.py 1 select_mitoSNPs_GT \
 "gatk VariantsToTable \
  --reference ${REFERENCE} \
- --variant ${VCF%.vcf.gz}.mitoSNPs.filtered.vcf \
+ --variant ${VCF%.vcf.gz}.mitoALL.filtered.vcf \
  --fields CHROM --fields POS --genotype-fields GT --genotype-fields DP \
- --output GVCFall.DP.table"
+ --output ${VCF%.vcf.gz}.mitoALL.filtered.DP.table"
+
+ bsub.py 1 select_nuclearSNPs_GT \
+ "gatk VariantsToTable \
+  --reference ${REFERENCE} \
+  --variant ${VCF%.vcf.gz}.nuclearALL.filtered.vcf \
+  --fields CHROM --fields POS --genotype-fields GT --genotype-fields DP \
+  --output ${VCF%.vcf.gz}.nuclearALL.filtered.DP.table"
 
 
-for((i=1, start=1, end=$inc; i < ncol/inc + 1; i++, start+=inc, end+=inc))
-ncol=$(awk 'NR==1{print NF}' GVCFall.DP.table)
-for ((i=3; i<=${ncol}; i +=2)); do cut -f $i,$((i+1)) GVCFall.DP.table | awk '$1 != "./." {print $2}' > $i.DP; done
+
+# make per sample depth datasets
+ncol=$(awk 'NR==1{print NF}' ${VCF%.vcf.gz}.mitoALL.filtered.DP.table)
+for ((i=3; i<=${ncol}; i +=2)); do cut -f $i,$((i+1)) ${VCF%.vcf.gz}.mitoALL.filtered.DP.table | awk '$1 != "./." {print $2}' > $i.mito.DP; done
+
+ncol=$(awk 'NR==1{print NF}' ${VCF%.vcf.gz}.nuclearALL.filtered.DP.table)
+for ((i=3; i<=${ncol}; i +=2)); do cut -f $i,$((i+1)) ${VCF%.vcf.gz}.nuclearALL.filtered.DP.table | awk '$1 != "./." {print $2}' > $i.nuclear.DP; done
 ```
 ```R
 nameList <- c()
 for (i in 3:147) { # 21 - odd number for 10 samples
-  if (i %% 2==1) nameList <- append(nameList,paste0(i,".DP"))
+  if (i %% 2==1) nameList <- append(nameList,paste0(i,".mito.DP"))
 }
 
 qlist <- matrix(nrow = 73, ncol = 3) # define number of samples (10 samples here)
 qlist <- data.frame(qlist, row.names=nameList)
 colnames(qlist)<-c('5%', '10%', '99%')
 
-png("GVCFall.DP.png", width=100)
-par(mar=c(5, 3, 3, 2), cex=1.5, mfrow=c(20,4)) # define number of plots for your sample
 for (i in 1:73) {
   DP <- read.table(nameList[i], header = T)
   qlist[i,] <- quantile(DP[,1], c(.05, .1, .99), na.rm=T)
   d <- density(DP[,1], from=0, to=100, bw=1, na.rm=T)
-  plot(d, xlim = c(0,100), main=nameList[i], col="blue", xlab = dim(DP)[1], lwd=2)
-  abline(v=qlist[i,c(1,3)], col='red', lwd=3)
+  ggplot(DP,aes(x=DP[,1])) +
+       geom_density() +
+       geom_vline(xintercept=c(qlist[i,1],qlist[i,3]), col='red', lwd=1) +
+       theme_bw() +
+       labs(title = paste0("Sample: ",colnames(DP)), x= "Coverage")
+       ggsave(paste0(colnames(DP),"mitoALL.filtered.DP.png"))
 }
-dev.off()
 
-for (i in 1:10) {
+
+
+
 
 plot_list <- list()
 
-DP <- read.table(nameList[i], header = T)
-qlist[i,] <- quantile(DP[,1], c(.05, .1, .99), na.rm=T)
-d <- density(DP[,1], from=0, to=100, bw=1, na.rm=T)
-
-plot_list[[i]] <- ggplot(DP,aes(x=DP[,1])) +
-     geom_density() +
-     geom_vline(xintercept=c(qlist[i,1],qlist[i,3]), col='red', lwd=1) +
-     theme_bw() +
-     labs(title = paste0("Sample: ",colnames(DP)), x= "Coverage")
-print(plot_list[[i]])
+for(i in 1:nrow(qlist)) {
+     DP <- read.table(nameList[i], header = T)
+     qlist[i,] <- quantile(DP[,1], c(.05, .1, .99), na.rm=T)
+     d <- density(DP[,1], from=0, to=100, bw=1, na.rm=T)
+     plot_list[[i]] <- ggplot(DP,aes(x=DP[,1])) +
+          geom_density() +
+          geom_vline(xintercept=c(qlist[i,1],qlist[i,3]), col='red', lwd=1) +
+          theme_bw() +
+          labs(title = paste0("Sample: ",colnames(DP)), x= "Coverage")
+     print(plot_list[[i]])
 }
 wrap_plots(plot_list,ncol=4)
 ```
 ![GVCFall.DP.png](../04_analysis/GVCFall.DP.png)
-
-
-
-
-for (i in 1:nrow(qlist)) {
-plot_list <- list()
-     plot_list[[i]] <- i
-}
-plot_list
