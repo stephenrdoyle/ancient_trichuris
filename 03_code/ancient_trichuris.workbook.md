@@ -1315,22 +1315,17 @@ dev.off()
 
 }
 
+# run mitochondrial variants
 fun_variant_summaries(VCF_mito,"mitochondrial")
 
+# run nuclear variants
 fun_variant_summaries(VCF_nuclear,"nuclear")
-
-
-
-
-
-
-
-
-
-
-
-
 
 ```
 ![plot_variant_summaries](../04_analysis/plot_mitochondrial_variant_summaries.png)
+![plot_variant_summaries](../04_analysis/plot_nuclear_variant_summaries.png)
+
+- Table: mitochondrial_variant_quantiles
 ![plot_variant_summaries](../04_analysis/table_mitochondrial_variant_quantiles.png)
+- Table: nuclear_variant_quantiles
+![plot_variant_summaries](../04_analysis/table_nuclear_variant_quantiles.png)
