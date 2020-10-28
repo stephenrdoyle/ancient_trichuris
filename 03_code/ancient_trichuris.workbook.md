@@ -1106,150 +1106,228 @@ ggsave("global_diversity_mtDNA_SNPs.png",height=6,width=7.5)
 Adapted from https://evodify.com/gatk-in-non-model-organism/
 
 ```bash
+# load gatk
+module load gatk/4.1.4.1
+
+WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
+
+cd ${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED/FILTER
+
+# set reference, vcf, and mitochondrial contig
 REFERENCE=${WORKING_DIR}/01_REF/trichuris_trichiura.fa
 VCF=${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED/Trichuris_trichiura.cohort.vcf.gz
+MITOCHONDRIAL_CONTIG=Trichuris_trichiura_MITO
 
-# select SNPs
-bsub.py 10 select_SNPs "gatk SelectVariants \
+# select nuclear SNPs
+bsub.py 1 select_nuclearSNPs "gatk SelectVariants \
 --reference ${REFERENCE} \
 --variant ${VCF} \
 --select-type-to-include SNP \
---output ${VCF%.vcf.gz}.SNPs.vcf"
+--exclude-intervals ${MITOCHONDRIAL_CONTIG} \
+--output ${VCF%.vcf.gz}.nuclearSNPs.vcf"
 
-# select INDELs
-bsub.py 10 select_INDELs "gatk SelectVariants \
+# select nuclear INDELs
+bsub.py 1 select_nuclearINDELs "gatk SelectVariants \
 --reference ${REFERENCE} \
 --variant ${VCF} \
 --select-type-to-include INDEL \
---output ${VCF%.vcf.gz}.INDELs.vcf"
+--exclude-intervals ${MITOCHONDRIAL_CONTIG} \
+--output ${VCF%.vcf.gz}.nuclearINDELs.vcf"
 
-# make a table of SNP data
-bsub.py --done "select_SNPs" 10 select_SNPs_table "gatk VariantsToTable \
+# select mitochondrial SNPs
+bsub.py 1 select_mitoSNPs "gatk SelectVariants \
 --reference ${REFERENCE} \
---variant ${VCF%.vcf.gz}.SNPs.vcf \
---fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
---output GVCFall_SNPs.table"
+--variant ${VCF} \
+--select-type-to-include SNP \
+--intervals ${MITOCHONDRIAL_CONTIG} \
+--output ${VCF%.vcf.gz}.mitoSNPs.vcf"
 
-# make a table of INDEL data data
-bsub.py --done "select_INDELs"  10 select_INDELs_table "gatk VariantsToTable \
+# select mitochondrial INDELs
+bsub.py 1 select_mitoINDELs "gatk SelectVariants \
 --reference ${REFERENCE} \
---variant ${VCF%.vcf.gz}.INDELs.vcf \
+--variant ${VCF} \
+--select-type-to-include INDEL \
+--intervals ${MITOCHONDRIAL_CONTIG} \
+--output ${VCF%.vcf.gz}.mitoINDELs.vcf"
+
+
+
+
+# make a table of nuclear SNP data
+bsub.py --done "select_nuclearSNPs" 1 select_nuclearSNPs_table "gatk VariantsToTable \
+--reference ${REFERENCE} \
+--variant ${VCF%.vcf.gz}.nuclearSNPs.vcf \
 --fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
---output GVCFall_INDELs.table"
+--output GVCFall_nuclearSNPs.table"
+
+# make a table of nuclear INDEL data data
+bsub.py --done "select_nuclearINDELs"  1 select_nuclearINDELs_table "gatk VariantsToTable \
+--reference ${REFERENCE} \
+--variant ${VCF%.vcf.gz}.nuclearINDELs.vcf \
+--fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
+--output GVCFall_nuclearINDELs.table"
+
+# make a table of mito SNP data
+bsub.py --done "select_mitoSNPs" 1 select_mitoSNPs_table "gatk VariantsToTable \
+--reference ${REFERENCE} \
+--variant ${VCF%.vcf.gz}.mitoSNPs.vcf \
+--fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
+--output GVCFall_mitoSNPs.table"
+
+# make a table of mito INDEL data data
+bsub.py --done "select_mitoINDELs"  1 select_mitoINDELs_table "gatk VariantsToTable \
+--reference ${REFERENCE} \
+--variant ${VCF%.vcf.gz}.mitoINDELs.vcf \
+--fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
+--output GVCFall_mitoINDELs.table"
+
+
+
 
 # make some density plots of the data
-bsub.py --done "select_SNPs_table" --done "select_INDELs_table" 1 plot_variant_summaries "Rscript ${WORKING_DIR}/00_SCRIPTS/plot_variant_summaries.R"
+bsub.py --done "select_mitoSNPs_table" --done "select_INDELs_table" 1 mito_variant_summaries "Rscript ${WORKING_DIR}/00_SCRIPTS/generate_variant_summaries.R"
 ```
 
-where "plot_variant_summaries.R" is
+where "generate_variant_summaries.R" is
 ```R
 
 library('ggplot2')
 library(patchwork)
 require(data.table)
 library(tidyverse)
+library(gridExtra)
 
-VCFsnps <- fread('GVCFall_SNPs.table', header = TRUE, fill=TRUE, na.strings=c("","NA"), sep = "\t")
-VCFindel <- fread('GVCFall_INDELs.table', header = TRUE, fill=TRUE, na.strings=c("","NA"), sep = "\t")
-dim(VCFsnps)
-dim(VCFindel)
-VCF <- rbind(VCFsnps, VCFindel)
-VCF$Variant <- factor(c(rep("SNPs", dim(VCFsnps)[1]), rep("Indels", dim(VCFindel)[1])))
+VCF_nuclear_snps <- fread('GVCFall_nuclearSNPs.table', header = TRUE, fill=TRUE, na.strings=c("","NA"), sep = "\t")
+VCF_nuclear_snps <- sample_frac(VCF_nuclear_snps, 0.2)
+VCF_nuclear_indels <- fread('GVCFall_nuclearINDELs.table', header = TRUE, fill=TRUE, na.strings=c("","NA"), sep = "\t")
+VCF_nuclear_indels <- sample_frac(VCF_nuclear_indels, 0.2)
+dim(VCF_nuclear_snps)
+dim(VCF_nuclear_indels)
+VCF_nuclear <- rbind(VCF_nuclear_snps, VCF_nuclear_indels)
+VCF_nuclear$Variant <- factor(c(rep("SNPs", dim(VCF_nuclear_snps)[1]), rep("Indels", dim(VCF_nuclear_indels)[1])))
+
+VCF_mito_snps <- fread('GVCFall_mitoSNPs.table', header = TRUE, fill=TRUE, na.strings=c("","NA"), sep = "\t")
+VCF_mito_indels <- fread('GVCFall_mitoINDELs.table', header = TRUE, fill=TRUE, na.strings=c("","NA"), sep = "\t")
+dim(VCF_mito_snps)
+dim(VCF_mito_indels)
+VCF_mito <- rbind(VCF_mito_snps, VCF_mito_indels)
+VCF_mito$Variant <- factor(c(rep("SNPs", dim(VCF_mito_snps)[1]), rep("Indels", dim(VCF_mito_indels)[1])))
+
+
+
+
 
 snps <- '#A9E2E4'
 indels <- '#F4CCCA'
 
-
+fun_variant_summaries <- function(data, title){
 # gatk hardfilter: SNP & INDEL QUAL < 0
-QUAL_quant <- quantile(VCF$QUAL, c(.01,.99), na.rm=T)
-QUAL <- ggplot(VCF, aes(x=QUAL, fill=Variant)) + geom_density(alpha=.3) +
+QUAL_quant <- quantile(data$QUAL, c(.01,.99), na.rm=T)
+QUAL <- ggplot(data, aes(x=QUAL, fill=Variant)) + geom_density(alpha=.3) +
           geom_vline(xintercept=0, size=0.7, col="red") +
            geom_vline(xintercept=c(QUAL_quant[2], QUAL_quant[3]), size=0.7, col="blue") +
-           xlim(0,500) +
-           theme_bw()
+           xlim(0,1000) +
+           theme_bw() + labs(title=paste0(title,": QUAL"))
 
 
 # DP doesnt have a hardfilter
-DP_quant <- quantile(VCF$DP, c(.01,.99), na.rm=T)
-DP <- ggplot(VCF, aes(x=DP, fill=Variant)) + geom_density(alpha=0.3) + xlim(0,5000) +
+DP_quant <- quantile(data$DP, c(.01,.99), na.rm=T)
+DP <- ggplot(data, aes(x=DP, fill=Variant)) + geom_density(alpha=0.3) +
           geom_vline(xintercept=DP_quant, col="blue") +
-          theme_bw()
+          theme_bw() + labs(title=paste0(title,": DP"))
 
 # gatk hardfilter: SNP & INDEL QD < 2
-QD_quant <- quantile(VCF$QD, c(.01,.99), na.rm=T)
-QD <- ggplot(VCF, aes(x=QD, fill=Variant)) + geom_density(alpha=.3) +
+QD_quant <- quantile(data$QD, c(.01,.99), na.rm=T)
+QD <- ggplot(data, aes(x=QD, fill=Variant)) + geom_density(alpha=.3) +
           geom_vline(xintercept=2, size=0.7, col="red") +
            geom_vline(xintercept=QD_quant, size=0.7, col="blue") +
-           theme_bw()
+           theme_bw() + labs(title=paste0(title,": QD"))
 
 # gatk hardfilter: SNP FS > 60, INDEL FS > 200
-FS_quant <- quantile(VCF$FS, c(.01,.99), na.rm=T)
-FS <- ggplot(VCF, aes(x=FS, fill=Variant)) + geom_density(alpha=.3) +
+FS_quant <- quantile(data$FS, c(.01,.99), na.rm=T)
+FS <- ggplot(data, aes(x=FS, fill=Variant)) + geom_density(alpha=.3) +
           geom_vline(xintercept=c(60, 200), size=0.7, col="red") +
           geom_vline(xintercept=FS_quant, size=0.7, col="blue") +
           xlim(0,250) +
-          theme_bw()
+          theme_bw() + labs(title=paste0(title,": FS"))
 
 # gatk hardfilter: SNP & INDEL MQ < 30
-MQ_quant <- quantile(VCF$MQ, c(.01,.99), na.rm=T)
-MQ <- ggplot(VCF, aes(x=MQ, fill=Variant)) + geom_density(alpha=.3) +
+MQ_quant <- quantile(data$MQ, c(.01,.99), na.rm=T)
+MQ <- ggplot(data, aes(x=MQ, fill=Variant)) + geom_density(alpha=.3) +
           geom_vline(xintercept=40, size=0.7, col="red") +
           geom_vline(xintercept=MQ_quant, size=0.7, col="blue") +
-          theme_bw()
+          theme_bw() + labs(title=paste0(title,": MQ"))
 
 # gatk hardfilter: SNP MQRankSum < -20
-MQRankSum_quant <- quantile(VCF$MQRankSum, c(.01,.99), na.rm=T)
-MQRankSum <- ggplot(VCF, aes(x=MQRankSum, fill=Variant)) + geom_density(alpha=.3) +
+MQRankSum_quant <- quantile(data$MQRankSum, c(.01,.99), na.rm=T)
+MQRankSum <- ggplot(data, aes(x=MQRankSum, fill=Variant)) + geom_density(alpha=.3) +
                     geom_vline(xintercept=-20, size=0.7, col="red") +
                     geom_vline(xintercept=MQRankSum_quant, size=0.7, col="blue") +
-                    theme_bw()
+                    theme_bw() + labs(title=paste0(title,": MQRankSum"))
 
 
 # gatk hardfilter: SNP SOR < 4 , INDEL SOR > 10
-SOR_quant <- quantile(VCF$SOR, c(.01, .99), na.rm=T)
-SOR <- ggplot(VCF, aes(x=SOR, fill=Variant)) + geom_density(alpha=.3) +
+SOR_quant <- quantile(data$SOR, c(.01, .99), na.rm=T)
+SOR <- ggplot(data, aes(x=SOR, fill=Variant)) + geom_density(alpha=.3) +
           geom_vline(xintercept=c(4, 10), size=1, colour = c(snps,indels)) +
           geom_vline(xintercept=SOR_quant, size=0.7, col="blue") +
-          theme_bw()
+          theme_bw() + labs(title=paste0(title,": SOR"))
 
 # gatk hardfilter: SNP SOR < 4 , INDEL SOR > 10
-ReadPosRankSum_quant <- quantile(VCF$ReadPosRankSum, c(.01,.99), na.rm=T)
-ReadPosRankSum <- ggplot(VCF, aes(x=ReadPosRankSum, fill=Variant)) + geom_density(alpha=.3) +
+ReadPosRankSum_quant <- quantile(data$ReadPosRankSum, c(.01,.99), na.rm=T)
+ReadPosRankSum <- ggplot(data, aes(x=ReadPosRankSum, fill=Variant)) + geom_density(alpha=.3) +
                          geom_vline(xintercept=c(-10,10,-20,20), size=1, colour = c(snps,snps,indels,indels)) + xlim(-10, 10) +
-                         geom_vline(xintercept=ReadPosRankSum_quant, size=0.7, col="blue")
+                         geom_vline(xintercept=ReadPosRankSum_quant, size=0.7, col="blue") +
+                         theme_bw() + labs(title=paste0(title,": ReadPosRankSum"))
 
 
-#svg("Co_10accessions_FromStephen.svg", height=20, width=15)
-#theme_set(theme_gray(base_size = 18))
-#grid.arrange(QD, DP, FS, MQ, MQRankSum, SOR, ReadPosRankSum, nrow=4)
-#dev.off()
-
-QUAL + DP + QD + FS + MQ + MQRankSum + SOR + ReadPosRankSum + plot_layout(ncol=2)
-ggsave("plot_variant_summaries.png", height=20, width=15)
+plot <- QUAL + DP + QD + FS + MQ + MQRankSum + SOR + ReadPosRankSum + plot_layout(ncol=2)
+print(plot)
+ggsave(paste0("plot_",title,"_variant_summaries.png"), height=20, width=15)
 
 
-QUAL_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(QUAL, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+# generate a table of quantiles for each variant feature
+QUAL_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(QUAL, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
 QUAL_quant$name <- "QUAL"
-DP_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(DP, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+DP_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(DP, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
 DP_quant$name <- "DP"
-QD_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(QD, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+QD_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(QD, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
 QD_quant$name <- "QD"
-FS_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(FS, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+FS_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(FS, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
 FS_quant$name <- "FS"
-MQ_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(MQ, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+MQ_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(MQ, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
 MQ_quant$name <- "MQ"
-MQRankSum_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(MQRankSum, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+MQRankSum_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(MQRankSum, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
 MQRankSum_quant$name <- "MQRankSum"
-SOR_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(SOR, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+SOR_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(SOR, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
 SOR_quant$name <- "SOR"
-ReadPosRankSum_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(ReadPosRankSum, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+ReadPosRankSum_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(ReadPosRankSum, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
 ReadPosRankSum_quant$name <- "ReadPosRankSum"
-
 
 quantiles <- bind_rows(QUAL_quant,DP_quant, QD_quant, FS_quant, MQ_quant, MQRankSum_quant, SOR_quant, ReadPosRankSum_quant)
 quantiles$name <- c("QUAL_Indels","QUAL_SNPs","DP_indels","DP_SNPs", "QD_indels","QD_SNPs", "FS_indels","FS_SNPs", "MQ_indels","MQ_SNPs", "MQRankSum_indels","MQRankSum_SNPs", "SOR_indels","SOR_SNPs","ReadPosRankSum_indels","ReadPosRankSum_SNPs")
 
+png(paste0("table_",title,"_variant_quantiles.png"), width=480,height=480,bg = "white")
+grid.table(quantiles)
+dev.off()
+
+
+}
+
+fun_variant_summaries(VCF_nuclear,"nuclear")
+
+
+fun_variant_summaries(VCF_mito,"mitochondrial")
+
+
+
+
+
+
+
+
 
 
 ```
-![plot_variant_summaries](../04_analysis/plot_variant_summaries.png)
+![plot_variant_summaries](../04_analysis/plot_mitochondrial_variants_variant_summaries.png)
+![plot_variant_summaries](../04_analysis/table_mitochondrial_variants_variant_quantiles.png)
