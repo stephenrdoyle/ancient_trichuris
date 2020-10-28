@@ -597,10 +597,75 @@ rm *.tmp
 
 
 
+
+
+
+
+
+
+
 ## SNP calling
 - Using GATK haplotypecaller to call SNPs
 - First pass QC: --min-base-quality-score 20 --minimum-mapping-quality 30
 - scripts below split jobs by sample and by sequence, generating GVCFs, and then once done, merging them back together again. It does this by generating small jobs submitted in arrays to perform tasks in parallel, greatly speeding up the overall job time.
+
+
+
+### Genome scope
+Using genomescope to estimate heterozygosity from a couple of samples which can be used as an input to GATK genotyping
+```bash
+WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
+
+mkdir ${WORKING_DIR}/02_RAW/GENOMESCOPE
+cd  ${WORKING_DIR}/02_RAW/GENOMESCOPE
+
+
+jellyfish=/nfs/users/nfs_s/sd21/lustre118_link/software/COMPARATIVE_GENOMICS/jellyfish-2.2.6/bin/jellyfish
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/nfs/users/nfs_s/sd21/lustre118_link/software/COMPARATIVE_GENOMICS/jellyfish-2.2.6/lib
+genomescope=/nfs/users/nfs_s/sd21/lustre118_link/software/COMPARATIVE_GENOMICS/genomescope/genomescope.R
+
+echo -e "
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/nfs/users/nfs_s/sd21/lustre118_link/software/COMPARATIVE_GENOMICS/jellyfish-2.2.6/lib" > run_jellyfish2genomescope
+
+while read OLD_NAME NEW_NAME; do
+     echo -e "
+     # run jellyfish to count kmers
+     ${jellyfish} count -C -m 17 -s 1000000000 -t 10 ${WORKING_DIR}/02_RAW/${NEW_NAME}_PE.pair*.truncated -o ${NEW_NAME}.jellyfish.kmercount; \\
+     # run jellyfish to make a histogram of kmers for input to genomescope
+     ${jellyfish} histo -t 10 ${NEW_NAME}.jellyfish.kmercount > ${NEW_NAME}.jellyfish.histo;
+     # run genomescope
+     Rscript ${genomescope} ${NEW_NAME}.jellyfish.histo 17 100 ${NEW_NAME}.genomescope_out 1000" >> run_jellyfish2genomescope
+done < ${WORKING_DIR}/modern.sample_list
+
+chmod a+x run_jellyfish2genomescope
+
+bsub.py --queue long --threads 10 20 jellyfish "./run_jellyfish2genomescope"
+
+```
+- once completed, opened histo files in genomescope (http://qb.cshl.edu/genomescope/)
+- generally, the sequencing coverage was too low for this to work well. For most samples, the model failed to converge. However, some did work, shown below.
+- heterozygosities:
+     - MN_UGA_DK_HS_001: 0.0157
+          - Model converged het:0.0157 kcov:6.82 err:0.00251 model fit:0.184 len:71832293
+     - MN_UGA_KAB_HS_001:  0.0229
+          - Model converged het:0.0229 kcov:7.33 err:0.00403 model fit:0.442 len:71863652
+     - MN_UGA_KAB_HS_006: 0.0175
+          - Model converged het:0.0175 kcov:8.87 err:0.0138 model fit:0.431 len:77034118
+- GATK uses a heterozygosity default of 0.001, which is at least 10-fold lower than data here. Worth changing.
+
+eg.
+![genomescope_MN_UGA_DK_HS_001](../04_analysis/genomescope_MN_UGA_DK_HS_001.png)
+![genomescope_MN_UGA_DK_HS_001.log](../04_analysis/genomescope_MN_UGA_DK_HS_001.log.png)
+
+
+
+
+
+
+
+
+### GATK
+
 ```bash
 # working dir
 WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
@@ -1037,59 +1102,159 @@ ggsave("global_diversity_mtDNA_SNPs.png",height=6,width=7.5)
 ```
 
 
+### Querying SNP and INDEL QC profiles to determine thresholds for filters
+Adapted from https://evodify.com/gatk-in-non-model-organism/
 
-https://evodify.com/gatk-in-non-model-organism/
-
-
-
-
-
-### Genome scope
-Using genomescope to estimate heterozygosity from a couple of samples which can be used as an input to GATK genotyping
 ```bash
-WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
+REFERENCE=${WORKING_DIR}/01_REF/trichuris_trichiura.fa
+VCF=${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED/Trichuris_trichiura.cohort.vcf.gz
 
-mkdir ${WORKING_DIR}/02_RAW/GENOMESCOPE
-cd  ${WORKING_DIR}/02_RAW/GENOMESCOPE
+# select SNPs
+bsub.py 10 select_SNPs "gatk SelectVariants \
+--reference ${REFERENCE} \
+--variant ${VCF} \
+--select-type-to-include SNP \
+--output ${VCF%.vcf.gz}.SNPs.vcf"
+
+# select INDELs
+bsub.py 10 select_INDELs "gatk SelectVariants \
+--reference ${REFERENCE} \
+--variant ${VCF} \
+--select-type-to-include INDEL \
+--output ${VCF%.vcf.gz}.INDELs.vcf"
+
+# make a table of SNP data
+bsub.py --done "select_SNPs" 10 select_SNPs_table "gatk VariantsToTable \
+--reference ${REFERENCE} \
+--variant ${VCF%.vcf.gz}.SNPs.vcf \
+--fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
+--output GVCFall_SNPs.table"
+
+# make a table of INDEL data data
+bsub.py --done "select_INDELs"  10 select_INDELs_table "gatk VariantsToTable \
+--reference ${REFERENCE} \
+--variant ${VCF%.vcf.gz}.INDELs.vcf \
+--fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
+--output GVCFall_INDELs.table"
+
+# make some density plots of the data
+bsub.py --done "select_SNPs_table" --done "select_INDELs_table" 1 plot_variant_summaries "Rscript ${WORKING_DIR}/00_SCRIPTS/plot_variant_summaries.R"
+```
+
+where "plot_variant_summaries.R" is
+```R
+
+library('ggplot2')
+library(patchwork)
+require(data.table)
+library(tidyverse)
+
+VCFsnps <- fread('GVCFall_SNPs.table', header = TRUE, fill=TRUE, na.strings=c("","NA"), sep = "\t")
+VCFindel <- fread('GVCFall_INDELs.table', header = TRUE, fill=TRUE, na.strings=c("","NA"), sep = "\t")
+dim(VCFsnps)
+dim(VCFindel)
+VCF <- rbind(VCFsnps, VCFindel)
+VCF$Variant <- factor(c(rep("SNPs", dim(VCFsnps)[1]), rep("Indels", dim(VCFindel)[1])))
+
+snps <- '#A9E2E4'
+indels <- '#F4CCCA'
 
 
-jellyfish=/nfs/users/nfs_s/sd21/lustre118_link/software/COMPARATIVE_GENOMICS/jellyfish-2.2.6/bin/jellyfish
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/nfs/users/nfs_s/sd21/lustre118_link/software/COMPARATIVE_GENOMICS/jellyfish-2.2.6/lib
-genomescope=/nfs/users/nfs_s/sd21/lustre118_link/software/COMPARATIVE_GENOMICS/genomescope/genomescope.R
-
-echo -e "
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/nfs/users/nfs_s/sd21/lustre118_link/software/COMPARATIVE_GENOMICS/jellyfish-2.2.6/lib" > run_jellyfish2genomescope
-
-while read OLD_NAME NEW_NAME; do
-     echo -e "
-     # run jellyfish to count kmers
-     ${jellyfish} count -C -m 17 -s 1000000000 -t 10 ${WORKING_DIR}/02_RAW/${NEW_NAME}_PE.pair*.truncated -o ${NEW_NAME}.jellyfish.kmercount; \\
-     # run jellyfish to make a histogram of kmers for input to genomescope
-     ${jellyfish} histo -t 10 ${NEW_NAME}.jellyfish.kmercount > ${NEW_NAME}.jellyfish.histo;
-     # run genomescope
-     Rscript ${genomescope} ${NEW_NAME}.jellyfish.histo 17 100 ${NEW_NAME}.genomescope_out 1000" >> run_jellyfish2genomescope
-done < ${WORKING_DIR}/modern.sample_list
-
-chmod a+x run_jellyfish2genomescope
-
-bsub.py --queue long --threads 10 20 jellyfish "./run_jellyfish2genomescope"
+# gatk hardfilter: SNP & INDEL QUAL < 0
+QUAL_quant <- quantile(VCF$QUAL, c(.01,.99), na.rm=T)
+QUAL <- ggplot(VCF, aes(x=QUAL, fill=Variant)) + geom_density(alpha=.3) +
+          geom_vline(xintercept=0, size=0.7, col="red") +
+           geom_vline(xintercept=c(QUAL_quant[2], QUAL_quant[3]), size=0.7, col="blue") +
+           xlim(0,500) +
+           theme_bw()
 
 
+# DP doesnt have a hardfilter
+#DP_quant <- quantile(VCF$DP, c(.01,.99), na.rm=T)
+DP_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(DP, probs = c(.01,.99)))) %>% unnest_wider(quants)
+DP <- ggplot(VCF, aes(x=DP, fill=Variant)) + geom_density(alpha=0.3) + xlim(0,5000) +
+          geom_vline(xintercept=DP_quant, col="blue") +
+          theme_bw()
 
+# gatk hardfilter: SNP & INDEL QD < 2
+#QD_quant <- quantile(VCF$QD, c(.01,.99), na.rm=T)
+QD_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(QD, probs = c(.01,.99)))) %>% unnest_wider(quants)
+QD <- ggplot(VCF, aes(x=QD, fill=Variant)) + geom_density(alpha=.3) +
+          geom_vline(xintercept=2, size=0.7, col="red") +
+           geom_vline(xintercept=QD_quant, size=0.7, col="blue") +
+           theme_bw()
+
+# gatk hardfilter: SNP FS > 60, INDEL FS > 200
+#FS_quant <- quantile(VCF$FS, c(.01,.99), na.rm=T)
+FS_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(FS, probs = c(.01,.99)))) %>% unnest_wider(quants)
+FS <- ggplot(VCF, aes(x=FS, fill=Variant)) + geom_density(alpha=.3) +
+          geom_vline(xintercept=c(60, 200), size=0.7, col="red") +
+          geom_vline(xintercept=FS_quant, size=0.7, col="blue") +
+          xlim(0,250) +
+          theme_bw()
+
+# gatk hardfilter: SNP & INDEL MQ < 30
+#MQ_quant <- quantile(VCF$MQ, c(.01,.99), na.rm=T)
+MQ_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(MQ, probs = c(.01,.99)))) %>% unnest_wider(quants)
+MQ <- ggplot(VCF, aes(x=MQ, fill=Variant)) + geom_density(alpha=.3) +
+          geom_vline(xintercept=40, size=0.7, col="red") +
+          geom_vline(xintercept=MQ_quant, size=0.7, col="blue") +
+          theme_bw()
+
+# gatk hardfilter: SNP MQRankSum < -20
+#MQRankSum_quant <- quantile(VCF$MQRankSum, c(.01,.99), na.rm=T)
+MQRankSum_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(MQRankSum, probs = c(.01,.99)))) %>% unnest_wider(quants)
+MQRankSum <- ggplot(VCF, aes(x=MQRankSum, fill=Variant)) + geom_density(alpha=.3) +
+                    geom_vline(xintercept=-20, size=0.7, col="red") +
+                    geom_vline(xintercept=MQRankSum_quant, size=0.7, col="blue") +
+                    theme_bw()
+
+
+# gatk hardfilter: SNP SOR < 4 , INDEL SOR > 10
+SOR_quant <- quantile(VCF$SOR, c(.01, .99), na.rm=T)
+SOR <- ggplot(VCF, aes(x=SOR, fill=Variant)) + geom_density(alpha=.3) +
+          geom_vline(xintercept=c(4, 10), size=1, colour = c(snps,indels)) +
+          geom_vline(xintercept=SOR_quant, size=0.7, col="blue") +
+          theme_bw()
+
+# gatk hardfilter: SNP SOR < 4 , INDEL SOR > 10
+ReadPosRankSum_quant <- quantile(VCF$ReadPosRankSum, c(.01,.99), na.rm=T)
+ReadPosRankSum <- ggplot(VCF, aes(x=ReadPosRankSum, fill=Variant)) + geom_density(alpha=.3) +
+                         geom_vline(xintercept=c(-10,10,-20,20), size=1, colour = c(snps,snps,indels,indels)) + xlim(-10, 10) +
+                         geom_vline(xintercept=ReadPosRankSum_quant, size=0.7, col="blue")
+
+
+#svg("Co_10accessions_FromStephen.svg", height=20, width=15)
+#theme_set(theme_gray(base_size = 18))
+#grid.arrange(QD, DP, FS, MQ, MQRankSum, SOR, ReadPosRankSum, nrow=4)
+#dev.off()
+
+DP + QD + FS + MQ + MQRankSum + SOR + ReadPosRankSum + plot_layout(ncol=2)
+ggsave("plot_variant_summaries.png", height=20, width=15)
+
+
+QUAL_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(QUAL, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+QUAL_quant$name <- "QUAL"
+DP_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(DP, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+DP_quant$name <- "DP"
+QD_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(QD, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+QD_quant$name <- "QD"
+FS_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(FS, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+FS_quant$name <- "FS"
+MQ_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(MQ, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+MQ_quant$name <- "MQ"
+MQRankSum_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(MQRankSum, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+MQRankSum_quant$name <- "MQRankSum"
+SOR_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(SOR, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+SOR_quant$name <- "SOR"
+ReadPosRankSum_quant <- VCF %>% group_by(Variant) %>% summarise(quants = list(quantile(ReadPosRankSum, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+ReadPosRankSum_quant$name <- "ReadPosRankSum"
+
+
+quantiles <- bind_rows(QUAL_quant,DP_quant, QD_quant, FS_quant, MQ_quant, MQRankSum_quant, SOR_quant, ReadPosRankSum_quant)
+quantiles$name <- c("QUAL_Indels","QUAL_SNPs","DP_indels","DP_SNPs", "QD_indels","QD_SNPs", "FS_indels","FS_SNPs", "MQ_indels","MQ_SNPs", "MQRankSum_indels","MQRankSum_SNPs", "SOR_indels","SOR_SNPs","ReadPosRankSum_indels","ReadPosRankSum_SNPs")
+quantiles <- column_to_rownames(quantiles, var = c("name","Variant"))
 
 
 ```
-- once completed, opened histo files in genomescope (http://qb.cshl.edu/genomescope/)
-- generally, the sequencing coverage was too low for this to work well. For most samples, the model failed to converge. However, some did work, shown below.
-- heterozygosities:
-     - MN_UGA_DK_HS_001: 0.0157
-          - Model converged het:0.0157 kcov:6.82 err:0.00251 model fit:0.184 len:71832293
-     - MN_UGA_KAB_HS_001:  0.0229
-          - Model converged het:0.0229 kcov:7.33 err:0.00403 model fit:0.442 len:71863652
-     - MN_UGA_KAB_HS_006: 0.0175
-          - Model converged het:0.0175 kcov:8.87 err:0.0138 model fit:0.431 len:77034118
-- GATK uses a heterozygosity default of 0.001, which is at least 10-fold lower than data here. Worth changing.
-
-eg.
-![genomescope_MN_UGA_DK_HS_001](../04_analysis/genomescope_MN_UGA_DK_HS_001.png)
-![genomescope_MN_UGA_DK_HS_001.log](../04_analysis/genomescope_MN_UGA_DK_HS_001.log.png)
+![plot_variant_summaries](../04_analysis/plot_variant_summaries.png)
