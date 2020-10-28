@@ -1385,7 +1385,8 @@ bsub.py 1 filter_mitoINDELs "gatk VariantFiltration \
 --filter-name "INDEL_filtered" \
 --output ${VCF%.vcf.gz}.mitoINDELs.filtered.vcf"
 
-# once done, count the filtered sites
+
+# once done, count the filtered sites - funny use of "|" allows direct markdown table format
 echo -e "| Filtered_VCF | Variants_PASS | Variants_FILTERED |\n| -- | -- | -- | " > filter.stats
 for i in *filtered.vcf; do
      name=${i}; pass=$( grep -E 'PASS' ${i} | wc -l ); filter=$( grep -E 'filter' ${i} | wc -l );
@@ -1393,7 +1394,7 @@ for i in *filtered.vcf; do
 done
 
 ```
-- Table: "filter.stats" 
+- Table: "filter.stats"
 | Filtered_VCF | Variants_PASS | Variants_FILTERED |
 | -- | -- | -- |
 |Trichuris_trichiura.cohort.mitoINDELs.filtered.vcf|380|31|
