@@ -1466,24 +1466,5 @@ for (i in 1:73) {
        labs(title = paste0("Sample: ",colnames(DP)), x= "Coverage")
        ggsave(paste0(colnames(DP),"mitoALL.filtered.DP.png"))
 }
-
-
-
-
-
-plot_list <- list()
-
-for(i in 1:nrow(qlist)) {
-     DP <- read.table(nameList[i], header = T)
-     qlist[i,] <- quantile(DP[,1], c(.05, .1, .99), na.rm=T)
-     d <- density(DP[,1], from=0, to=100, bw=1, na.rm=T)
-     plot_list[[i]] <- ggplot(DP,aes(x=DP[,1])) +
-          geom_density() +
-          geom_vline(xintercept=c(qlist[i,1],qlist[i,3]), col='red', lwd=1) +
-          theme_bw() +
-          labs(title = paste0("Sample: ",colnames(DP)), x= "Coverage")
-     print(plot_list[[i]])
-}
-wrap_plots(plot_list,ncol=4)
 ```
-![GVCFall.DP.png](../04_analysis/GVCFall.DP.png)
+![GVCFall.DP.png](../04_analysis/AN_DNK_COG_EN_0012.DPmitoALL.filtered.DP.png)
