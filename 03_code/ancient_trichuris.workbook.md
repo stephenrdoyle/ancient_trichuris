@@ -1403,10 +1403,10 @@ done
 
 | Filtered_VCF | Variants_PASS | Variants_FILTERED |
 | -- | -- | -- |
-| Trichuris_trichiura.cohort.mitoINDELs.filtered.vcf | 370 | 41 |
-| Trichuris_trichiura.cohort.mitoSNPs.filtered.vcf | 2168 | 302 |
-| Trichuris_trichiura.cohort.nuclearINDELs.filtered.vcf | 923228 | 69658 |
-| Trichuris_trichiura.cohort.nuclearSNPs.filtered.vcf | 9541220 | 852949 |
+| Trichuris_trichiura.cohort.mitoINDELs.filtered.vcf | 327 | 84 |
+| Trichuris_trichiura.cohort.mitoSNPs.filtered.vcf | 1988 | 482 |
+| Trichuris_trichiura.cohort.nuclearINDELs.filtered.vcf | 823352 | 169534 |
+| Trichuris_trichiura.cohort.nuclearSNPs.filtered.vcf | 8562739 | 1831430 |
 
 ```
 
