@@ -1427,8 +1427,8 @@ qlist <- matrix(nrow = 73, ncol = 3) # define number of samples (10 samples here
 qlist <- data.frame(qlist, row.names=nameList)
 colnames(qlist)<-c('5%', '10%', '99%')
 
-png("GVCFall.DP.png", height=1600, width=1200)
-par(mar=c(5, 3, 3, 2), cex=1.5, mfrow=c(8,4)) # define number of plots for your sample
+png("GVCFall.DP.png", width=100)
+par(mar=c(5, 3, 3, 2), cex=1.5, mfrow=c(20,4)) # define number of plots for your sample
 for (i in 1:73) {
   DP <- read.table(nameList[i], header = T)
   qlist[i,] <- quantile(DP[,1], c(.05, .1, .99), na.rm=T)
@@ -1437,5 +1437,31 @@ for (i in 1:73) {
   abline(v=qlist[i,c(1,3)], col='red', lwd=3)
 }
 dev.off()
+
+for (i in 1:10) {
+
+plot_list <- list()
+
+DP <- read.table(nameList[i], header = T)
+qlist[i,] <- quantile(DP[,1], c(.05, .1, .99), na.rm=T)
+d <- density(DP[,1], from=0, to=100, bw=1, na.rm=T)
+
+plot_list[[i]] <- ggplot(DP,aes(x=DP[,1])) +
+     geom_density() +
+     geom_vline(xintercept=c(qlist[i,1],qlist[i,3]), col='red', lwd=1) +
+     theme_bw() +
+     labs(title = paste0("Sample: ",colnames(DP)), x= "Coverage")
+print(plot_list[[i]])
+}
+wrap_plots(plot_list,ncol=4)
 ```
 ![GVCFall.DP.png](../04_analysis/GVCFall.DP.png)
+
+
+
+
+for (i in 1:nrow(qlist)) {
+plot_list <- list()
+     plot_list[[i]] <- i
+}
+plot_list
