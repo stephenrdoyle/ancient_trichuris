@@ -1386,10 +1386,10 @@ bsub.py 1 filter_mitoINDELs "gatk VariantFiltration \
 --output ${VCF%.vcf.gz}.mitoINDELs.filtered.vcf"
 
 # once done, count the filtered sites
-echo -e "Filtered_VCF\tVariants_PASS\tVariants_FILTERED" > filter.stats
+echo -e "| Filtered_VCF | Variants_PASS | Variants_FILTERED |\n| -- | -- | -- | " > filter.stats
 for i in *filtered.vcf; do
      name=${i}; pass=$( grep -E 'PASS' ${i} | wc -l ); filter=$( grep -E 'filter' ${i} | wc -l );
-     echo -e "${name}\t${pass}\t${filter}" >> filter.stats
+     echo -e "|${name}|${pass}|${filter}|" >> filter.stats
 done
 
 # Filtered_VCF	Variants_PASS	Variants_FILTERED
@@ -1398,7 +1398,10 @@ done
 # Trichuris_trichiura.cohort.nuclearINDELs.filtered.vcf	942632	50254
 # Trichuris_trichiura.cohort.nuclearSNPs.filtered.vcf	9755825	638344
 ```
-
+| Filtered_VCF | Variants_PASS | Variants_FILTERED |
+| -- | -- | -- |
+|Trichuris_trichiura.cohort.mitoINDELs.filtered.vcf|380|31|
+|Trichuris_trichiura.cohort.mitoSNPs.filtered.vcf|2270|200|
 
 ```
 gatk VariantsToTable \
