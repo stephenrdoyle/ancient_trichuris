@@ -1438,4 +1438,4 @@ for (i in 1:73) {
 }
 dev.off()
 ```
-![GVCFall.DP.png](GVCFall.DP.png)
+![GVCFall.DP.png](../04_analysis/GVCFall.DP.png)
