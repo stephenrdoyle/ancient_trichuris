@@ -1395,6 +1395,7 @@ done
 
 ```
 - Table: "filter.stats"
+
 | Filtered_VCF | Variants_PASS | Variants_FILTERED |
 | -- | -- | -- |
 |Trichuris_trichiura.cohort.mitoINDELs.filtered.vcf|380|31|
