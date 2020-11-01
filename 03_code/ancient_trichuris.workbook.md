@@ -1623,8 +1623,7 @@ fun_plot_missingness(data_mito,"mitochondrial_variants")
 fun_plot_missingness(data_nuclear, "nuclear_variants")
 
 ```
-#![](../04_analysis/plot_missingness_mitochondrial_variants.png)
-#![](../04_analysis/plot_missingness_nuclear_variants.png)
+
 
 
 ### Per site missingness
