@@ -1479,4 +1479,254 @@ for (i in 1:73) {
 - depth is so variable, so not going to think to hard about this. Want to try capture as many sites in the ancient samples
 - found some papers that used min 3X with at least 80% coverage
      - eg. https://science.sciencemag.org/content/sci/suppl/2018/07/03/361.6397.81.DC1/aao4776-Leathlobhair-SM.pdf
+```bash
+
+bsub.py 1 filter_mito_GT \
+"gatk VariantFiltration \
+--reference ${REFERENCE} \
+--variant ${VCF%.vcf.gz}.mitoALL.filtered.vcf \
+--genotype-filter-expression ' DP < 3 '  \
+--genotype-filter-name "DP_lt3" \
+--output ${VCF%.vcf.gz}.mitoALL.DPfiltered.vcf"
+
+bsub.py --done "filter_mito_GT" 1 filter_mito_GT2 \
+"gatk SelectVariants \
+--reference ${REFERENCE} \
+--variant ${VCF%.vcf.gz}.mitoALL.DPfiltered.vcf \
+--set-filtered-gt-to-nocall \
+--output ${VCF%.vcf.gz}.mitoALL.DPfilterNoCall.vcf"
+
+bsub.py 1 filter_nuclear_GT \
+"gatk VariantFiltration \
+--reference ${REFERENCE} \
+--variant ${VCF%.vcf.gz}.nuclearALL.filtered.vcf \
+--genotype-filter-expression ' DP < 3 '  \
+--genotype-filter-name "DP_lt3" \
+--output ${VCF%.vcf.gz}.nuclearALL.DPfiltered.vcf"
+
+bsub.py --done "filter_nuclear_GT" 1 filter_nuclear_GT2 \
+"gatk SelectVariants \
+--reference ${REFERENCE} \
+--variant ${VCF%.vcf.gz}.nuclearALL.DPfiltered.vcf \
+--set-filtered-gt-to-nocall \
+--output ${VCF%.vcf.gz}.nuclearALL.DPfilterNoCall.vcf"
 ```
+
+### final filters
+-
+
+```bash
+# filter nuclear variants
+
+vcftools \
+--vcf ${VCF%.vcf.gz}.nuclearALL.DPfilterNoCall.vcf \
+--remove-filtered-geno-all \
+--remove-filtered-all \
+--bed ${WORKING_DIR}/01_REF/SNPABLE/mask.bed \
+--min-alleles 2 \
+--max-alleles 2 \
+--hwe 1e-06 \
+--maf 0.02 \
+--recode \
+--recode-INFO-all \
+--out ${VCF%.vcf.gz}.nuclear_variants.final
+
+#> After filtering, kept 73 out of 73 Individuals
+#> After filtering, kept 6571976 out of a possible 11387043 Sites
+
+#--- nuclear SNPs
+vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --remove-indels
+#> After filtering, kept 73 out of 73 Individuals
+#> After filtering, kept 6007881 out of a possible 6571976 Sites
+
+#--- nuclear  INDELs
+vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --keep-only-indels
+#> After filtering, kept 73 out of 73 Individuals
+#> After filtering, kept 564095 out of a possible 6571976 Sites
+
+
+# filter mitochondrial variants
+vcftools \
+--vcf ${VCF%.vcf.gz}.mitoALL.DPfilterNoCall.vcf \
+--remove-filtered-geno-all \
+--remove-filtered-all \
+--min-alleles 2 \
+--max-alleles 2 \
+--maf 0.02 \
+--recode \
+--recode-INFO-all \
+--out ${VCF%.vcf.gz}.mito_variants.final
+
+#> After filtering, kept 73 out of 73 Individuals
+#> After filtering, kept 1647 out of a possible 2869 Sites
+
+#--- mito SNPs
+vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --remove-indels
+#After filtering, kept 73 out of 73 Individuals
+#After filtering, kept 1480 out of a possible 1647 Sites
+
+#--- mito INDELs
+vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --keep-only-indels
+#> After filtering, kept 73 out of 73 Individuals
+#> After filtering, kept 167 out of a possible 1647 Sites
+```
+| dataset | total | SNPs | Indels |
+| ---     | --- | --- | --- |
+| Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf | 6571976 | 6007881 | 564095 |
+| Trichuris_trichiura.cohort.mito_variants.final.recode.vcf | 1647 | 1480 | 167 |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## missingness
+- need to determine the degree of missingness for both mtDNA and nuclear datasets,
+     - per site
+     - per sample
+- will use this to define some thresholds to exclude additonal variants and potentially some samples.
+     - given the variation in mapping depth, it is clear that some samples are going to have to be removed.
+     - need to find the balance between maximising samples/variants and removing junk that might influnce true signal
+
+### Per sample missingness
+
+
+```bash
+vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --out mito --missing-indv
+
+
+```
+
+```R
+library(tidyverse)
+
+data_mito <- read.delim("mito.imiss", header=T)
+data_nuclear <- read.delim("nuclear.imiss", header=T)
+
+# mito
+fun_plot_missingness <- function(data,title) {
+
+data <- data %>% separate(INDV, c("time", "country","population","host","sampleID"))
+count <- nrow(data)
+
+plot <- ggplot(data,aes(country,1-F_MISS,col=time)) +
+     geom_boxplot() +
+     geom_point() +
+     theme_bw() +
+     labs(x="Country", y="Proportion of total variants present (1-missingness)", title=paste0("Variants per sample: ",title, "n = ", count))
+print(plot)
+ggsave(paste0("plot_missingness_",title,".png"))
+}
+# nuclear
+
+fun_plot_missingness(data_mito,"mitochondrial_variants")
+fun_plot_missingness(data_nuclear, "nuclear_variants")
+
+```
+
+### Per site missingness
+
+```
+vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --missing-site --out mito
+
+```
+
+
+
+
+### TsTv ratio
+- deanimation is going to affect this ratio, so would expect it to be more skewed in the ancient samples relative to the modern samples. Best check
+
+```bash
+# mtDNA
+vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --TsTv-summary
+#> Ts/Tv ratio: 6.397
+
+# nuclear
+vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --TsTv-summary
+#> Ts/Tv ratio: 2.266
+```
+- higher in the mtDNA but seems pretty "normal" in the nuclear datasets.
+
+
+
+
+
+
+
+
+
+library(tidyverse)
+library(gdsfmt)
+library(SNPRelate)
+
+
+vcf.in <- "Trichuris_trichiura.cohort.mito_variants.final.recode.vcf"
+
+snpgdsClose(genofile)
+vcf.in <- "out.recode.vcf"
+gds<-snpgdsVCF2GDS(vcf.in, "mtDNA.gds", method="biallelic.only")
+
+genofile <- snpgdsOpen(gds)
+pca <-snpgdsPCA(genofile, num.thread=2,autosome.only = F)
+
+samples <- as.data.frame(pca$sample.id)
+colnames(samples) <- "name"
+metadata <- samples %>% separate(name,c("time", "country","population","host","sampleID"))
+
+
+tab <- data.frame(sample.id = pca$sample.id,
+                  EV1 = pca$eigenvect[,1],    # the first eigenvector
+                  EV2 = pca$eigenvect[,2],
+                  EV3 = pca$eigenvect[,3],
+                  EV4 = pca$eigenvect[,4],
+                  EV5 = pca$eigenvect[,5],
+                  EV6 = pca$eigenvect[,6],    # the second eigenvector
+                  COUNTRY = metadata$country,
+                  POP = metadata$time,
+                  stringsAsFactors = FALSE)
+
+
+
+ggplot(tab,aes(EV1,EV2,col=COUNTRY, shape=POP, label=COUNTRY)) + geom_text()
+ggplot(tab,aes(EV1,EV2,col=COUNTRY, shape=POP, label=sample.id)) + geom_text()
+
+
+
+### human + animals + 2 good ancients
+
+vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --max-missing 0.8 --keep hq_modern.list
+#> After filtering, kept 44 out of 73 Individuals
+#> After filtering, kept 6852326 out of a possible 8069926 Sites
+
+vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --max-missing 0.9 --keep hq_modern.list
+#> After filtering, kept 44 out of 73 Individuals
+#> After filtering, kept 3800952 out of a possible 8069926 Sites
+
+vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --max-missing 1 --keep hq_modern.list
+#> After filtering, kept 44 out of 73 Individuals
+#> After filtering, kept 338960 out of a possible 8069926 Sites
+
+
+### human + 2 good ancients (no animals)
+
+vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --max-missing 1 --keep hq_modern_humanonly.list
+#> After filtering, kept 37 out of 73 Individuals
+#> After filtering, kept 1065275 out of a possible 8069926 Sites
+
+
+vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --max-missing 0.8 --keep hq_modern_humanonly.list
+#> After filtering, kept 37 out of 73 Individuals
+#> After filtering, kept 7596177 out of a possible 8069926 Sites
