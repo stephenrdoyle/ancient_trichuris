@@ -1822,8 +1822,8 @@ ggplot(tab,aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COU
      xlim(-0.14,-0.06) + ylim(0.02,0.045)
 ggsave("plot_PCA_mito_samples3x_missing0.8_noLF_zoomin.png")
 ```
-!(..04_analysis/plot_PCA_mito_samples3x_missing0.8_noLF.png)
-!(..04_analysis/plot_PCA_mito_samples3x_missing0.8_noLF_zoomin.png)
+![](..04_analysis/plot_PCA_mito_samples3x_missing0.8_noLF.png)
+![](..04_analysis/plot_PCA_mito_samples3x_missing0.8_noLF_zoomin.png)
 
 ### Nuclear variants
 - human + animal + 2 ancients
