@@ -1571,6 +1571,7 @@ vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --keep-
 #> After filtering, kept 167 out of a possible 1647 Sites
 ```
 - final SNP numbers
+
 | dataset | total | SNPs | Indels |
 | ---     | --- | --- | --- |
 | Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf | 6571976 | 6007881 | 564095 |
@@ -1623,7 +1624,8 @@ fun_plot_missingness(data_mito,"mitochondrial_variants")
 fun_plot_missingness(data_nuclear, "nuclear_variants")
 
 ```
-
+![](../04_analysis/plot_missingness_mitochondrial_variants.png)
+![](../04_analysis/plot_missingness_nuclear_variants.png)
 
 
 ### Per site missingness
