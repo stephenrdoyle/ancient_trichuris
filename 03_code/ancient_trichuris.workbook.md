@@ -1570,24 +1570,11 @@ vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --keep-
 #> After filtering, kept 73 out of 73 Individuals
 #> After filtering, kept 167 out of a possible 1647 Sites
 ```
+- final SNP numbers
 | dataset | total | SNPs | Indels |
 | ---     | --- | --- | --- |
 | Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf | 6571976 | 6007881 | 564095 |
 | Trichuris_trichiura.cohort.mito_variants.final.recode.vcf | 1647 | 1480 | 167 |
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1604,8 +1591,9 @@ vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --keep-
 
 
 ```bash
+# determine missingness per individual
 vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --out mito --missing-indv
-
+vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --out nuclear --missing-indv
 
 ```
 
@@ -1619,13 +1607,13 @@ data_nuclear <- read.delim("nuclear.imiss", header=T)
 fun_plot_missingness <- function(data,title) {
 
 data <- data %>% separate(INDV, c("time", "country","population","host","sampleID"))
-count <- nrow(data)
+count <- data[1,2]
 
 plot <- ggplot(data,aes(country,1-F_MISS,col=time)) +
      geom_boxplot() +
      geom_point() +
      theme_bw() +
-     labs(x="Country", y="Proportion of total variants present (1-missingness)", title=paste0("Variants per sample: ",title, "n = ", count))
+     labs(x="Country", y="Proportion of total variants present (1-missingness)", title=paste0("Variants per sample: ",title, " (n = ", count,")"))
 print(plot)
 ggsave(paste0("plot_missingness_",title,".png"))
 }
@@ -1635,6 +1623,9 @@ fun_plot_missingness(data_mito,"mitochondrial_variants")
 fun_plot_missingness(data_nuclear, "nuclear_variants")
 
 ```
+![](../04_analysis/plot_missingness_mitochondrial_variants.png)
+![](../04_analysis/plot_missingness_nuclear_variants.png)
+
 
 ### Per site missingness
 
