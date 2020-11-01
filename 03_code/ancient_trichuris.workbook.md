@@ -1607,7 +1607,7 @@ data_nuclear <- read.delim("nuclear.imiss", header=T)
 fun_plot_missingness <- function(data,title) {
 
 data <- data %>% separate(INDV, c("time", "country","population","host","sampleID"))
-count <- data[1,2]
+count <- data[1,6]
 
 plot <- ggplot(data,aes(country,1-F_MISS,col=time)) +
      geom_boxplot() +
