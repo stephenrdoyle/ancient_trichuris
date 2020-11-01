@@ -1660,43 +1660,8 @@ vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --Ts
 
 
 
-library(tidyverse)
-library(gdsfmt)
-library(SNPRelate)
 
-
-vcf.in <- "Trichuris_trichiura.cohort.mito_variants.final.recode.vcf"
-
-snpgdsClose(genofile)
-vcf.in <- "out.recode.vcf"
-gds<-snpgdsVCF2GDS(vcf.in, "mtDNA.gds", method="biallelic.only")
-
-genofile <- snpgdsOpen(gds)
-pca <-snpgdsPCA(genofile, num.thread=2,autosome.only = F)
-
-samples <- as.data.frame(pca$sample.id)
-colnames(samples) <- "name"
-metadata <- samples %>% separate(name,c("time", "country","population","host","sampleID"))
-
-
-tab <- data.frame(sample.id = pca$sample.id,
-                  EV1 = pca$eigenvect[,1],    # the first eigenvector
-                  EV2 = pca$eigenvect[,2],
-                  EV3 = pca$eigenvect[,3],
-                  EV4 = pca$eigenvect[,4],
-                  EV5 = pca$eigenvect[,5],
-                  EV6 = pca$eigenvect[,6],    # the second eigenvector
-                  COUNTRY = metadata$country,
-                  POP = metadata$time,
-                  stringsAsFactors = FALSE)
-
-
-
-ggplot(tab,aes(EV1,EV2,col=COUNTRY, shape=POP, label=COUNTRY)) + geom_text()
-ggplot(tab,aes(EV1,EV2,col=COUNTRY, shape=POP, label=sample.id)) + geom_text()
-
-
-
+```bash
 ### human + animals + 2 good ancients
 
 vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --max-missing 0.8 --keep hq_modern.list
@@ -1722,3 +1687,77 @@ vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --ma
 vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --max-missing 0.8 --keep hq_modern_humanonly.list
 #> After filtering, kept 37 out of 73 Individuals
 #> After filtering, kept 7596177 out of a possible 8069926 Sites
+```
+
+
+
+
+### Max-missing
+```bash
+for i in 0.7 0.8 0.9 1; do vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --keep mtDNA_3x.list --max-missing ${i} ; done
+
+# max-missing = 0.7
+After filtering, kept 59 out of 73 Individuals
+After filtering, kept 1201 out of a possible 1647 Sites
+
+# max-missing = 0.8
+After filtering, kept 59 out of 73 Individuals
+After filtering, kept 869 out of a possible 1647 Sites
+
+# max-missing = 0.9
+After filtering, kept 59 out of 73 Individuals
+After filtering, kept 403 out of a possible 1647 Sites
+
+# max-missing = 1
+After filtering, kept 59 out of 73 Individuals
+After filtering, kept 11 out of a possible 1647 Sites
+
+
+vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --keep mtDNA_3x.list --max-missing 0.8 --recode --out mito_samples3x_missing0.8
+```
+
+```R
+library(tidyverse)
+library(gdsfmt)
+library(SNPRelate)
+
+snpgdsClose(genofile)
+vcf.in <- "mito_samples3x_missing0.8.recode.vcf"
+gds<-snpgdsVCF2GDS(vcf.in, "mtDNA.gds", method="biallelic.only")
+
+genofile <- snpgdsOpen(gds)
+pca <-snpgdsPCA(genofile, num.thread=2,autosome.only = F)
+
+samples <- as.data.frame(pca$sample.id)
+colnames(samples) <- "name"
+metadata <- samples %>% separate(name,c("time", "country","population","host","sampleID"))
+
+
+data <- data.frame(sample.id = pca$sample.id,
+                  EV1 = pca$eigenvect[,1],  
+                  EV2 = pca$eigenvect[,2],
+                  EV3 = pca$eigenvect[,3],
+                  EV4 = pca$eigenvect[,4],
+                  EV5 = pca$eigenvect[,5],
+                  EV6 = pca$eigenvect[,6],    
+                  TIME = metadata$time,
+                  COUNTRY = metadata$country,
+                  POPULATION = metadata$population,
+                  HOST = metadata$host,
+                  stringsAsFactors = FALSE)
+
+
+ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
+     geom_text(size=4) +
+     theme_bw() +
+     labs(title="mito_samples3x_missing0.8",
+          x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
+          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%"))
+ggsave("plot_PCA_mito_samples3x_missing0.8.png")
+
+# use this to label with sample names
+#ggplot(tab,aes(EV1,EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) + geom_point(size=4)
+
+```
+![](..04_analysis/plot_PCA_mito_samples3x_missing0.8.png)
+- the CHN LF samples are the outliers in the above plot, so rerunning to remove these
