@@ -1450,6 +1450,7 @@ for ((i=3; i<=${ncol}; i +=2)); do cut -f $i,$((i+1)) ${VCF%.vcf.gz}.mitoALL.fil
 ncol=$(awk 'NR==1{print NF}' ${VCF%.vcf.gz}.nuclearALL.filtered.DP.table)
 for ((i=3; i<=${ncol}; i +=2)); do cut -f $i,$((i+1)) ${VCF%.vcf.gz}.nuclearALL.filtered.DP.table | awk '$1 != "./." {print $2}' > $i.nuclear.DP; done
 ```
+
 ```R
 nameList <- c()
 for (i in 3:147) { # 21 - odd number for 10 samples
@@ -1479,8 +1480,8 @@ for (i in 1:73) {
 - depth is so variable, so not going to think to hard about this. Want to try capture as many sites in the ancient samples
 - found some papers that used min 3X with at least 80% coverage
      - eg. https://science.sciencemag.org/content/sci/suppl/2018/07/03/361.6397.81.DC1/aao4776-Leathlobhair-SM.pdf
-```bash
 
+```bash
 bsub.py 1 filter_mito_GT \
 "gatk VariantFiltration \
 --reference ${REFERENCE} \
@@ -1513,7 +1514,6 @@ bsub.py --done "filter_nuclear_GT" 1 filter_nuclear_GT2 \
 ```
 
 ### final filters
--
 
 ```bash
 # filter nuclear variants
