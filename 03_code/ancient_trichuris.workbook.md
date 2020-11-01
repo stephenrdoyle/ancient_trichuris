@@ -1761,3 +1761,132 @@ ggsave("plot_PCA_mito_samples3x_missing0.8.png")
 ```
 ![](..04_analysis/plot_PCA_mito_samples3x_missing0.8.png)
 - the CHN LF samples are the outliers in the above plot, so rerunning to remove these
+
+```bash
+vcftools \
+--vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf \
+--keep mtDNA_3x_noLF.list \
+--max-missing 0.8 \
+--recode \
+--out mito_samples3x_missing0.8_noLF
+
+#After filtering, kept 56 out of 73 Individuals
+#After filtering, kept 1022 out of a possible 1647 Sites
+```
+```R
+library(tidyverse)
+library(gdsfmt)
+library(SNPRelate)
+
+snpgdsClose(genofile)
+vcf.in <- "mito_samples3x_missing0.8_noLF.recode.vcf"
+gds<-snpgdsVCF2GDS(vcf.in, "mtDNA.gds", method="biallelic.only")
+
+genofile <- snpgdsOpen(gds)
+pca <-snpgdsPCA(genofile, num.thread=2,autosome.only = F)
+
+samples <- as.data.frame(pca$sample.id)
+colnames(samples) <- "name"
+metadata <- samples %>% separate(name,c("time", "country","population","host","sampleID"))
+
+
+data <- data.frame(sample.id = pca$sample.id,
+                  EV1 = pca$eigenvect[,1],  
+                  EV2 = pca$eigenvect[,2],
+                  EV3 = pca$eigenvect[,3],
+                  EV4 = pca$eigenvect[,4],
+                  EV5 = pca$eigenvect[,5],
+                  EV6 = pca$eigenvect[,6],    
+                  TIME = metadata$time,
+                  COUNTRY = metadata$country,
+                  POPULATION = metadata$population,
+                  HOST = metadata$host,
+                  stringsAsFactors = FALSE)
+
+
+ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
+     geom_text(size=4) +
+     theme_bw() +
+     labs(title="mito_samples3x_missing0.8",
+          x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
+          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%"))
+ggsave("plot_PCA_mito_samples3x_missing0.8_noLF.png")
+
+
+ggplot(tab,aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COUNTRY,"_",POPULATION,"_",HOST))) +
+     geom_text(size=4) +
+     theme_bw() +
+     labs(title="mito_samples3x_missing0.8",
+          x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
+          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
+     xlim(-0.14,-0.06) + ylim(0.02,0.045)
+ggsave("plot_PCA_mito_samples3x_missing0.8_noLF_zoomin.png")
+```
+!(..04_analysis/plot_PCA_mito_samples3x_missing0.8_noLF.png)
+!(..04_analysis/plot_PCA_mito_samples3x_missing0.8_noLF_zoomin.png)
+
+### Nuclear variants
+- human + animal + 2 ancients
+- "nuclear_3x_animal.list"
+
+```bash
+vcftools \
+--vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf \
+--keep nuclear_3x_animal.list \
+--max-missing 0.8 \
+--recode \
+--out nuclear_samples3x_missing0.8
+
+#> After filtering, kept 44 out of 73 Individuals
+#>
+```
+
+```R
+library(tidyverse)
+library(gdsfmt)
+library(SNPRelate)
+
+snpgdsClose(genofile)
+vcf.in <- "nuclear_samples3x_missing0.8.recode.vcf"
+gds<-snpgdsVCF2GDS(vcf.in, "mtDNA.gds", method="biallelic.only")
+
+genofile <- snpgdsOpen(gds)
+pca <-snpgdsPCA(genofile, num.thread=2,autosome.only = F)
+
+samples <- as.data.frame(pca$sample.id)
+colnames(samples) <- "name"
+metadata <- samples %>% separate(name,c("time", "country","population","host","sampleID"))
+
+
+data <- data.frame(sample.id = pca$sample.id,
+                  EV1 = pca$eigenvect[,1],  
+                  EV2 = pca$eigenvect[,2],
+                  EV3 = pca$eigenvect[,3],
+                  EV4 = pca$eigenvect[,4],
+                  EV5 = pca$eigenvect[,5],
+                  EV6 = pca$eigenvect[,6],    
+                  TIME = metadata$time,
+                  COUNTRY = metadata$country,
+                  POPULATION = metadata$population,
+                  HOST = metadata$host,
+                  stringsAsFactors = FALSE)
+
+
+ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
+     geom_text(size=4) +
+     theme_bw() +
+     labs(title="nuclear_samples3x_missing0.8",
+          x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
+          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%"))
+ggsave("plot_PCA_nuclear_samples3x_missing0.8.png")
+
+
+ggplot(tab,aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COUNTRY,"_",POPULATION,"_",HOST))) +
+     geom_text(size=4) +
+     theme_bw() +
+     labs(title="nuclear_samples3x_missing0.8",
+          x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
+          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
+     xlim(-0.14,-0.06) + ylim(0.02,0.045)
+ggsave("plot_PCA_nuclear_samples3x_missing0.8_zoomin.png")
+```
