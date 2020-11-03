@@ -1720,6 +1720,7 @@ vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --keep 
 library(tidyverse)
 library(gdsfmt)
 library(SNPRelate)
+library(ggsci)
 
 snpgdsClose(genofile)
 vcf.in <- "mito_samples3x_missing0.8.recode.vcf"
@@ -1752,7 +1753,9 @@ ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
      theme_bw() +
      labs(title="mito_samples3x_missing0.8",
           x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
-          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%"))
+          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
+          scale_colour_npg(guide = FALSE)
+
 ggsave("plot_PCA_mito_samples3x_missing0.8.png")
 
 # use this to label with sample names
@@ -1777,6 +1780,7 @@ vcftools \
 library(tidyverse)
 library(gdsfmt)
 library(SNPRelate)
+library(ggsci)
 
 snpgdsClose(genofile)
 vcf.in <- "mito_samples3x_missing0.8_noLF.recode.vcf"
@@ -1809,17 +1813,21 @@ ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
      theme_bw() +
      labs(title="mito_samples3x_missing0.8",
           x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
-          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%"))
+          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
+          scale_colour_npg()
+
 ggsave("plot_PCA_mito_samples3x_missing0.8_noLF.png")
 
 
-ggplot(tab,aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COUNTRY,"_",POPULATION,"_",HOST))) +
+ggplot(data, aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COUNTRY,"_",POPULATION,"_",HOST))) +
      geom_text(size=4) +
      theme_bw() +
      labs(title="mito_samples3x_missing0.8",
           x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
-     xlim(-0.14,-0.06) + ylim(0.02,0.045)
+     xlim(-0.14,-0.06) + ylim(-0.01, 0.03) +
+     scale_colour_npg()
+
 ggsave("plot_PCA_mito_samples3x_missing0.8_noLF_zoomin.png")
 ```
 ![](..04_analysis/plot_PCA_mito_samples3x_missing0.8_noLF.png)
@@ -1877,20 +1885,26 @@ ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
      theme_bw() +
      labs(title="nuclear_samples3x_missing0.8",
           x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
-          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%"))
+          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%"))+
+          scale_colour_npg()
+
+
 ggsave("plot_PCA_nuclear_samples3x_missing0.8.png")
 
 
-ggplot(tab,aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COUNTRY,"_",POPULATION,"_",HOST))) +
+ggplot(data, aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COUNTRY,"_",POPULATION,"_",HOST))) +
      geom_text(size=4) +
      theme_bw() +
      labs(title="nuclear_samples3x_missing0.8",
           x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
-     xlim(-0.14,-0.06) + ylim(0.02,0.045)
+     xlim(-0.06,-0.01) + ylim(-0.035,-0.015) +
+     scale_colour_npg()
+
 ggsave("plot_PCA_nuclear_samples3x_missing0.8_zoomin.png")
 ```
 - main outliers are colobus and leafmonkey, so will remove and rerun
+
 ```
 vcftools \
 --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf \
@@ -1906,9 +1920,10 @@ vcftools \
 library(tidyverse)
 library(gdsfmt)
 library(SNPRelate)
+library(ggsci)
 
 snpgdsClose(genofile)
-vcf.in <- "nuclear_samples3x_missing0.8_animalPhonly.recode.vcf"
+vcf.in <- "nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz"
 gds<-snpgdsVCF2GDS(vcf.in, "nuclear.gds", method="biallelic.only")
 
 genofile <- snpgdsOpen(gds)
@@ -1938,7 +1953,9 @@ ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
      theme_bw() +
      labs(title="nuclear_samples3x_missing0.8_animalPhonly",
           x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
-          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%"))
+          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
+          scale_colour_npg()
+
 ggsave("plot_PCA_nuclear_samples3x_missing0.8_animalPhonly.png")
 
 
@@ -1947,8 +1964,335 @@ ggplot(data,aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",CO
      theme_bw() +
      labs(title="nuclear_samples3x_missing0.8",
           x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
-          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%"))
+          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
+          scale_colour_npg()
+
 ggsave("plot_PCA_nuclear_samples3x_missing0.8_animalPhonly_2.png")
 ```
 ![](../04_analysis/plot_PCA_nuclear_samples3x_missing0.8_animalPhonly.png)
 ![](../04_analysis/plot_PCA_nuclear_samples3x_missing0.8_animalPhonly_2.png)
+
+
+
+
+
+
+## NGSadmix
+```bash
+mkdir /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTURE
+cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTURE
+mkdir CHROMOSOMES_PL
+
+ln -s /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf
+
+cat ../../01_REF/trichuris_trichiura.fa.fai | cut -f1 | grep -v "MITO" | while read -r CHR; do
+vcftools --vcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf  --out CHROMOSOMES_PL/${CHR} --BEAGLE-PL --chr ${CHR};
+done
+
+# merge the data from individual chromosomes into a single dataset
+cat $(ls -1 *PL | head -n1 ) | head -n1 > merged.PL
+for i in *PL; do cat ${i} | grep -v "marker" >> merged.PL; done
+
+# chromosomes=$(cat ../../01_REF/trichuris_trichiura.fa.fai | cut -f1 | grep -v "MITO" | while read -r CHROMOSOME; do printf "$CHROMOSOME,"; done | sed 's/,$//g')
+# vcftools --gzvcf ../../04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz  --out CHROMOSOMES_PL/all_chromosomes --BEAGLE-PL --chr ${chromosomes}
+
+# run admixture for multiple values of K
+for i in 2 3 4 5 6 7 8 9 10; do
+     bsub.py --threads 4 2 NGS_admix_multiK "NGSadmix -likes CHROMOSOMES_PL/merged.PL -K ${i} -P 4 -o k_${i}_out -minMaf 0.05" ;
+done
+```
+
+### make some admixture plots
+```R
+# load libraries
+library(ggsci)
+library(patchwork)
+library(tidyverse)
+library(reshape2)
+
+# make a function
+plot_admixture <- function(data,title) {
+
+# get metadata     
+samples <- read.delim("nuclear_3x_animalPhonly.list", header=F)
+names(samples) <- "sample_ID"
+metadata <- samples %>% separate(sample_ID,c("time", "country","population","host","sampleID"))
+
+# read data
+data <- read.delim(data, sep=" ", header=F)
+names(data) <- paste("ancestral", 1:ncol(data), sep="")
+
+# bring metadata and data together
+data <- cbind(samples,metadata,data)
+data <- melt(data, id.vars=c("sample_ID","time", "country","population","host","sampleID"))
+
+# make plot
+ggplot(data,aes(sample_ID,value,fill=variable)) +
+     geom_col(color = "gray", size = 0.1)+
+     facet_grid(~fct_inorder(country), switch = "x", scales = "free", space = "free") +
+     theme_minimal() + labs(title = title, y = "Ancestry", x = NULL) +
+     scale_y_continuous(expand = c(0, 0)) +
+     scale_x_discrete(expand = expansion(add = 0.7)) +
+     theme(panel.spacing.x = unit(0.1, "lines"),
+          axis.text.x = element_blank(),
+          #axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+          panel.grid = element_blank()) +
+     scale_fill_npg(guide = FALSE)
+}
+
+# run function for each value of K
+k_2_plot <- plot_admixture("k_2_out.qopt", "K_2")
+k_3_plot <- plot_admixture("k_3_out.qopt", "K_3")
+k_4_plot <- plot_admixture("k_4_out.qopt", "K_4")
+k_5_plot <- plot_admixture("k_5_out.qopt", "K_5")
+k_6_plot <- plot_admixture("k_6_out.qopt", "K_6")
+k_7_plot <- plot_admixture("k_7_out.qopt", "K_7")
+k_8_plot <- plot_admixture("k_8_out.qopt", "K_8")
+k_9_plot <- plot_admixture("k_9_out.qopt", "K_9")
+k_10_plot <- plot_admixture("k_10_out.qopt", "K_10")
+
+# bring the plots together
+k_2_plot + k_3_plot + k_4_plot + k_5_plot + k_6_plot + k_7_plot + k_8_plot + k_9_plot + k_10_plot + plot_layout(ncol=1)
+
+# save it
+ggsave("admixture_plots_k2-10.png")
+```
+![](../04_analysis/admixture_plots_k2-10.png)
+
+- need to determine the optimal K, at least from what the data suggests.
+- usually there is a cross validation approach for tools like STRUCTURE and ADMIXTURE, but there doesnt seem to be one for NGSadmix
+- Guilluame Salle used a MAD approach, calculating admixture for the population, leaving one chromosome out a time.
+- Will try this, using scaffolds longer than 1 Mb to make it manageable.
+
+```bash
+mkdir ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTURE/VALIDATION
+
+cat ../../01_REF/trichuris_trichiura.fa.fai | cut -f1 | grep -v "MITO" > chromosomes.list
+
+# merge the data from individual chromosomes into a single dataset
+while read CHROMOSOME; do
+     cat $(ls -1 CHROMOSOMES_PL/*BEAGLE.PL | head -n1 | sed 's/CHROMOSOMES_PL\///g') | head -n1 > VALIDATION/no_${CHROMOSOME}.merged.validation.PL;
+     cat CHROMOSOMES_PL/*BEAGLE.PL | grep -v "marker" | grep -v "${CHROMOSOME}" >> VALIDATION/no_${CHROMOSOME}.merged.validation.PL;
+done < chromosomes.list
+
+# run admixture for multiple values of K
+
+while read CHROMOSOME; do
+     for i in 2 3 4 5 6 7 8 9 10; do
+     bsub.py --threads 4 2 NGS_admix_multiK "NGSadmix -likes VALIDATION/no_${CHROMOSOME}.merged.validation.PL -K ${i} -P 4 -o VALIDATION/no_${CHROMOSOME}_k_${i}_out -minMaf 0.05" ;
+     done;
+done  < chromosomes.list
+
+# remove unneeded files
+rm *log *gz
+```
+
+```R
+rep="./"
+prefix="no"
+k=seq(2,10,1)
+chrl=c('Trichuris_trichiura_3_004','Trichuris_trichiura_1_001','Trichuris_trichiura_3_001','Trichuris_trichiura_3_002','Trichuris_trichiura_1_002','Trichuris_trichiura_3_003','Trichuris_trichiura_1_003','Trichuris_trichiura_00_001','Trichuris_trichiura_1_004','Trichuris_trichiura_1_005','Trichuris_trichiura_3_004')
+cv1 = array(-1,length(k))
+cv2 = array(-1,length(k))
+for(K in k){
+  for(chr in chrl){
+    infile=paste(rep,prefix,"_",chr,"_k_",K,"_out.qopt",sep="")
+
+    # Admixture
+    assign(paste0('admix.',chr),t(as.matrix(read.table(infile))))
+  }
+  # Med absolute deviation
+  cv1[K-1] <- mad(c(admix.Trichuris_trichiura_3_004,admix.Trichuris_trichiura_1_001,admix.Trichuris_trichiura_3_001,admix.Trichuris_trichiura_3_002,admix.Trichuris_trichiura_1_002,admix.Trichuris_trichiura_3_003,admix.Trichuris_trichiura_1_003,admix.Trichuris_trichiura_00_001,admix.Trichuris_trichiura_1_004,admix.Trichuris_trichiura_1_005,admix.Trichuris_trichiura_3_004))
+  # Jackniffing variance
+  cv2[K-1] <- var(c(admix.Trichuris_trichiura_3_004,admix.Trichuris_trichiura_1_001,admix.Trichuris_trichiura_3_001,admix.Trichuris_trichiura_3_002,admix.Trichuris_trichiura_1_002,admix.Trichuris_trichiura_3_003,admix.Trichuris_trichiura_1_003,admix.Trichuris_trichiura_00_001,admix.Trichuris_trichiura_1_004,admix.Trichuris_trichiura_1_005,admix.Trichuris_trichiura_3_004))
+  rm(admix.GW_ld.CV1,admix.GW_ld.CV2,admix.GW_ld.CV3,admix.GW_ld.CV4,admix.GW_ld.CV5)
+}
+
+ggplot() +
+     geom_point(aes(k,log10(cv1))) +
+     geom_line(aes(k,log10(cv1))) +
+     theme_bw() +
+     labs(x = "Ancestral populations (k)", y = "Median absolute deviation")
+ggsave("plot_admixture_validation_MAD.png")
+
+```
+![](../04_analysis/plot_admixture_validation_MAD.png)
+
+- suggests k=3 is the optimal ancestral number, which I guess is consistent with the PCA which produces three main clusters.
+
+
+
+
+
+
+
+## SMC++
+- want to calucate historical population sizes
+- also want to followup on question posed in Soe's draft on the relationship between UGA and DNK samples
+
+```
+mkdir /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/SMC
+cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/SMC
+mkdir SMC_DATA
+
+ln -s /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf
+
+conda activate smcpp
+export LD_LIBRARY_PATH=/lustre/scratch118/infgen/team133/sd21/software/anaconda2/envs/smcpp/lib/
+
+
+vcftools  --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz \
+--indv AN_DNK_COG_EN_0012 \
+--indv AN_NLD_KAM_EN_0034 \
+--indv MN_UGA_DK_HS_001 \
+--indv MN_UGA_DK_HS_002 \
+--indv MN_UGA_DK_HS_003 \
+--indv MN_UGA_KAB_HS_001 \
+--indv MN_UGA_KAB_HS_002 \
+--indv MN_UGA_KAB_HS_003 \
+--indv MN_UGA_KAB_HS_004 \
+--indv MN_UGA_KAB_HS_005 \
+--indv MN_UGA_KAB_HS_006 \
+--indv MN_UGA_KAB_HS_007 \
+--indv MN_UGA_KAB_HS_008 \
+--indv MN_UGA_KAB_HS_009 \
+--max-missing 1 --recode
+bgzip out.recode.vcf
+tabix out.recode.vcf.gz
+
+
+
+# first estimate each population marginally using estimate:
+smc++ vcf2smc out.recode.vcf.gz SMC_DATA/EURO.smc.gz Trichuris_trichiura_2_001 EURO:AN_DNK_COG_EN_0012,AN_NLD_KAM_EN_0034
+smc++ vcf2smc out.recode.vcf.gz SMC_DATA/UGA.smc.gz Trichuris_trichiura_2_001 UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009
+
+# mutation rate (C.elegans) = 2.7e-9 (https://www.pnas.org/content/106/38/163100)
+smc++ estimate -o EURO/ 2.7e-9 SMC_DATA/EURO.smc.gz
+smc++ estimate -o UGA/ 2.7e-9 SMC_DATA/UGA.smc.gz
+
+# Next, create datasets containing the joint frequency spectrum for both populations:
+smc++ vcf2smc out.recode.vcf.gz SMC_DATA/pop12.smc.gz Trichuris_trichiura_2_001 EURO:AN_DNK_COG_EN_0012,AN_NLD_KAM_EN_0034 UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009
+smc++ vcf2smc out.recode.vcf.gz SMC_DATA/pop21.smc.gz Trichuris_trichiura_2_001 UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009 EURO:AN_DNK_COG_EN_0012,AN_NLD_KAM_EN_0034
+
+# Finally, run split to refine the marginal estimates into an estimate of the joint demography:
+
+smc++ split -o split/ EURO/model.final.json UGA/model.final.json SMC_DATA/*.smc.gz
+smc++ plot -g 0.33 -c joint.pdf split/model.final.json
+
+
+library(ggplot2)
+data <- read.delim("joint.csv",header=T,sep=",")
+ggplot(data,aes(x,y,col=label))+geom_line()
+
+
+# HND
+vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz \
+--indv MN_HND_OLA_HS_001 \
+--indv MN_HND_OLA_HS_002 \
+--indv MN_HND_OLA_HS_003 \
+--indv MN_HND_OLA_HS_004 \
+--indv MN_HND_OLA_HS_005 \
+--indv MN_HND_OLA_HS_006 \
+--indv MN_HND_OLA_HS_007 \
+--indv MN_HND_SAL_HS_001 \
+--max-missing 1 --recode --out HND
+bgzip -f HND.recode.vcf
+tabix HND.recode.vcf.gz
+
+# first estimate each population marginally using estimate:
+while read CHROMOSOME; do
+     smc++ vcf2smc HND.recode.vcf.gz SMC_DATA/HND.${CHROMOSOME}.smc.gz ${CHROMOSOME} HND:MN_HND_OLA_HS_001,MN_HND_OLA_HS_002,MN_HND_OLA_HS_003,MN_HND_OLA_HS_004,MN_HND_OLA_HS_005,MN_HND_OLA_HS_006,MN_HND_OLA_HS_007,MN_HND_SAL_HS_001;
+done < chromosomes.list
+
+# mutation rate (C.elegans) = 2.7e-9 (https://www.pnas.org/content/106/38/163100)
+smc++ estimate -o HND/ 2.7e-9 SMC_DATA/HND.*.smc.gz
+
+# plot
+smc++ plot -g 0.33 -c SMCPP_HND.pdf HND/model.final.json
+
+library(ggplot2)
+data <- read.delim("SMCPP_HND.csv",header=T,sep=",")
+ggplot(data,aes(log10(x),y,col=label))+geom_line()
+
+
+
+```bash
+cat ../../01_REF/trichuris_trichiura.fa.fai | cut -f1 | grep -v "MITO" > chromosomes.list
+
+
+# ECU
+vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz \
+--indv MN_ECU_QUI_HS_001 \
+--indv MN_ECU_QUI_HS_002 \
+--indv MN_ECU_QUI_HS_004 \
+--indv MN_ECU_QUI_HS_005 \
+--indv MN_ECU_QUI_HS_006 \
+--indv MN_ECU_QUI_HS_007 \
+--indv MN_ECU_TEL_HS_001 \
+--indv MN_ECU_TEL_HS_002 \
+--max-missing 1 --recode --out ECU
+bgzip -f ECU.recode.vcf
+tabix ECU.recode.vcf.gz
+
+# first estimate each population marginally using estimate:
+while read CHROMOSOME; do
+     smc++ vcf2smc ECU.recode.vcf.gz SMC_DATA/ECU.${CHROMOSOME}.smc.gz ${CHROMOSOME} ECU:MN_ECU_QUI_HS_001,MN_ECU_QUI_HS_002,MN_ECU_QUI_HS_004,MN_ECU_QUI_HS_005,MN_ECU_QUI_HS_006,MN_ECU_QUI_HS_007,MN_ECU_TEL_HS_001,MN_ECU_TEL_HS_002;
+done < chromosomes.list
+
+# mutation rate (C.elegans) = 2.7e-9 (https://www.pnas.org/content/106/38/163100)
+smc++ estimate -o ECU/ 2.7e-9 SMC_DATA/ECU.*.smc.gz
+
+# plot
+smc++ plot -g 0.33 -c SMCPP_ECU.pdf ECU/model.final.json
+```
+```R
+R
+library(ggplot2)
+data <- read.delim("SMCPP_ECU.csv",header=T,sep=",")
+ggplot(data,aes(x,y,col=label))+geom_line()
+```
+
+
+
+
+
+
+
+
+
+
+## AdmixR
+- ADMIXTOOLS is a widely used software package for calculating admixture statistics and testing population admixture hypotheses.
+- This R package makes it possible to perform all stages of ADMIXTOOLS analyses entirely from R, completely removing the need for “low level” configuration of individual ADMIXTOOLS programs.
+- https://cran.r-project.org/web/packages/admixr/vignettes/tutorial.html
+
+- need to convert vcf to eigenstrat format first
+     - can use a script "convertVCFtoEigenstrat.sh" found here: https://github.com/joanam/scripts/tree/e8c6aa4b919b58d69abba01e7b7e38a892587111
+```R
+
+install.packages("devtools")
+devtools::install_github("bodkan/admixr")
+
+
+
+/lustre/scratch118/infgen/team133/gs12/ANGSD_223/ADMX
+
+rep="./"
+prefix="ALL"
+k=seq(2,10,1)
+chrl=c('GW_ld.CV1','GW_ld.CV2','GW_ld.CV3','GW_ld.CV4','GW_ld.CV5')
+cv1 = array(-1,length(k))
+cv2 = array(-1,length(k))
+for(K in k){
+  for(chr in chrl){
+    infile=paste(rep,prefix,".",chr,".",K,".qopt",sep="")
+
+    # Admixture
+    assign(paste0('admix.',chr),t(as.matrix(read.table(infile))))
+  }
+  # Med absolute deviation
+  cv1[K-1] = mad(c(admix.GW_ld.CV1,admix.GW_ld.CV2,admix.GW_ld.CV3,admix.GW_ld.CV4,admix.GW_ld.CV5))
+  # Jackniffing variance
+  cv2[K-1] = var(c(admix.GW_ld.CV1,admix.GW_ld.CV2,admix.GW_ld.CV3,admix.GW_ld.CV4,admix.GW_ld.CV5))
+  rm(admix.GW_ld.CV1,admix.GW_ld.CV2,admix.GW_ld.CV3,admix.GW_ld.CV4,admix.GW_ld.CV5)
+}
