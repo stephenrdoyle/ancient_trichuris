@@ -2424,3 +2424,146 @@ for(K in k){
   cv2[K-1] = var(c(admix.GW_ld.CV1,admix.GW_ld.CV2,admix.GW_ld.CV3,admix.GW_ld.CV4,admix.GW_ld.CV5))
   rm(admix.GW_ld.CV1,admix.GW_ld.CV2,admix.GW_ld.CV3,admix.GW_ld.CV4,admix.GW_ld.CV5)
 }
+
+
+
+
+
+
+
+## Treemix
+- https://ppp.readthedocs.io/en/latest/PPP_pages/examples.html
+
+```bash
+conda activate py-popgen
+export LD_LIBRARY_PATH=/lustre/scratch118/infgen/team133/sd21/software/anaconda2/envs/py-popgen/lib/
+
+mkdir /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/FSTATS
+cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/FSTATS
+
+
+
+
+
+
+
+```
+
+
+
+## Nucleotide diversity and Tajima's D
+
+```bash
+# extract nucleotide diversity for each group
+for i in ancient_x_nuclear_3x_animalPhonly.list \
+CHN_x_nuclear_3x_animalPhonly.list \
+BABOON_x_nuclear_3x_animalPhonly.list \
+ECU_x_nuclear_3x_animalPhonly.list \
+HND_x_nuclear_3x_animalPhonly.list \
+UGA_x_nuclear_3x_animalPhonly.list; do \
+     vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --keep ${i} --window-pi 100000 --out ${i%.list};
+     vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --keep ${i} --TajimaD 100000 --out ${i%.list};
+done
+
+
+# other random vcftools analyses
+vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --indv-freq-burden --out nuclear_samples3x_missing0.8_animalPhonly
+vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --het --out nuclear_samples3x_missing0.8_animalPhonly
+vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --relatedness --out nuclear_samples3x_missing0.8_animalPhonly
+vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --FILTER-summary --out nuclear_samples3x_missing0.8_animalPhonly
+```
+
+
+
+### plot nucleotide diversities
+```R
+
+library(tidyverse)
+
+BABOON <- read.delim("BABOON_x_nuclear_3x_animalPhonly.windowed.pi", header=T)
+BABOON$pop_id <- "BABOON"
+BABOON <- tibble::rowid_to_column(BABOON, "NUM")
+ANCIENT <- read.delim("ancient_x_nuclear_3x_animalPhonly.windowed.pi", header=T)
+ANCIENT$pop_id <- "ANCIENT"
+ANCIENT <- tibble::rowid_to_column(ANCIENT, "NUM")
+CHN <- read.delim("CHN_x_nuclear_3x_animalPhonly.windowed.pi", header=T)
+CHN$pop_id <- "CHN"
+CHN <- tibble::rowid_to_column(CHN, "NUM")
+ECU <- read.delim("ECU_x_nuclear_3x_animalPhonly.windowed.pi", header=T)
+ECU$pop_id <- "ECU"
+ECU <- tibble::rowid_to_column(ECU, "NUM")
+UGA <- read.delim("UGA_x_nuclear_3x_animalPhonly.windowed.pi", header=T)
+UGA$pop_id <- "UGA"
+UGA <- tibble::rowid_to_column(UGA, "NUM")
+HND <- read.delim("HND_x_nuclear_3x_animalPhonly.windowed.pi", header=T)
+HND$pop_id <- "HND"
+HND <- tibble::rowid_to_column(HND, "NUM")
+
+data <- bind_rows(BABOON, ANCIENT, CHN, ECU, UGA, HND)
+
+ggplot(data,aes(pop_id,PI,col=pop_id)) +
+     geom_jitter() +
+     geom_boxplot(fill=NA, col="black") +
+     labs(x = "Population" , y = "Nucleotide diversity (Pi)") +
+     theme_bw()
+
+ggsave("plot_nucleotide_diversity_boxplot.png")
+
+ggplot(data,aes(NUM*100000,PI,col=CHROM, group=pop_id)) +
+     geom_point() +
+     labs(x = "Population" , y = "Nucleotide diversity (Pi)", col=NA) +
+     theme_bw() +
+     facet_grid(pop_id~.) +
+     theme(legend.position = "none")
+
+ggsave("plot_nucleotide_diversity_genomewide.png")
+```
+![](../04_analysis/plot_nucleotide_diversity_boxplot.png)
+![](../04_analysis/plot_nucleotide_diversity_genomewide.png)
+
+
+### plot Tajimas D
+```R
+
+library(tidyverse)
+
+BABOON <- read.delim("BABOON_x_nuclear_3x_animalPhonly.Tajima.D", header=T)
+BABOON$pop_id <- "BABOON"
+BABOON <- tibble::rowid_to_column(BABOON, "NUM")
+ANCIENT <- read.delim("ancient_x_nuclear_3x_animalPhonly.Tajima.D", header=T)
+ANCIENT$pop_id <- "ANCIENT"
+ANCIENT <- tibble::rowid_to_column(ANCIENT, "NUM")
+CHN <- read.delim("CHN_x_nuclear_3x_animalPhonly.Tajima.D", header=T)
+CHN$pop_id <- "CHN"
+CHN <- tibble::rowid_to_column(CHN, "NUM")
+ECU <- read.delim("ECU_x_nuclear_3x_animalPhonly.Tajima.D", header=T)
+ECU$pop_id <- "ECU"
+ECU <- tibble::rowid_to_column(ECU, "NUM")
+UGA <- read.delim("UGA_x_nuclear_3x_animalPhonly.Tajima.D", header=T)
+UGA$pop_id <- "UGA"
+UGA <- tibble::rowid_to_column(UGA, "NUM")
+HND <- read.delim("HND_x_nuclear_3x_animalPhonly.Tajima.D", header=T)
+HND$pop_id <- "HND"
+HND <- tibble::rowid_to_column(HND, "NUM")
+
+data <- bind_rows(BABOON, ANCIENT, CHN, ECU, UGA, HND)
+
+ggplot(data,aes(pop_id,TajimaD,col=pop_id)) +
+     geom_jitter() +
+     geom_boxplot(fill=NA, col="black") +
+     labs(x = "Population" , y = "Tajima's D") +
+     theme_bw()
+
+ggsave("plot_tajimaD_boxplot.png")
+
+ggplot(data,aes(NUM*100000,TajimaD,col=CHROM, group=pop_id)) +
+     geom_point() +
+     labs(x = "Population" , y = "Tajima's D", col=NA) +
+     theme_bw() +
+     facet_grid(pop_id~.) +
+     theme(legend.position = "none")
+
+ggsave("plot_tajimaD_genomewide.png")
+```
+![](../04_analysis/plot_tajimaD_boxplot.png)
+![](../04_analysis/plot_tajimaD_genomewide.png)
