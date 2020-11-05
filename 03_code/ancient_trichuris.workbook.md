@@ -2329,57 +2329,52 @@ ggsave("plot_smcpp_all_populations.png")
 
 
 
-
-# joint
-
-vcftools  --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz \
---indv AN_DNK_COG_EN_0012 \
---indv AN_NLD_KAM_EN_0034 \
---indv MN_UGA_DK_HS_001 \
---indv MN_UGA_DK_HS_002 \
---indv MN_UGA_DK_HS_003 \
---indv MN_UGA_KAB_HS_001 \
---indv MN_UGA_KAB_HS_002 \
---indv MN_UGA_KAB_HS_003 \
---indv MN_UGA_KAB_HS_004 \
---indv MN_UGA_KAB_HS_005 \
---indv MN_UGA_KAB_HS_006 \
---indv MN_UGA_KAB_HS_007 \
---indv MN_UGA_KAB_HS_008 \
---indv MN_UGA_KAB_HS_009 \
---max-missing 1 --recode
-bgzip out.recode.vcf
-tabix out.recode.vcf.gz
-
-
-
-# first estimate each population marginally using estimate:
-smc++ vcf2smc out.recode.vcf.gz SMC_DATA/EURO.smc.gz Trichuris_trichiura_2_001 EURO:AN_DNK_COG_EN_0012,AN_NLD_KAM_EN_0034
-smc++ vcf2smc out.recode.vcf.gz SMC_DATA/UGA.smc.gz Trichuris_trichiura_2_001 UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009
-
-# mutation rate (C.elegans) = 2.7e-9 (https://www.pnas.org/content/106/38/163100)
-smc++ estimate -o EURO/ 2.7e-9 SMC_DATA/EURO.smc.gz
-smc++ estimate -o UGA/ 2.7e-9 SMC_DATA/UGA.smc.gz
-
-# Next, create datasets containing the joint frequency spectrum for both populations:
-smc++ vcf2smc out.recode.vcf.gz SMC_DATA/pop12.smc.gz Trichuris_trichiura_2_001 EURO:AN_DNK_COG_EN_0012,AN_NLD_KAM_EN_0034 UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009
-smc++ vcf2smc out.recode.vcf.gz SMC_DATA/pop21.smc.gz Trichuris_trichiura_2_001 UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009 EURO:AN_DNK_COG_EN_0012,AN_NLD_KAM_EN_0034
-
-# Finally, run split to refine the marginal estimates into an estimate of the joint demography:
-
-smc++ split -o split/ EURO/model.final.json UGA/model.final.json SMC_DATA/*.smc.gz
-smc++ plot -g 0.33 -c joint.pdf split/model.final.json
-
-#---------
-# library(ggplot2)
-# data <- read.delim("joint.csv",header=T,sep=",")
-# ggplot(data,aes(x,y,col=label))+geom_line()
-
-
-
-
-
-
+# ```
+# # joint
+#
+# vcftools  --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz \
+# --indv AN_DNK_COG_EN_0012 \
+# --indv AN_NLD_KAM_EN_0034 \
+# --indv MN_UGA_DK_HS_001 \
+# --indv MN_UGA_DK_HS_002 \
+# --indv MN_UGA_DK_HS_003 \
+# --indv MN_UGA_KAB_HS_001 \
+# --indv MN_UGA_KAB_HS_002 \
+# --indv MN_UGA_KAB_HS_003 \
+# --indv MN_UGA_KAB_HS_004 \
+# --indv MN_UGA_KAB_HS_005 \
+# --indv MN_UGA_KAB_HS_006 \
+# --indv MN_UGA_KAB_HS_007 \
+# --indv MN_UGA_KAB_HS_008 \
+# --indv MN_UGA_KAB_HS_009 \
+# --max-missing 1 --recode
+# bgzip out.recode.vcf
+# tabix out.recode.vcf.gz
+#
+#
+#
+# # first estimate each population marginally using estimate:
+# smc++ vcf2smc out.recode.vcf.gz SMC_DATA/EURO.smc.gz Trichuris_trichiura_2_001 EURO:AN_DNK_COG_EN_0012,AN_NLD_KAM_EN_0034
+# smc++ vcf2smc out.recode.vcf.gz SMC_DATA/UGA.smc.gz Trichuris_trichiura_2_001 UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009
+#
+# # mutation rate (C.elegans) = 2.7e-9 (https://www.pnas.org/content/106/38/163100)
+# smc++ estimate -o EURO/ 2.7e-9 SMC_DATA/EURO.smc.gz
+# smc++ estimate -o UGA/ 2.7e-9 SMC_DATA/UGA.smc.gz
+#
+# # Next, create datasets containing the joint frequency spectrum for both populations:
+# smc++ vcf2smc out.recode.vcf.gz SMC_DATA/pop12.smc.gz Trichuris_trichiura_2_001 EURO:AN_DNK_COG_EN_0012,AN_NLD_KAM_EN_0034 UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009
+# smc++ vcf2smc out.recode.vcf.gz SMC_DATA/pop21.smc.gz Trichuris_trichiura_2_001 UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009 EURO:AN_DNK_COG_EN_0012,AN_NLD_KAM_EN_0034
+#
+# # Finally, run split to refine the marginal estimates into an estimate of the joint demography:
+#
+# smc++ split -o split/ EURO/model.final.json UGA/model.final.json SMC_DATA/*.smc.gz
+# smc++ plot -g 0.33 -c joint.pdf split/model.final.json
+#
+# #---------
+# # library(ggplot2)
+# # data <- read.delim("joint.csv",header=T,sep=",")
+# # ggplot(data,aes(x,y,col=label))+geom_line()
+# ```
 
 
 
@@ -2396,34 +2391,32 @@ smc++ plot -g 0.33 -c joint.pdf split/model.final.json
 
 - need to convert vcf to eigenstrat format first
      - can use a script "convertVCFtoEigenstrat.sh" found here: https://github.com/joanam/scripts/tree/e8c6aa4b919b58d69abba01e7b7e38a892587111
+
+### Preprocessing
+```bash
+mkdir ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/FSTATS
+cd ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/FSTATS
+
+ln -s ../../04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz
+
+
+awk '{print $4,$2,$3,$4,$5,$6}' OFS="\t" test.snp > test.fix.snp
+cut -f1,2 test.fix.snp > my_contigs.txt
+
+```
+
+### Use admixR for analysis
 ```R
+# install.packages("devtools")
+# devtools::install_github("bodkan/admixr")
 
-install.packages("devtools")
-devtools::install_github("bodkan/admixr")
+library(admixr)
 
+snps <- eigenstrat(ind="test.ind", snp="test.fix.snp", geno="test.eigenstratgeno")
+d(W = "ECU", X = "CHN", Y = "UGA", Z = "BABOON", data = snps, params = list(blockname = "my_contigs.txt"))
 
+```
 
-/lustre/scratch118/infgen/team133/gs12/ANGSD_223/ADMX
-
-rep="./"
-prefix="ALL"
-k=seq(2,10,1)
-chrl=c('GW_ld.CV1','GW_ld.CV2','GW_ld.CV3','GW_ld.CV4','GW_ld.CV5')
-cv1 = array(-1,length(k))
-cv2 = array(-1,length(k))
-for(K in k){
-  for(chr in chrl){
-    infile=paste(rep,prefix,".",chr,".",K,".qopt",sep="")
-
-    # Admixture
-    assign(paste0('admix.',chr),t(as.matrix(read.table(infile))))
-  }
-  # Med absolute deviation
-  cv1[K-1] = mad(c(admix.GW_ld.CV1,admix.GW_ld.CV2,admix.GW_ld.CV3,admix.GW_ld.CV4,admix.GW_ld.CV5))
-  # Jackniffing variance
-  cv2[K-1] = var(c(admix.GW_ld.CV1,admix.GW_ld.CV2,admix.GW_ld.CV3,admix.GW_ld.CV4,admix.GW_ld.CV5))
-  rm(admix.GW_ld.CV1,admix.GW_ld.CV2,admix.GW_ld.CV3,admix.GW_ld.CV4,admix.GW_ld.CV5)
-}
 
 
 
@@ -2438,16 +2431,96 @@ for(K in k){
 conda activate py-popgen
 export LD_LIBRARY_PATH=/lustre/scratch118/infgen/team133/sd21/software/anaconda2/envs/py-popgen/lib/
 
-mkdir /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/FSTATS
-cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/FSTATS
+mkdir /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/TREEMIX
+cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/TREEMIX
+
+vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --max-missing 1 --keep ../../04_VARIANTS/GATK_HC_MERGED/nuclear_3x_animal.list --recode --stdout | gzip > treemix.vcf.gz
+
+./ldPruning.sh treemix.vcf.gz
+
+gzip treemix.noN.LDpruned.vcf
 
 
 
+bcftools query -l treemix.vcf.gz | awk '{split($1,pop,"."); print $1"\t"$1"\t"pop[2]}' > data.clust
+
+# this "data.clust" needs to be edited to put the population in
+
+cat data.clust | cut -f3 | sort | uniq > populations.list
+
+./vcf2treemix.sh treemix.LDpruned.vcf.gz data.clust
 
 
+# run treemix, across a range of migration edges, and across a range of seeds
+#--- the range of seeds is used by optM below to estimate the optimal number of edges.
 
+for i in {0..5}; do
+     for j in {0..5}; do
+          treemix -i treemix.LDpruned.treemix.frq.gz -seed $j -m $i -o treemix.m_$i.s_$j -root COLOBUS -bootstrap -k 500  > treemix_${i}_log &
+     done;
+done
+```
+
+```R
+library(RColorBrewer)
+library(R.utils)
+
+source("plotting_funcs.R")
+prefix="treemix"
+
+# plot trees across range of migration edges
+par(mfrow=c(2,6))
+for(edge in 0:5){
+  plot_tree(cex=0.8,paste0(prefix,".m_",edge,".s_2"))
+  title(paste(edge,"edges"))
+}
+
+# plot residuals across range of migration edges - positive values suggest admixture
+for(edge in 0:5){
+ plot_resid(stem=paste0(prefix,".m_",edge,".s_2"),pop_order="populations.list")
+ title(paste(edge,"edges"))
+}
+
+
+# Estimating the optimal number of migration edges : https://rdrr.io/cran/OptM/#vignettes
+# run in the folder with the treemix output files
+install.packages("OptM")
+library(OptM)
+
+optM(folder="./")
+
+#> The maximum value for delta m was 17.3577 at m = 2 edges.
+
+
+# remake the plots, using 2 migration edges
+prefix="treemix"
+
+par(mfrow=c(1,1))
+
+plot_tree(cex=0.8,paste0(prefix,".m_2.s_2"))
+title(paste(2,"edges"))
+
+plot_resid(stem=paste0(prefix,".",2),pop_order="populations.list")
+title(paste(1,"edges"))
 
 ```
+
+
+
+
+### calculate the variance explained by the data
+- https://github.com/darencard/RADpipe/blob/master/treemixVarianceExplained.R
+```bash
+Rscript treemixVarianceExplained.R treemix.m_2.s_2
+
+#> Standard error for all entries in the covariance matrix estimated from the data	0.00053440209375
+#> Variance of relatedness between populations explained by the model	0.998712455493422
+```
+
+
+
+
+
 
 
 
@@ -2567,3 +2640,15 @@ ggsave("plot_tajimaD_genomewide.png")
 ```
 ![](../04_analysis/plot_tajimaD_boxplot.png)
 ![](../04_analysis/plot_tajimaD_genomewide.png)
+
+
+plot_cov <- function(data, title){
+data <- read.table(data,header=F)
+
+plot <- ggplot(data,aes(1:nrow(data),V5,col=V1)) +
+     geom_point() +
+     labs(title=title, x="Genomic position", y="Coverage (mean/100kb)") +
+     theme_bw() + theme(legend.position = "none") + ylim(0,2*mean(data$V5))
+
+print(plot)
+}
