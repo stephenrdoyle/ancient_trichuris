@@ -259,8 +259,9 @@ rm *discarded *settings
 ---
 
 
-## mapping
-Need to map them a little differently. Below are two mapping scripts for each approach.
+## Mapping
+- Need to map ancient and modern samples a little differently, based on the fact that ancient samples only have SE reads, whereas modern samples are PE.
+- Below are two mapping scripts for each approach.
 
 ### script for mapping the ancient samples - these are all single end (SE) reads
 ```shell
@@ -369,7 +370,9 @@ for i in *.bam; do
 
 
 ### Kraken of trimmed reads post mapping
-The mapping shows that there is variable mapping rates, and that for some samples there is very poor mapping. This is particularly the case for the ancient samples, which is to be expected to a degree, given they are both old and collected from the environment. Kraken might give some insight into this, given they might be heavily contaminated with bacteria etc.
+- The mapping shows that there is variable mapping rates, and that for some samples there is very poor mapping.
+     - This is particularly the case for the ancient samples, which is to be expected to a degree, given they are both old and collected from the environment.
+- Kraken might give some insight into this, given they might be heavily contaminated with bacteria etc.
 
 ```bash
 module load kraken2/2.0.8_beta=pl526h6bb024c_0-c1
@@ -412,6 +415,10 @@ multiqc *kraken2report --title kraken
 
 
 ## Damage
+- need to check to what degree deanimation (increased frequency of C > T and G > A) has affected the DNA used for sequencing
+- this is a common artefact in ancient samples - this is expected from ancient reads, and will likely affect the older samples more.
+- Not expecting this in the modern samples
+
 ```bash
 # To view deamination-derived damage patterns in a simple table, without separating CpG sites
 #samtools view AN_DNK_COG_EN_002.bam | python pmdtools.0.60.py --deamination
@@ -442,7 +449,7 @@ mv deamination_plot.png ${WORKING_DIR}/03_MAPPING/DEAMINATION/${NEW_NAME}.deamin
 mkdir ${WORKING_DIR}/04_ANALYSES/deamination && mv ${WORKING_DIR}/03_MAPPING/*deamination_plot.png ${WORKING_DIR}/04_ANALYSES/deamination
 ```
 
-where "plotPMD.R" is:
+- where "plotPMD.R" is:
 ```R
 # script to make deamination frequency plots from PMD data
 
@@ -913,7 +920,7 @@ vcftools --vcf TT.filtered-2.vcf.recode.vcf --bed ${WORKING_DIR}/01_REF/SNPABLE/
 
 
 
-
+---
 
 
 
@@ -973,9 +980,10 @@ ggsave("samplingsites_time.png", height=5, width=5)
 
 
 
+---
 
 
-
+## Genetic diversity
 
 ### PCA of mtDNA genotypes
 ```bash
@@ -1100,6 +1108,7 @@ ggsave("global_diversity_mtDNA_SNPs.pdf",height=6,width=7.5,useDingbats = FALSE)
 ggsave("global_diversity_mtDNA_SNPs.png",height=6,width=7.5)
 
 ```
+![](../04_analysis/global_diversity_mtDNA_SNPs.png)
 
 
 ### Querying SNP and INDEL QC profiles to determine thresholds for filters
@@ -1694,7 +1703,9 @@ vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --ma
 
 ### Max-missing
 ```bash
-for i in 0.7 0.8 0.9 1; do vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --keep mtDNA_3x.list --max-missing ${i} ; done
+for i in 0.7 0.8 0.9 1; do
+     vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --keep mtDNA_3x.list --max-missing ${i} ;
+done
 
 # max-missing = 0.7
 After filtering, kept 59 out of 73 Individuals
@@ -2061,7 +2072,7 @@ ggsave("admixture_plots_k2-10.png")
 
 - need to determine the optimal K, at least from what the data suggests.
 - usually there is a cross validation approach for tools like STRUCTURE and ADMIXTURE, but there doesnt seem to be one for NGSadmix
-- Guilluame Salle used a MAD approach, calculating admixture for the population, leaving one chromosome out a time.
+- Guillaume Salle used a MAD approach, calculating admixture for the population, leaving one chromosome out a time.
 - Will try this, using scaffolds longer than 1 Mb to make it manageable.
 
 ```bash
@@ -2418,6 +2429,25 @@ d(W = "ECU", X = "CHN", Y = "UGA", Z = "BABOON", data = snps, params = list(bloc
 ```
 
 
+### Dsuite
+```bash
+
+Dsuite Dtrios nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz pops.list
+
+```
+
+- make some plots
+```R
+library(tidyverse)
+
+data <- read.table("pops_lm_cg_BBAA.txt", header=T)
+colnames(data) <- c("P1","P2","P3","Dstatistic","Z_score","p_value","f4_ratio","BBAA","ABBA","BABA")
+
+ggplot(data,aes(Dstatistic,paste0(P1,"_",P2,"/",P3),col=-log10(p_value))) +
+     geom_point() + theme_bw()
+
+ggplot(data,aes(f4_ratio,paste0(P1,"_",P2,"/",P3),col=-log10(p_value))) +
+          geom_point() + theme_bw()
 
 
 
@@ -2505,6 +2535,105 @@ title(paste(1,"edges"))
 
 ```
 
+```bash
+threepop -i treemix.LDpruned.treemix.frq.gz -k 500 > threepop.out
+fourpop -i treemix.LDpruned.treemix.frq.gz -k 500 > fourpop.out
+
+cat threepop.out | grep ";" | grep -v "COLOBUS" | grep -v "LEAF" > threepop.out_2
+
+```
+- plots
+```R
+library(tidyverse)
+data <- read.table("threepop.out_2",header=F)
+ggplot(data, aes(V2,V1,col=V4)) + geom_point(size=2) + geom_segment(aes(x = V2-V3, y = V1, xend = V2+V3, yend = V1))
+
+
+
+
+
+
+```R
+library(poppr)
+library(vcfR)
+library(netview)
+library(tidyverse)
+library(networkD3)
+library(DT)
+
+rubi.VCF <- read.vcfR("mito_samples3x_missing0.8.recode.vcf")
+
+gl.rubi <- vcfR2genlight(rubi.VCF)
+ploidy(gl.rubi) <- 1
+
+metadata <- read.table("metadata", header=T, sep="\t")
+#metadata <- as.data.frame(gl.rubi$ind.names)
+#colnames(metadata) <- "sampleID"
+#metadata <- metadata %>% separate(sampleID,c("time", "country","population","host","sampleID"))
+
+pop(gl.rubi) <- metadata$group
+
+
+rubi.dist <- bitwise.dist(gl.rubi)
+rubi.dist.matrix <- as.matrix(rubi.dist)
+
+
+
+
+# Creating a list object to save our subsets in.
+rubi.variant.subset <- vector(mode = "list", length = 100)
+
+# Using a for loop to generate 100 subsets of 500 random variants from the rubi.VCF vcfR object.
+for (i in 1:100){
+  rubi.variant.subset[[i]] <- rubi.VCF[sample(size = 200, x= c(1:nrow(rubi.VCF)))]
+}
+
+# Creating the GenLight object
+rubi.gl.subset <- lapply(rubi.variant.subset, function (x) suppressWarnings(vcfR2genlight(x)))
+for (i in 1:length(rubi.gl.subset)){
+  ploidy(rubi.gl.subset[[i]]) <- 1
+}
+
+# Creating a simple UPGMA tree per object
+library(phangorn)
+rubi.trees <- lapply(rubi.gl.subset, function (x) upgma(bitwise.dist(x)))
+class(rubi.trees) <- "multiPhylo"
+
+# Overlapping the trees
+densiTree(rubi.trees, consensus = tree, scaleX = T, show.tip.label = F, alpha = 0.1)
+title(xlab = "Proportion of variants different")
+
+
+
+
+library("netview")
+
+
+
+
+
+# netview - this all works, but is not very informative
+# https://github.com/esteinig/netview/blob/master/tutorials/PearlOysterTutorial.md
+#
+# library("netview")
+# library(DT)
+# library(networkD3)
+#
+# rubi.dist <- bitwise.dist(gl.rubi)
+# rubi.dist.matrix <- as.matrix(rubi.dist)
+#
+# metadata <- read.table("sample_metadata_colours.list",header=T,comment.char="")
+#
+# oysterOptions <- netviewOptions(selectionTitle="k-Selection", nodeID="sample_id", nodeGroup="country", nodeColour="country_colour", communityAlgorithms=c("Walktrap", "Infomap", "Fast-Greedy"))
+#
+# graphs <- netview(rubi.dist.matrix, metadata, k=1:60, cluster = TRUE, options=oysterOptions)
+# kPlot <- plotSelection(graphs, options=oysterOptions)
+#
+# k20 <- graphs$k20
+# plot(k20, vertex.size=7, vertex.label=NA)
+# legend('topleft',legend=levels(as.factor(metadata$country)),col=levels(as.factor(metadata$country_colour)),pch=20)
+```
+
 
 
 
@@ -2552,33 +2681,26 @@ vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --FILTE
 ```R
 
 library(tidyverse)
+library(ggsci)
 
-BABOON <- read.delim("BABOON_x_nuclear_3x_animalPhonly.windowed.pi", header=T)
-BABOON$pop_id <- "BABOON"
-BABOON <- tibble::rowid_to_column(BABOON, "NUM")
-ANCIENT <- read.delim("ancient_x_nuclear_3x_animalPhonly.windowed.pi", header=T)
-ANCIENT$pop_id <- "ANCIENT"
-ANCIENT <- tibble::rowid_to_column(ANCIENT, "NUM")
-CHN <- read.delim("CHN_x_nuclear_3x_animalPhonly.windowed.pi", header=T)
-CHN$pop_id <- "CHN"
-CHN <- tibble::rowid_to_column(CHN, "NUM")
-ECU <- read.delim("ECU_x_nuclear_3x_animalPhonly.windowed.pi", header=T)
-ECU$pop_id <- "ECU"
-ECU <- tibble::rowid_to_column(ECU, "NUM")
-UGA <- read.delim("UGA_x_nuclear_3x_animalPhonly.windowed.pi", header=T)
-UGA$pop_id <- "UGA"
-UGA <- tibble::rowid_to_column(UGA, "NUM")
-HND <- read.delim("HND_x_nuclear_3x_animalPhonly.windowed.pi", header=T)
-HND$pop_id <- "HND"
-HND <- tibble::rowid_to_column(HND, "NUM")
+# list file names
+file_names <- list.files(path = "./",pattern = "_x_nuclear_3x_animalPhonly.windowed.pi")
 
-data <- bind_rows(BABOON, ANCIENT, CHN, ECU, UGA, HND)
+# load data using file names, and make a formatted data frame
+data <- purrr::map_df(file_names, function(x) {
+	data <- read.delim(x, header = T, sep="\t")
+     data <- tibble::rowid_to_column(data, "NUM")
+	cbind(pop_id = gsub("_x_nuclear_3x_animalPhonly.windowed.pi","",x), data)
+	})
+
 
 ggplot(data,aes(pop_id,PI,col=pop_id)) +
      geom_jitter() +
      geom_boxplot(fill=NA, col="black") +
      labs(x = "Population" , y = "Nucleotide diversity (Pi)") +
-     theme_bw()
+     theme_bw() +
+     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+     scale_color_npg()
 
 ggsave("plot_nucleotide_diversity_boxplot.png")
 
@@ -2587,7 +2709,8 @@ ggplot(data,aes(NUM*100000,PI,col=CHROM, group=pop_id)) +
      labs(x = "Population" , y = "Nucleotide diversity (Pi)", col=NA) +
      theme_bw() +
      facet_grid(pop_id~.) +
-     theme(legend.position = "none")
+     theme(legend.position = "none") +
+     scale_color_npg()
 
 ggsave("plot_nucleotide_diversity_genomewide.png")
 ```
@@ -2599,33 +2722,26 @@ ggsave("plot_nucleotide_diversity_genomewide.png")
 ```R
 
 library(tidyverse)
+library(ggsci)
 
-BABOON <- read.delim("BABOON_x_nuclear_3x_animalPhonly.Tajima.D", header=T)
-BABOON$pop_id <- "BABOON"
-BABOON <- tibble::rowid_to_column(BABOON, "NUM")
-ANCIENT <- read.delim("ancient_x_nuclear_3x_animalPhonly.Tajima.D", header=T)
-ANCIENT$pop_id <- "ANCIENT"
-ANCIENT <- tibble::rowid_to_column(ANCIENT, "NUM")
-CHN <- read.delim("CHN_x_nuclear_3x_animalPhonly.Tajima.D", header=T)
-CHN$pop_id <- "CHN"
-CHN <- tibble::rowid_to_column(CHN, "NUM")
-ECU <- read.delim("ECU_x_nuclear_3x_animalPhonly.Tajima.D", header=T)
-ECU$pop_id <- "ECU"
-ECU <- tibble::rowid_to_column(ECU, "NUM")
-UGA <- read.delim("UGA_x_nuclear_3x_animalPhonly.Tajima.D", header=T)
-UGA$pop_id <- "UGA"
-UGA <- tibble::rowid_to_column(UGA, "NUM")
-HND <- read.delim("HND_x_nuclear_3x_animalPhonly.Tajima.D", header=T)
-HND$pop_id <- "HND"
-HND <- tibble::rowid_to_column(HND, "NUM")
+# list file names
+file_names <- list.files(path = "./",pattern = "_x_nuclear_3x_animalPhonly.Tajima.D")
 
-data <- bind_rows(BABOON, ANCIENT, CHN, ECU, UGA, HND)
+# load data using file names, and make a formatted data frame
+data <- purrr::map_df(file_names, function(x) {
+	data <- read.delim(x, header = T, sep="\t")
+     data <- tibble::rowid_to_column(data, "NUM")
+	cbind(pop_id = gsub("_x_nuclear_3x_animalPhonly.Tajima.D","",x), data)
+	})
 
+# plot boxplots and distributions of Tajima's D
 ggplot(data,aes(pop_id,TajimaD,col=pop_id)) +
      geom_jitter() +
      geom_boxplot(fill=NA, col="black") +
      labs(x = "Population" , y = "Tajima's D") +
-     theme_bw()
+     theme_bw() +
+     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+     scale_color_npg()
 
 ggsave("plot_tajimaD_boxplot.png")
 
@@ -2634,7 +2750,8 @@ ggplot(data,aes(NUM*100000,TajimaD,col=CHROM, group=pop_id)) +
      labs(x = "Population" , y = "Tajima's D", col=NA) +
      theme_bw() +
      facet_grid(pop_id~.) +
-     theme(legend.position = "none")
+     theme(legend.position = "none") +
+     scale_color_npg()
 
 ggsave("plot_tajimaD_genomewide.png")
 ```
@@ -2642,6 +2759,84 @@ ggsave("plot_tajimaD_genomewide.png")
 ![](../04_analysis/plot_tajimaD_genomewide.png)
 
 
+
+## Genome wide genetic differentiation
+```
+# run vcftools weir-fst-pop for all pairwise combinations of populatiions
+for i in ancient_x_nuclear_3x_animalPhonly.list \
+BABOON_x_nuclear_3x_animalPhonly.list \
+CHN_x_nuclear_3x_animalPhonly.list \
+ECU_x_nuclear_3x_animalPhonly.list \
+HND_x_nuclear_3x_animalPhonly.list \
+UGA_x_nuclear_3x_animalPhonly.list; do \
+
+     for j in ancient_x_nuclear_3x_animalPhonly.list \
+     BABOON_x_nuclear_3x_animalPhonly.list \
+     CHN_x_nuclear_3x_animalPhonly.list \
+     ECU_x_nuclear_3x_animalPhonly.list \
+     HND_x_nuclear_3x_animalPhonly.list \
+     UGA_x_nuclear_3x_animalPhonly.list; do \
+
+          if [[ "$i" == "$j" ]] || [[ -f ${i%_x_nuclear_3x_animalPhonly.list}_v_${j%_x_nuclear_3x_animalPhonly.list}_100k.windowed.weir.fst ]] || [[ -f ${j%_x_nuclear_3x_animalPhonly.list}_v_${i%_x_nuclear_3x_animalPhonly.list}_100k.windowed.weir.fst ]]; then
+               echo "Same, same, move on"
+               else
+               vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --weir-fst-pop ${i} --weir-fst-pop ${j} --fst-window-size 100000 --out ${i%_x_nuclear_3x_animalPhonly.list}_v_${j%_x_nuclear_3x_animalPhonly.list}_100k;
+          fi;
+     done;
+done
+```
+
+- make some plots
+
+```R
+library(tidyverse)
+library(ggsci)
+
+# list file names
+file_names <- list.files(path = "./",pattern = "_100k.windowed.weir.fst")
+
+# load data using file names, and make a formatted data frame
+data <- purrr::map_df(file_names, function(x) {
+	data <- read.delim(x, header = T, sep="\t")
+     data <- tibble::rowid_to_column(data, "NUM")
+	cbind(sample_pair = gsub("_100k.windowed.weir.fst","",x), data)
+	})
+
+
+# plot boxplots and distributions of pairwise Fst analyses
+ggplot(data,aes(sample_pair,WEIGHTED_FST,col=sample_pair)) +
+          geom_jitter() +
+          geom_boxplot(fill=NA, col="black") +
+          labs(x = "Population" , y = "WEIGHTED_FST") +
+          theme_bw() +
+          theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+# save it
+ggsave("plot_human_pop_pairwise_FST_boxplot.png")
+
+
+# plot genome-wide distributions of pairwise Fst analyses
+ggplot(data, aes(NUM*100000, WEIGHTED_FST, col=CHROM, group=sample_pair)) +
+     geom_point() +
+     labs(x = "Population" , y = "WEIGHTED_FST", col=NA) +
+     theme_bw() +
+     facet_grid(sample_pair~.) +
+     theme(legend.position = "none") +
+     scale_color_npg()
+
+ggsave("plot_human_pop_pairwise_FST__genomewide.png")
+
+
+```
+![](../04_analysis/plot_human_pop_pairwise_FST_boxplot.png)
+
+
+
+
+
+## Genome Coverage
+
+# function to plot coverage per sample
 plot_cov <- function(data, title){
 data <- read.table(data,header=F)
 
@@ -2652,3 +2847,109 @@ plot <- ggplot(data,aes(1:nrow(data),V5,col=V1)) +
 
 print(plot)
 }
+
+ plot_cov("MN_UGA_KAB_HS_003.100000_window.cov","MN_UGA_KAB_HS_003.100000_window.cov")
+
+
+# nuclear to mitochondrial DNA coverage ratio
+nucmito <- read.table("nuc_mtDNA_coverage.stats",header=F)
+
+ggplot(nucmito,aes(V1,V4)) +
+     geom_point() +
+     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+     labs(title = "Nuclear to mitochodnrial genome coverage ratio", y = "Coverage Ratio")
+
+
+
+# matrix of coverage per scaffold
+library(tidyverse)
+library(reshape2)
+
+data <- read.table("coverage_stats.summary", header=T, sep="\t")
+data <- rowid_to_column(data,"ID")
+data <- melt(data,  id.vars="ID")
+data <- data %>% filter(grepl(".trimmed.chr.cov$", variable))
+
+ggplot(data,aes(variable,ID,fill=log10(value))) + geom_tile() +
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+
+
+
+### fastsimcoal2
+```bash
+VCF=nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz
+bcftools query -l $VCF | awk '{split($0,a,"."); print $1,a[2]}' > pop_file
+# this needed to be modified to add populations in
+
+
+bsub.py 1 sfs "easySFS.py -i $VCF -p pop_file -a -f --preview"
+
+
+
+
+### ABBA BABA  
+
+
+bsub.py 1 getGT "gatk VariantsToTable -V ../../04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz -F CHROM -F POS -GF GT -O output.table.geno"
+
+sed -i 's/.GT//g' output.table.geno
+sed -i 's/CHROM/\#CHROM/' output.table.geno
+
+genomics_general-master/freq.py -g output.table \
+-p ANCIENT -p CHN -p BABOON -p ECU -p HND -p UGA \
+--popsFile pop_file --target derived --genoFormat diplo \
+-o trichuris.derFreq.tsv.gz
+
+
+
+
+
+
+### Phylogenetics
+```
+cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/PHYLOGENY
+
+# downloaded reference fastas from ENA/ncbi
+KT449822.1_Trichuris_suis.fa
+KT449823.1_Trichuris_suis.fa
+KT449824.1_Trichuris_sp._baboon.fa
+KT449825.1_Trichuris_sp.TTB2.fa
+KT449826.1_Trichuris_trichiura.fa
+NC_002681.1_Trichinella_spiralis.fa
+NC_017747.1_Trichuris_suis.fa
+NC_017750.1_Trichuris_trichiura.fa
+NC_018596.1_Trichuris_discolor.fa
+NC_018597.1_Trichuris_ovis.fa
+NC_028621.1_Trichuris_muris.fa
+
+
+ln -s ../../04_VARIANTS/GATK_HC_MERGED/mito_samples3x_missing0.8.recode.vcf
+
+bgzip mito_samples3x_missing0.8.recode.vcf
+tabix -p vcf mito_samples3x_missing0.8.recode.vcf.gz
+
+bcftools query --list-samples mito_samples3x_missing0.8.recode.vcf > samples.list
+
+REF=../../01_REF/trichuris_trichiura.fa
+MITO_REF=Trichuris_trichiura_MITO
+VCF=mito_samples3x_missing0.8.recode.vcf.gz
+
+while read SAMPLE; do \
+     samtools faidx ${REF} ${MITO_REF} | bcftools consensus ${VCF} --missing N --output ${SAMPLE}.mito.fa --sample ${SAMPLE};
+done < samples.list
+
+# fix sample names in the file
+for i in *.mito.fa; do \
+     sed -i "s/Trichuris_trichiura_MITO/${i%.mito.fa}/" ${i};
+done
+
+# bring all of the pseudoreferences together with the ENA/NCBI references
+cat *.fa > all_pseudoreferences.fa
+
+
+module load mafft/7.407=1-c1
+
+mafft --maxiterate 1000 --globalpair all_pseudoreferences.fa > all_pseudoreferences.aln
+```
