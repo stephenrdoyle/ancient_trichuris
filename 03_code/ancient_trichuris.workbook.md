@@ -2624,7 +2624,10 @@ colnames(data) <- c("three_populations", "f_3", "std_error", "z_score")
 ggplot(data, aes(f_3, reorder(three_populations, -f_3), col = z_score)) +
      geom_point(size = 2) +
      geom_segment(aes(x = f_3-std_error, y = three_populations, xend = f_3+std_error, yend = three_populations)) +
-     theme_bw()
+     theme_bw() +
+     labs(x = "f3 statistic" , y = "")
+
+ggsave("plot_f3_statistics.png")
 
 
 # load data
@@ -2636,15 +2639,21 @@ colnames(data) <- c("four_populations", "f_4", "std_error", "z_score")
 ggplot(data, aes(f_4, reorder(four_populations, -f_4), col = z_score)) +
      geom_point(size = 2) +
      geom_segment(aes(x = f_4-std_error, y = four_populations, xend = f_4+std_error, yend = four_populations)) +
-     theme_bw()
+     theme_bw() +
+     labs(x = "f4 statistic" , y = "")
+
+ggsave("plot_f4_statistics.png")
 
 ```
+- f3 stats
+![](../04_analysis/plot_f3_statistics.png)
+
+- f4 stats
+![](../04_analysis/plot_f4_statistics.png)
 
 
 
-
-
-
+---
 
 
 
