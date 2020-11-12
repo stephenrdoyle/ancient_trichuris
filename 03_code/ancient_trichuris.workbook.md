@@ -2933,7 +2933,7 @@ genomics_general-master/freq.py -g output.table \
 --popsFile pop_file --target derived --genoFormat diplo \
 -o trichuris.derFreq.tsv.gz
 
-
+```
 
 
 
