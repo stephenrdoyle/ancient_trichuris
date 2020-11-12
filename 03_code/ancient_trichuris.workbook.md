@@ -2408,7 +2408,7 @@ ggsave("plot_smcpp_all_populations.png")
 
 
 
-# ```
+```
 # # joint
 #
 # vcftools  --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz \
@@ -2453,7 +2453,7 @@ ggsave("plot_smcpp_all_populations.png")
 # # library(ggplot2)
 # # data <- read.delim("joint.csv",header=T,sep=",")
 # # ggplot(data,aes(x,y,col=label))+geom_line()
-# ```
+```
 
 
 
