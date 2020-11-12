@@ -450,6 +450,7 @@ mkdir ${WORKING_DIR}/04_ANALYSES/deamination && mv ${WORKING_DIR}/03_MAPPING/*de
 ```
 
 - where "plotPMD.R" is:
+
 ```R
 # script to make deamination frequency plots from PMD data
 
@@ -551,19 +552,11 @@ rm ${NAME}.tmp.bam
 
 ```
 
-### Genome coverage
+## Genome coverage
+
 ```bash
 # run coverage stats
 bsub.py --queue long 5 cov "~sd21/bash_scripts/run_cov_stats 100000"
-
-# extract mtDNA and nuclear (mean & stddev) data
-for i in *trimmed.chr.cov; do
-     name=${i%.trimmed.chr.cov};
-     nuc=$(grep -v "MITO" ${i%.trimmed.chr.cov}.100000_window.cov | datamash mean 5 sstdev 5 );
-     mtDNA=$(grep "MITO" ${i} | cut -f5 );
-     echo -e "${name}\t${nuc}\t${mtDNA}";
-done > nuc_mtDNA_coverage.stat
-
 ```
 where "run_cov_stats" is:
 ```bash
@@ -597,9 +590,82 @@ paste *.tmp > coverage_stats.summary
 rm *.tmp
 ```
 
+### Generate quantitative stats on coverage for supplementary tables etc
+```
+# extract mtDNA and nuclear (mean & stddev) data
+for i in *trimmed.chr.cov; do
+     name=${i%.trimmed.chr.cov};
+     nuc=$(grep -v "MITO" ${i%.trimmed.chr.cov}.100000_window.cov | datamash mean 5 sstdev 5 );
+     mtDNA=$(grep "MITO" ${i} | cut -f5 );
+     echo -e "${name}\t${nuc}\t${mtDNA}";
+done > nuc_mtDNA_coverage.stat
+```
+
 - this data will go into a supplementary table
 
 
+
+### generate some coverage plots,
+- particularly to compare relative coverage between sex chromosome scaffolds and autosomes to determine sex of individual sample
+
+```R
+# working dir: /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/03_MAPPING/COV_STATS
+
+# load libraries
+library(tidyverse)
+
+# function to plot coverage per individual sample
+plot_cov <- function(data, title){
+data <- read.table(data,header=F)
+
+plot <- ggplot(data,aes(1:nrow(data),V5,col=V1)) +
+     geom_point() +
+     labs(title=title, x="Genomic position", y="Mean coverage per 100kb window") +
+     theme_bw() + theme(legend.position = "none") +
+     ylim(0,2*mean(data$V5))
+
+print(plot)
+}
+
+# run function, reading in a specific sample, to plot coverage
+ plot_cov("MN_UGA_KAB_HS_003.100000_window.cov","MN_UGA_KAB_HS_003.100000_window.cov")
+
+
+# nuclear to mitochondrial DNA coverage ratio
+nucmito <- read.table("nuc_mtDNA_coverage.stats",header=F)
+
+ggplot(nucmito,aes(V1,V4)) +
+     geom_point() +
+     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+     labs(title = "Nuclear to mitochondrial genome coverage ratio", y = "Coverage Ratio")
+
+
+
+library(tidyverse)
+library(ggsci)
+
+# list file names
+file_names <- list.files(path = "./",pattern = ".trimmed.100000_window.cov")
+
+# load data using file names, and make a formatted data frame
+data <- purrr::map_df(file_names, function(x) {
+     	data <- read.delim(x, header = F, sep="\t")
+          data <- tibble::rowid_to_column(data, "NUM")
+     	cbind(sample_name = gsub(".trimmed.100000_window.cov","",x), data)
+     	})
+colnames(data) <- c("sample_name", "NUM", "CHROM", "START", "END", "RAW_COVERAGE", "PROPORTION_COVERAGE")
+data <- data[data$CHROM != "Trichuris_trichiura_MITO",]
+
+# plot boxplots and distributions of pairwise Fst analyses
+ggplot(data, aes(NUM, PROPORTION_COVERAGE/(median(PROPORTION_COVERAGE)), col = CHROM, group = sample_name)) +
+          geom_point(size=0.25) +
+          labs( x = "Genome position" , y = "Relative coverage per 100kb window") +
+          theme_bw() + theme(legend.position = "none", strip.text.x = element_text(size = 6)) +
+          facet_wrap(~sample_name, scales = "free_y")
+
+ggsave("plot_relative_genomewide_coverage_allsamples.png")
+```
+![](../04_analysis/plot_relative_genomewide_coverage_allsamples.png)          
 
 
 
@@ -1484,6 +1550,8 @@ for (i in 1:73) {
 ```
 - example of depth plot - these plots have been made for all samples.
 ![GVCFall.DP.png](../04_analysis/AN_DNK_COG_EN_0012.DPmitoALL.filtered.DP.png)
+
+
 
 ### Filter genotypes based on depth per genotype
 - depth is so variable, so not going to think to hard about this. Want to try capture as many sites in the ancient samples
@@ -2540,99 +2608,42 @@ threepop -i treemix.LDpruned.treemix.frq.gz -k 500 > threepop.out
 fourpop -i treemix.LDpruned.treemix.frq.gz -k 500 > fourpop.out
 
 cat threepop.out | grep ";" | grep -v "COLOBUS" | grep -v "LEAF" > threepop.out_2
-
+cat fourpop.out | grep ";" | grep -v "COLOBUS" | grep -v "LEAF" > fourpop.out_2
 ```
 - plots
 ```R
+# load libraries
 library(tidyverse)
+
+# load data
 data <- read.table("threepop.out_2",header=F)
-ggplot(data, aes(V2,V1,col=V4)) + geom_point(size=2) + geom_segment(aes(x = V2-V3, y = V1, xend = V2+V3, yend = V1))
+colnames(data) <- c("three_populations", "f_3", "std_error", "z_score")
+
+# plot f_3 (sorted) for each three population test
+#-
+ggplot(data, aes(f_3, reorder(three_populations, -f_3), col = z_score)) +
+     geom_point(size = 2) +
+     geom_segment(aes(x = f_3-std_error, y = three_populations, xend = f_3+std_error, yend = three_populations)) +
+     theme_bw()
 
 
+# load data
+data <- read.table("fourpop.out_2",header=F)
+colnames(data) <- c("four_populations", "f_4", "std_error", "z_score")
 
+# plot f_4 (sorted) for each three population test
+#-
+ggplot(data, aes(f_4, reorder(four_populations, -f_4), col = z_score)) +
+     geom_point(size = 2) +
+     geom_segment(aes(x = f_4-std_error, y = four_populations, xend = f_4+std_error, yend = four_populations)) +
+     theme_bw()
 
-
-
-```R
-library(poppr)
-library(vcfR)
-library(netview)
-library(tidyverse)
-library(networkD3)
-library(DT)
-
-rubi.VCF <- read.vcfR("mito_samples3x_missing0.8.recode.vcf")
-
-gl.rubi <- vcfR2genlight(rubi.VCF)
-ploidy(gl.rubi) <- 1
-
-metadata <- read.table("metadata", header=T, sep="\t")
-#metadata <- as.data.frame(gl.rubi$ind.names)
-#colnames(metadata) <- "sampleID"
-#metadata <- metadata %>% separate(sampleID,c("time", "country","population","host","sampleID"))
-
-pop(gl.rubi) <- metadata$group
-
-
-rubi.dist <- bitwise.dist(gl.rubi)
-rubi.dist.matrix <- as.matrix(rubi.dist)
-
-
-
-
-# Creating a list object to save our subsets in.
-rubi.variant.subset <- vector(mode = "list", length = 100)
-
-# Using a for loop to generate 100 subsets of 500 random variants from the rubi.VCF vcfR object.
-for (i in 1:100){
-  rubi.variant.subset[[i]] <- rubi.VCF[sample(size = 200, x= c(1:nrow(rubi.VCF)))]
-}
-
-# Creating the GenLight object
-rubi.gl.subset <- lapply(rubi.variant.subset, function (x) suppressWarnings(vcfR2genlight(x)))
-for (i in 1:length(rubi.gl.subset)){
-  ploidy(rubi.gl.subset[[i]]) <- 1
-}
-
-# Creating a simple UPGMA tree per object
-library(phangorn)
-rubi.trees <- lapply(rubi.gl.subset, function (x) upgma(bitwise.dist(x)))
-class(rubi.trees) <- "multiPhylo"
-
-# Overlapping the trees
-densiTree(rubi.trees, consensus = tree, scaleX = T, show.tip.label = F, alpha = 0.1)
-title(xlab = "Proportion of variants different")
-
-
-
-
-library("netview")
-
-
-
-
-
-# netview - this all works, but is not very informative
-# https://github.com/esteinig/netview/blob/master/tutorials/PearlOysterTutorial.md
-#
-# library("netview")
-# library(DT)
-# library(networkD3)
-#
-# rubi.dist <- bitwise.dist(gl.rubi)
-# rubi.dist.matrix <- as.matrix(rubi.dist)
-#
-# metadata <- read.table("sample_metadata_colours.list",header=T,comment.char="")
-#
-# oysterOptions <- netviewOptions(selectionTitle="k-Selection", nodeID="sample_id", nodeGroup="country", nodeColour="country_colour", communityAlgorithms=c("Walktrap", "Infomap", "Fast-Greedy"))
-#
-# graphs <- netview(rubi.dist.matrix, metadata, k=1:60, cluster = TRUE, options=oysterOptions)
-# kPlot <- plotSelection(graphs, options=oysterOptions)
-#
-# k20 <- graphs$k20
-# plot(k20, vertex.size=7, vertex.label=NA)
-# legend('topleft',legend=levels(as.factor(metadata$country)),col=levels(as.factor(metadata$country_colour)),pch=20)
 ```
+
+
+
+
+
 
 
 
@@ -2697,7 +2708,7 @@ data <- purrr::map_df(file_names, function(x) {
 ggplot(data,aes(pop_id,PI,col=pop_id)) +
      geom_jitter() +
      geom_boxplot(fill=NA, col="black") +
-     labs(x = "Population" , y = "Nucleotide diversity (Pi)") +
+     labs(x = "Population" , y = "Nucleotide diversity (Pi)", colour = "Population") +
      theme_bw() +
      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
      scale_color_npg()
@@ -2709,8 +2720,17 @@ ggplot(data,aes(NUM*100000,PI,col=CHROM, group=pop_id)) +
      labs(x = "Population" , y = "Nucleotide diversity (Pi)", col=NA) +
      theme_bw() +
      facet_grid(pop_id~.) +
-     theme(legend.position = "none") +
+     theme(legend.position = "none")
+
+
+
+plot_Pi <-  ggplot(data,aes(NUM*100000,PI,col=pop_id, group=pop_id)) +
+     geom_smooth(span = 0.1, se = FALSE) +
+     labs(x = "Population" , y = "Nucleotide diversity (Pi)", col= "Population") +
+     theme_bw() +
+     theme() +
      scale_color_npg()
+
 
 ggsave("plot_nucleotide_diversity_genomewide.png")
 ```
@@ -2754,6 +2774,16 @@ ggplot(data,aes(NUM*100000,TajimaD,col=CHROM, group=pop_id)) +
      scale_color_npg()
 
 ggsave("plot_tajimaD_genomewide.png")
+
+
+plot_tajD <-     ggplot(data,aes(NUM*100000,TajimaD,col=pop_id, group=pop_id)) +
+     geom_smooth(span = 0.1, se = FALSE) +
+     labs(x = "Population" , y = "Tajima's D", col= "Population") +
+     theme_bw() +
+     theme() +
+     scale_color_npg()
+
+plot_Pi + plot_tajD + plot_layout(ncol = 1, guides = "collect")
 ```
 ![](../04_analysis/plot_tajimaD_boxplot.png)
 ![](../04_analysis/plot_tajimaD_genomewide.png)
@@ -2784,6 +2814,12 @@ UGA_x_nuclear_3x_animalPhonly.list; do \
           fi;
      done;
 done
+
+leafmonkey_colobus.list
+hq_modern_humanonly.list
+
+vcftools --gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --weir-fst-pop leafmonkey_colobus.list  --weir-fst-pop hq_modern_humanonly.list --fst-window-size 100000 --out human_vs_LMCG_100k
+
 ```
 
 - make some plots
@@ -2827,51 +2863,43 @@ ggplot(data, aes(NUM*100000, WEIGHTED_FST, col=CHROM, group=sample_pair)) +
 ggsave("plot_human_pop_pairwise_FST__genomewide.png")
 
 
-```
-![](../04_analysis/plot_human_pop_pairwise_FST_boxplot.png)
-
-
-
-
-
-## Genome Coverage
-
-# function to plot coverage per sample
-plot_cov <- function(data, title){
-data <- read.table(data,header=F)
-
-plot <- ggplot(data,aes(1:nrow(data),V5,col=V1)) +
+plot_pairwise_fst <- function(file) {
+     # load and prep data
+     data <- read.delim(file, header=T, sep="\t")
+     data <- tibble::rowid_to_column(data, "NUM")
+     data$COMPARISON <- gsub("_100k.windowed.weir.fst","",file)
+     # plot
+     ggplot(data, aes(NUM*100000, WEIGHTED_FST, col=CHROM)) +
      geom_point() +
-     labs(title=title, x="Genomic position", y="Coverage (mean/100kb)") +
-     theme_bw() + theme(legend.position = "none") + ylim(0,2*mean(data$V5))
-
-print(plot)
+     labs(x = "Population" , y = "WEIGHTED_FST", col=NA) +
+     theme_bw() + ylim(0,1) +
+     facet_grid(COMPARISON~.) +
+     theme(legend.position = "none")
 }
 
- plot_cov("MN_UGA_KAB_HS_003.100000_window.cov","MN_UGA_KAB_HS_003.100000_window.cov")
+BABOON_v_UGA_fst <- plot_pairwise_fst("BABOON_v_UGA_100k.windowed.weir.fst")
+human_vs_LMCG_fst <- plot_pairwise_fst("human_vs_LMCG_100k.windowed.weir.fst")
+
+BABOON_v_UGA_fst + human_vs_LMCG_fst + plot_layout(ncol=1)
 
 
-# nuclear to mitochondrial DNA coverage ratio
-nucmito <- read.table("nuc_mtDNA_coverage.stats",header=F)
+# for supplementary data
+CHN_v_UGA_fst <- plot_pairwise_fst("CHN_v_UGA_100k.windowed.weir.fst")
+CHN_v_ECU_fst <- plot_pairwise_fst("CHN_v_ECU_100k.windowed.weir.fst")
+ECU_v_UGA_fst <- plot_pairwise_fst("ECU_v_UGA_100k.windowed.weir.fst")
 
-ggplot(nucmito,aes(V1,V4)) +
-     geom_point() +
-     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-     labs(title = "Nuclear to mitochodnrial genome coverage ratio", y = "Coverage Ratio")
+CHN_v_UGA_fst + CHN_v_ECU_fst + ECU_v_UGA_fst + plot_layout(ncol=1)
+ggsave("plot_human_pop_pairwise_FST_boxplot")
 
 
 
-# matrix of coverage per scaffold
-library(tidyverse)
-library(reshape2)
 
-data <- read.table("coverage_stats.summary", header=T, sep="\t")
-data <- rowid_to_column(data,"ID")
-data <- melt(data,  id.vars="ID")
-data <- data %>% filter(grepl(".trimmed.chr.cov$", variable))
+```
+- boxplot summaries
+![](../04_analysis/plot_human_pop_pairwise_FST_boxplot.png)
 
-ggplot(data,aes(variable,ID,fill=log10(value))) + geom_tile() +
-theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+- genomewide - human populations
+![](../04_analysis/plot_human_pop_pairwise_FST_boxplot.png)
 
 
 
