@@ -2827,6 +2827,7 @@ vcftools --gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --
 ```R
 library(tidyverse)
 library(ggsci)
+library(patchwork)
 
 # list file names
 file_names <- list.files(path = "./",pattern = "_100k.windowed.weir.fst")
@@ -2863,6 +2864,7 @@ ggplot(data, aes(NUM*100000, WEIGHTED_FST, col=CHROM, group=sample_pair)) +
 ggsave("plot_human_pop_pairwise_FST__genomewide.png")
 
 
+# function to load specific datasets to make multipanel figures
 plot_pairwise_fst <- function(file) {
      # load and prep data
      data <- read.delim(file, header=T, sep="\t")
@@ -2877,6 +2879,7 @@ plot_pairwise_fst <- function(file) {
      theme(legend.position = "none")
 }
 
+# for main text
 BABOON_v_UGA_fst <- plot_pairwise_fst("BABOON_v_UGA_100k.windowed.weir.fst")
 human_vs_LMCG_fst <- plot_pairwise_fst("human_vs_LMCG_100k.windowed.weir.fst")
 
@@ -2889,7 +2892,7 @@ CHN_v_ECU_fst <- plot_pairwise_fst("CHN_v_ECU_100k.windowed.weir.fst")
 ECU_v_UGA_fst <- plot_pairwise_fst("ECU_v_UGA_100k.windowed.weir.fst")
 
 CHN_v_UGA_fst + CHN_v_ECU_fst + ECU_v_UGA_fst + plot_layout(ncol=1)
-ggsave("plot_human_pop_pairwise_FST_boxplot")
+ggsave("plot_human_pop_pairwise_FST_genomewide.png")
 
 
 
@@ -2899,7 +2902,7 @@ ggsave("plot_human_pop_pairwise_FST_boxplot")
 ![](../04_analysis/plot_human_pop_pairwise_FST_boxplot.png)
 
 - genomewide - human populations
-![](../04_analysis/plot_human_pop_pairwise_FST_boxplot.png)
+![](../04_analysis/plot_human_pop_pairwise_FST_genomewide.png)
 
 
 
