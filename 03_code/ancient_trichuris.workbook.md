@@ -2884,7 +2884,7 @@ BABOON_v_UGA_fst <- plot_pairwise_fst("BABOON_v_UGA_100k.windowed.weir.fst")
 human_vs_LMCG_fst <- plot_pairwise_fst("human_vs_LMCG_100k.windowed.weir.fst")
 
 BABOON_v_UGA_fst + human_vs_LMCG_fst + plot_layout(ncol=1)
-
+ggsave("plot_humananimal_pop_pairwise_FST_genomewide.png")
 
 # for supplementary data
 CHN_v_UGA_fst <- plot_pairwise_fst("CHN_v_UGA_100k.windowed.weir.fst")
@@ -2904,8 +2904,8 @@ ggsave("plot_human_pop_pairwise_FST_genomewide.png")
 - genomewide - human populations
 ![](../04_analysis/plot_human_pop_pairwise_FST_genomewide.png)
 
-
-
+- genomewide - human v animal populations
+![](../04_analysis/plot_humananimal_pop_pairwise_FST_genomewide.png)
 
 
 ### fastsimcoal2
