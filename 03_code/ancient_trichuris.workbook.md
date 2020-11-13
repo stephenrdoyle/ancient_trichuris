@@ -2463,38 +2463,79 @@ ggsave("plot_smcpp_all_populations.png")
 
 
 
-## AdmixR
+## ADMIXTOOLS
 - ADMIXTOOLS is a widely used software package for calculating admixture statistics and testing population admixture hypotheses.
-- This R package makes it possible to perform all stages of ADMIXTOOLS analyses entirely from R, completely removing the need for “low level” configuration of individual ADMIXTOOLS programs.
-- https://cran.r-project.org/web/packages/admixr/vignettes/tutorial.html
-
 - need to convert vcf to eigenstrat format first
-     - can use a script "convertVCFtoEigenstrat.sh" found here: https://github.com/joanam/scripts/tree/e8c6aa4b919b58d69abba01e7b7e38a892587111
+     - followed workflow from here: https://speciationgenomics.github.io/ADMIXTOOLS_admixr/
+     - needed additional scripts
+          - "convertVCFtoEigenstrat.sh" found here: https://github.com/joanam/scripts/tree/e8c6aa4b919b58d69abba01e7b7e38a892587111
+               - NOTE: I modified this file to allow non-standard chromosomes names, by indicating a "chom-map.txt" file in the vcftools command
+               - new file called "convertVCFtoEigenstrat_sd.sh"
 
-### Preprocessing
+     - also need in path
+          - vcftools
+          - convertf (from eigensoft package)
+               - conda install -c bioconda eigensoft
+          - admixtools
+               - conda install -c bioconda admixtools
+
+
 ```bash
-mkdir ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/FSTATS
-cd ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/FSTATS
+
+mkdir ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTOOLS
+cd ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTOOLS
 
 ln -s ../../04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz
 
+# need to generate a list of scaffold ids, to generate a file called "chrom-map.txt". This is important to make the the scaffold names are parsed properly downstream
+bcftools view -H nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz | cut -f 1 | uniq | awk '{print $0"\t"$0}' > chrom-map.txt
+
+# run the conversion script.
+#--- note have to drop the "vcf.gz" suffix
+
+./convertVCFtoEigenstrat_sd.sh nuclear_samples3x_missing0.8_animalPhonly.recode
 
 awk '{print $4,$2,$3,$4,$5,$6}' OFS="\t" test.snp > test.fix.snp
 cut -f1,2 test.fix.snp > my_contigs.txt
 
 ```
 
-### Use admixR for analysis
-```R
-# install.packages("devtools")
-# devtools::install_github("bodkan/admixr")
+### Admixtools
 
-library(admixr)
+```bash
 
-snps <- eigenstrat(ind="test.ind", snp="test.fix.snp", geno="test.eigenstratgeno")
-d(W = "ECU", X = "CHN", Y = "UGA", Z = "BABOON", data = snps, params = list(blockname = "my_contigs.txt"))
+# make a new populations file
+> admixtools_pops.txt
 
+# set the outgroup
+OUTGROUP=BABOON
+
+# loop throguh the populations to generate the pop file as input to admixtools
+for i in BABOON CHN ECU HND UGA ANCIENT; do
+     for j in  BABOON CHN ECU HND UGA ANCIENT; do
+          if [[ "$i" == "$j" ]] || [[ "$i" == "$OUTGROUP" ]] || [[ "$j" == "$OUTGROUP" ]]; then
+               :
+               else
+               echo -e "${i}\t${j}\t${OUTGROUP}" >> admixtools_pops.txt;
+          fi;
+     done;
+done
+
+
+# run admixtools to generate f3 stats
+qp3Pop -p PARAMETER_FILE
 ```
+
+- where "PARAMETER_FILE":
+
+```bash
+genotypename:   test.eigenstratgeno (in eigenstrat format)
+snpname:        test.snp      (in eigenstrat format)
+indivname:      test.ind    (in eigenstrat format)
+popfilename:    admixtools_pops.txt
+inbreed: YES
+```
+
 
 
 ### Dsuite
@@ -2652,7 +2693,18 @@ ggsave("plot_f4_statistics.png")
 ![](../04_analysis/plot_f4_statistics.png)
 
 
+# load data
+data <- read.table("nuclear_LFCGout_GLs_BBAA.txt",header=T)
+colnames(data) <- c("P1","P2","P3","Dstatistic","z_score","p_value","f4_ratio","BBAA","ABBA","BABA")
 
+# plot D (sorted) for each three population test
+#-
+ggplot(data, aes(Dstatistic, reorder(paste0(P1,"_",P2,"_",P3), -Dstatistic), col = -log10(p_value))) +
+     geom_point(size = 2) +
+     theme_bw() +
+     labs(x = "D statistic (ABBA/BABA)" , y = "")
+
+ggsave("plot_D_statistics.png")
 ---
 
 
@@ -2828,8 +2880,8 @@ leafmonkey_colobus.list
 hq_modern_humanonly.list
 
 vcftools --gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --weir-fst-pop leafmonkey_colobus.list  --weir-fst-pop hq_modern_humanonly.list --fst-window-size 100000 --out human_vs_LMCG_100k
-
 ```
+
 
 - make some plots
 
