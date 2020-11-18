@@ -2569,25 +2569,25 @@ ggsave("plot_admixtools_f3_statistics.png")
 
 
 
-### Dsuite
-```bash
-
-Dsuite Dtrios nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz pops.list
-
-```
-
-- make some plots
-```R
-library(tidyverse)
-
-data <- read.table("pops_lm_cg_BBAA.txt", header=T)
-colnames(data) <- c("P1","P2","P3","Dstatistic","Z_score","p_value","f4_ratio","BBAA","ABBA","BABA")
-
-ggplot(data,aes(Dstatistic,paste0(P1,"_",P2,"/",P3),col=-log10(p_value))) +
-     geom_point() + theme_bw()
-
-ggplot(data,aes(f4_ratio,paste0(P1,"_",P2,"/",P3),col=-log10(p_value))) +
-          geom_point() + theme_bw()
+# ### Dsuite
+# ```bash
+#
+# Dsuite Dtrios nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz pops.list
+#
+# ```
+#
+# - make some plots
+# ```R
+# library(tidyverse)
+#
+# data <- read.table("pops_lm_cg_BBAA.txt", header=T)
+# colnames(data) <- c("P1","P2","P3","Dstatistic","Z_score","p_value","f4_ratio","BBAA","ABBA","BABA")
+#
+# ggplot(data,aes(Dstatistic,paste0(P1,"_",P2,"/",P3),col=-log10(p_value))) +
+#      geom_point() + theme_bw()
+#
+# ggplot(data,aes(f4_ratio,paste0(P1,"_",P2,"/",P3),col=-log10(p_value))) +
+#           geom_point() + theme_bw()
 
 
 
@@ -2686,53 +2686,53 @@ Rscript treemixVarianceExplained.R treemix.m_2.s_2
 
 
 
-```bash
-threepop -i treemix.LDpruned.treemix.frq.gz -k 500 > threepop.out
-fourpop -i treemix.LDpruned.treemix.frq.gz -k 500 > fourpop.out
-
-cat threepop.out | grep ";" | grep -v "COLOBUS" | grep -v "LEAF" > threepop.out_2
-cat fourpop.out | grep ";" | grep -v "COLOBUS" | grep -v "LEAF" > fourpop.out_2
-```
-- plots
-```R
-# load libraries
-library(tidyverse)
-
-# load data
-data <- read.table("threepop.out_2",header=F)
-colnames(data) <- c("three_populations", "f_3", "std_error", "z_score")
-
-# plot f_3 (sorted) for each three population test
-#-
-ggplot(data, aes(f_3, reorder(three_populations, -f_3), col = z_score)) +
-     geom_point(size = 2) +
-     geom_segment(aes(x = f_3-std_error, y = three_populations, xend = f_3+std_error, yend = three_populations)) +
-     theme_bw() +
-     labs(x = "f3 statistic" , y = "")
-
-ggsave("plot_treemix_f3_statistics.png")
-
-
-# load data
-data <- read.table("fourpop.out_2",header=F)
-colnames(data) <- c("four_populations", "f_4", "std_error", "z_score")
-
-# plot f_4 (sorted) for each three population test
-#-
-ggplot(data, aes(f_4, reorder(four_populations, -f_4), col = z_score)) +
-     geom_point(size = 2) +
-     geom_segment(aes(x = f_4-std_error, y = four_populations, xend = f_4+std_error, yend = four_populations)) +
-     theme_bw() +
-     labs(x = "f4 statistic" , y = "")
-
-ggsave("plot_treemix_f4_statistics.png")
-
-```
-- f3 stats
-![](../04_analysis/plot_treemix_f3_statistics.png)
-
-- f4 stats
-![](../04_analysis/plot_treemix_f4_statistics.png)
+# ```bash
+# threepop -i treemix.LDpruned.treemix.frq.gz -k 500 > threepop.out
+# fourpop -i treemix.LDpruned.treemix.frq.gz -k 500 > fourpop.out
+#
+# cat threepop.out | grep ";" | grep -v "COLOBUS" | grep -v "LEAF" > threepop.out_2
+# cat fourpop.out | grep ";" | grep -v "COLOBUS" | grep -v "LEAF" > fourpop.out_2
+# ```
+# - plots
+# ```R
+# # load libraries
+# library(tidyverse)
+#
+# # load data
+# data <- read.table("threepop.out_2",header=F)
+# colnames(data) <- c("three_populations", "f_3", "std_error", "z_score")
+#
+# # plot f_3 (sorted) for each three population test
+# #-
+# ggplot(data, aes(f_3, reorder(three_populations, -f_3), col = z_score)) +
+#      geom_point(size = 2) +
+#      geom_segment(aes(x = f_3-std_error, y = three_populations, xend = f_3+std_error, yend = three_populations)) +
+#      theme_bw() +
+#      labs(x = "f3 statistic" , y = "")
+#
+# ggsave("plot_treemix_f3_statistics.png")
+#
+#
+# # load data
+# data <- read.table("fourpop.out_2",header=F)
+# colnames(data) <- c("four_populations", "f_4", "std_error", "z_score")
+#
+# # plot f_4 (sorted) for each three population test
+# #-
+# ggplot(data, aes(f_4, reorder(four_populations, -f_4), col = z_score)) +
+#      geom_point(size = 2) +
+#      geom_segment(aes(x = f_4-std_error, y = four_populations, xend = f_4+std_error, yend = four_populations)) +
+#      theme_bw() +
+#      labs(x = "f4 statistic" , y = "")
+#
+# ggsave("plot_treemix_f4_statistics.png")
+#
+# ```
+# - f3 stats
+# ![](../04_analysis/plot_treemix_f3_statistics.png)
+#
+# - f4 stats
+# ![](../04_analysis/plot_treemix_f4_statistics.png)
 
 
 # load data
