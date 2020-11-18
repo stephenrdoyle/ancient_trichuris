@@ -2519,6 +2519,7 @@ for i in BABOON CHN ECU HND UGA ANCIENT; do
      done;
 done
 
+# I manually removed duplicates here
 
 # run admixtools to generate f3 stats
 qp3Pop -p PARAMETER_FILE > qp3Pop.out
@@ -2526,7 +2527,7 @@ qp3Pop -p PARAMETER_FILE > qp3Pop.out
 # parse the output so it is user friendly to plot
 grep "result" qp3Pop.out | awk '{print $2,$3,$4,$5,$6,$7,$8}' OFS="\t" > qp3Pop.clean.out
 
-# I manually removed duplicates here
+
 ```
 
 - where "PARAMETER_FILE":
@@ -2555,7 +2556,8 @@ ggplot(data,aes(f_3, reorder(paste0(Source_1,",",Source_2), -f_3), col=Z_score))
      geom_point(size = 2) +
      geom_segment(aes(x = f_3-std_err, y = paste0(Source_1,",",Source_2), xend = f_3+std_err, yend = paste0(Source_1,",",Source_2))) +
      theme_bw() +
-     labs(x = "f3(Source1,Source2;Baboon)" , y = "")
+     labs(x = "f3(Source1,Source2;Outgroup)" , y = "") +
+     facet_grid(Target~., scale="free_y", space = "free_y")
 
 ggsave("plot_admixtools_f3_statistics.png")
 
