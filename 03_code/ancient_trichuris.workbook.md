@@ -1,4 +1,4 @@
-# Population genomics of modern and ancient Trichuris trichiura
+f# Population genomics of modern and ancient Trichuris trichiura
 
 ## Contents
 
@@ -2480,6 +2480,7 @@ ggsave("plot_smcpp_all_populations.png")
                - conda install -c bioconda admixtools
 
 
+### Prepared data and run admixtools
 ```bash
 
 mkdir ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTOOLS
@@ -2495,14 +2496,11 @@ bcftools view -H nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz | cut -
 
 ./convertVCFtoEigenstrat_sd.sh nuclear_samples3x_missing0.8_animalPhonly.recode
 
-awk '{print $4,$2,$3,$4,$5,$6}' OFS="\t" test.snp > test.fix.snp
-cut -f1,2 test.fix.snp > my_contigs.txt
 
-```
+# need to manually modify the ".ind" file - the thrid column shows "control" where they should show population IDs
+# simply cat the file, copy into a text editor, change it, then move it back
 
-### Admixtools
 
-```bash
 
 # make a new populations file
 > admixtools_pops.txt
@@ -2523,18 +2521,49 @@ done
 
 
 # run admixtools to generate f3 stats
-qp3Pop -p PARAMETER_FILE
+qp3Pop -p PARAMETER_FILE > qp3Pop.out
+
+# parse the output so it is user friendly to plot
+grep "result" qp3Pop.out | awk '{print $2,$3,$4,$5,$6,$7,$8}' OFS="\t" > qp3Pop.clean.out
+
+# I manually removed duplicates here
 ```
 
 - where "PARAMETER_FILE":
 
 ```bash
-genotypename:   test.eigenstratgeno (in eigenstrat format)
-snpname:        test.snp      (in eigenstrat format)
-indivname:      test.ind    (in eigenstrat format)
+genotypename:   nuclear_samples3x_missing0.8_animalPhonly.recode.eigenstratgeno (in eigenstrat format)
+snpname:        nuclear_samples3x_missing0.8_animalPhonly.recode.snp      (in eigenstrat format)
+indivname:      nuclear_samples3x_missing0.8_animalPhonly.recode.ind    (in eigenstrat format)
 popfilename:    admixtools_pops.txt
 inbreed: YES
 ```
+
+- make a plot
+
+```R
+library(tidyverse)
+
+data <- read.delim("qp3Pop.clean.out", header=F, sep="\t")
+colnames(data) <- c("Source_1", "Source_2", "Target", "f_3", "std_err", "Z_score", "SNPs")
+
+
+
+
+
+ggplot(data,aes(f_3, reorder(paste0(Source_1,",",Source_2), -f_3), col=Z_score)) +
+     geom_point(size = 2) +
+     geom_segment(aes(x = f_3-std_err, y = paste0(Source_1,",",Source_2), xend = f_3+std_err, yend = paste0(Source_1,",",Source_2))) +
+     theme_bw() +
+     labs(x = "f3(Source1,Source2;Baboon)" , y = "")
+
+ggsave("plot_admixtools_f3_statistics.png")
+
+```
+![](../04_analysis/plot_admixtools_f3_statistics.png)
+
+
+
 
 
 
@@ -2644,6 +2673,17 @@ title(paste(1,"edges"))
 
 ```
 
+### calculate the variance explained by the data
+- https://github.com/darencard/RADpipe/blob/master/treemixVarianceExplained.R
+```bash
+Rscript treemixVarianceExplained.R treemix.m_2.s_2
+
+#> Standard error for all entries in the covariance matrix estimated from the data	0.00053440209375
+#> Variance of relatedness between populations explained by the model	0.998712455493422
+```
+
+
+
 ```bash
 threepop -i treemix.LDpruned.treemix.frq.gz -k 500 > threepop.out
 fourpop -i treemix.LDpruned.treemix.frq.gz -k 500 > fourpop.out
@@ -2668,7 +2708,7 @@ ggplot(data, aes(f_3, reorder(three_populations, -f_3), col = z_score)) +
      theme_bw() +
      labs(x = "f3 statistic" , y = "")
 
-ggsave("plot_f3_statistics.png")
+ggsave("plot_treemix_f3_statistics.png")
 
 
 # load data
@@ -2683,14 +2723,14 @@ ggplot(data, aes(f_4, reorder(four_populations, -f_4), col = z_score)) +
      theme_bw() +
      labs(x = "f4 statistic" , y = "")
 
-ggsave("plot_f4_statistics.png")
+ggsave("plot_treemix_f4_statistics.png")
 
 ```
 - f3 stats
-![](../04_analysis/plot_f3_statistics.png)
+![](../04_analysis/plot_treemix_f3_statistics.png)
 
 - f4 stats
-![](../04_analysis/plot_f4_statistics.png)
+![](../04_analysis/plot_treemix_f4_statistics.png)
 
 
 # load data
@@ -2709,14 +2749,7 @@ ggsave("plot_D_statistics.png")
 
 
 
-### calculate the variance explained by the data
-- https://github.com/darencard/RADpipe/blob/master/treemixVarianceExplained.R
-```bash
-Rscript treemixVarianceExplained.R treemix.m_2.s_2
 
-#> Standard error for all entries in the covariance matrix estimated from the data	0.00053440209375
-#> Variance of relatedness between populations explained by the model	0.998712455493422
-```
 
 
 
@@ -3000,6 +3033,32 @@ genomics_general-master/freq.py -g output.table \
 
 
 ### Phylogenetics
+
+
+- first, want to map get protein coding gene annotations onto reference assembly, which doesnt have any annotations
+- using liftoff () to transfer from
+- didnt realise this, but the mito genome in the assembly is quite different to Foth et al.
+     - only about 81% similarity
+- blastn at NCBI identified KT449826.1 as a much better match
+     - this had an annotation, so using that as the liftover
+     - downloaded both the fasta and GFF3 from NCBI
+
+```bash
+cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_REF
+
+conda activate liftoff
+
+liftoff -g KT449826.1.gff3 Trichuris_trichiura_MITO.fasta KT449826.1.fa -o Trichuris_trichiura_MITO.gff3
+
+
+```
+
+# make a mask of non-protein-coding regions
+cat Trichuris_trichiura_MITO.fasta.fai | cut -f1,2 > mito.genome
+bedtools complement -i Trichuris_trichiura_MITO.gff3 -g mito.genome > mito.mask.bed
+
+
+
 ```
 cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/PHYLOGENY
 
@@ -3029,7 +3088,7 @@ MITO_REF=Trichuris_trichiura_MITO
 VCF=mito_samples3x_missing0.8.recode.vcf.gz
 
 while read SAMPLE; do \
-     samtools faidx ${REF} ${MITO_REF} | bcftools consensus ${VCF} --missing N --output ${SAMPLE}.mito.fa --sample ${SAMPLE};
+     samtools faidx ${REF} ${MITO_REF} | bcftools consensus ${VCF} --mask /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_REF/mito.mask.bed --missing N --output ${SAMPLE}.mito.fa --sample ${SAMPLE};
 done < samples.list
 
 # fix sample names in the file
@@ -3038,10 +3097,10 @@ for i in *.mito.fa; do \
 done
 
 # bring all of the pseudoreferences together with the ENA/NCBI references
-cat *.fa > all_pseudoreferences.fa
+cat *mito.fa > all_pseudoreferences.fa
 
 
 module load mafft/7.407=1-c1
 
-mafft --maxiterate 1000 --globalpair all_pseudoreferences.fa > all_pseudoreferences.aln
+bsub.py --threads 20 10 mafft "mafft --thread 20 --maxiterate 1000 --globalpair all_pseudoreferences.fa \> all_pseudoreferences.aln"
 ```
