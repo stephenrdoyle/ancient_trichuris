@@ -1792,7 +1792,7 @@ ggsave("plot_PCA_mito_samples3x_missing0.8_noLF.pdf", height = 5, width = 12, us
 Figure: [plot_PCA_mito_samples3x_missing0.8_noLF](plot_PCA_mito_samples3x_missing0.8_noLF.pdf)
 - will uses this in Figure 1 panels A and B
 
-![](..04_analysis/plot_PCA_mito_samples3x_missing0.8_noLF.png)
+![](../04_analysis/plot_PCA_mito_samples3x_missing0.8_noLF.png)
 
 
 ### Nuclear variants
