@@ -1,4 +1,4 @@
-f# Population genomics of modern and ancient Trichuris trichiura
+# Population genomics of modern and ancient *Trichuris trichiura*
 
 ## Contents
 
@@ -1022,8 +1022,9 @@ ggplot() +
 
 # save it
 ggsave("worldmap_samplingsites.png", height=5, width=12)
-#ggsave("worldmap_samplingsites.pdf", height=5, width=12)
+ggsave("worldmap_samplingsites.pdf", height=5, width=12)
 ```
+Figure: [map](../04_analysis/worldmap_samplingsites.pdf)
 ![worldmap_samplingsites](../04_analysis/worldmap_samplingsites.png)
 
 ### Sampling timepoints
@@ -2970,32 +2971,11 @@ ggsave("plot_human_pop_pairwise_FST_genomewide.png")
 ![](../04_analysis/plot_humananimal_pop_pairwise_FST_genomewide.png)
 
 
-### fastsimcoal2
-```bash
-VCF=nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz
-bcftools query -l $VCF | awk '{split($0,a,"."); print $1,a[2]}' > pop_file
-# this needed to be modified to add populations in
-
-
-bsub.py 1 sfs "easySFS.py -i $VCF -p pop_file -a -f --preview"
 
 
 
 
-### ABBA BABA  
 
-
-bsub.py 1 getGT "gatk VariantsToTable -V ../../04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz -F CHROM -F POS -GF GT -O output.table.geno"
-
-sed -i 's/.GT//g' output.table.geno
-sed -i 's/CHROM/\#CHROM/' output.table.geno
-
-genomics_general-master/freq.py -g output.table \
--p ANCIENT -p CHN -p BABOON -p ECU -p HND -p UGA \
---popsFile pop_file --target derived --genoFormat diplo \
--o trichuris.derFreq.tsv.gz
-
-```
 
 
 
@@ -3083,7 +3063,11 @@ bsub.py --threads 20 10 mafft_refs "mafft --thread 20 --maxiterate 1000 --global
 
 
 ## ANGSD
+- exploring the use of ANGSD, whcih can use genotype likelihoods for a number of analyses. Probably good for the low coverage datasets
+- started off calculating "identity by state" (IBS), which is another way of showing genetic similarity between samples
+
 ```bash
+cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/ANGSD
 
 /nfs/users/nfs_s/sd21/lustre118_link/software/ANCIENT/angsd/angsd -bam bam.list -minMapQ 30 -minQ 20 -GL 2 -doMajorMinor 1 -doMaf 1 -SNP_pval 2e-6 -doIBS 1 -doCounts 1 -doCov 1 -makeMatrix 1 -minMaf 0.05 -P 5
 
@@ -3117,10 +3101,12 @@ Figure: [covariance of IBS for nuclear markers](../04_analysis/nuclear_covarianc
 
 
 
-
-
-# BAYESCAN
+## Bayescan
+- works on small test datasets, not so much on whole genome. Need to thin the variants.
+```bash
 cd ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/BAYESCAN
 
 # from here: https://github.com/santiagosnchez/vcf2bayescan
 perl vcf2bayescan.pl -p bayescan_pops.list -v nuclear_samples3x_missing0.8_animalPhonly.recode.vcf
+
+```
