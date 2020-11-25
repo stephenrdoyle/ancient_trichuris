@@ -3097,7 +3097,7 @@ rownames(cov_data) <- names
 colnames(cov_data) <- names
 
 
-png("nuclear_ibs_heatmap.png", res=150)
+png("nuclear_ibs_heatmap.png", res=120)
 heatmap.2(ibs_data, trace="none", margins=c(10,10))
 dev.off()
 
@@ -3111,6 +3111,11 @@ dev.off()
 
 - covariance of IBS for nuclear markers
 ![](../04_analysis/nuclear_covariance_heatmap.png)
+
+
+
+
+
 
 # BAYESCAN
 cd ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/BAYESCAN
