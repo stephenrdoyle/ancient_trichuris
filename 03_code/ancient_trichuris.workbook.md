@@ -1050,6 +1050,7 @@ Figure: [map](../04_analysis/samplingsites_time.pdf)
 ![samplingsites_time](../04_analysis/samplingsites_time.png)
 
 
+---
 
 
 ### Querying SNP and INDEL QC profiles to determine thresholds for filters
