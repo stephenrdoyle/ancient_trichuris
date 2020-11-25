@@ -3110,7 +3110,7 @@ cov_data[cov_data > 1] <- 1
 heatmap.2(cov_data, trace="none", margins=c(12,12))
 dev.off()
 ```
-[IBS for nuclear markers](../04_analysis/nuclear_ibs_heatmap.pdf)
+![IBS for nuclear markers](../04_analysis/nuclear_ibs_heatmap.pdf)
 
 [covariance of IBS for nuclear markers](../04_analysis/nuclear_covariance_heatmap.pdf)
 
