@@ -3082,8 +3082,12 @@ bsub.py --threads 20 10 mafft_refs "mafft --thread 20 --maxiterate 1000 --global
 ```
 
 
+## ANGSD
+```bash
 
+/nfs/users/nfs_s/sd21/lustre118_link/software/ANCIENT/angsd/angsd -bam bam.list -minMapQ 30 -minQ 20 -GL 2 -doMajorMinor 1 -doMaf 1 -SNP_pval 2e-6 -doIBS 1 -doCounts 1 -doCov 1 -makeMatrix 1 -minMaf 0.05 -P 5
 
+```
 ```R
 library(gplots)
 
@@ -3097,20 +3101,18 @@ rownames(cov_data) <- names
 colnames(cov_data) <- names
 
 
-png("nuclear_ibs_heatmap.png", res=120)
-heatmap.2(ibs_data, trace="none", margins=c(10,10))
+pdf("nuclear_ibs_heatmap.pdf",width=15, height=15)
+heatmap.2(ibs_data, trace="none", margins=c(12,12))
 dev.off()
 
-png("nuclear_covariance_heatmap.png")
+pdf("nuclear_covariance_heatmap.pdf",width=15, height=15)
 cov_data[cov_data > 1] <- 1
-heatmap.2(cov_data, trace="none", margins=c(10,10))
+heatmap.2(cov_data, trace="none", margins=c(12,12))
 dev.off()
 ```
-- IBS for nuclear markers
-![](../04_analysis/nuclear_ibs_heatmap.png)
+[IBS for nuclear markers](../04_analysis/nuclear_ibs_heatmap.pdf)
 
-- covariance of IBS for nuclear markers
-![](../04_analysis/nuclear_covariance_heatmap.png)
+[covariance of IBS for nuclear markers](../04_analysis/nuclear_covariance_heatmap.pdf)
 
 
 
