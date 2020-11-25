@@ -1025,7 +1025,7 @@ ggsave("worldmap_samplingsites.png", height=5, width=12)
 ggsave("worldmap_samplingsites.pdf", height=5, width=12, useDingbats=FALSE)
 ```
 Figure: [map](../04_analysis/worldmap_samplingsites.pdf)
-- will use this as Figure 1A 
+- will use this as Figure 1A
 ![worldmap_samplingsites](../04_analysis/worldmap_samplingsites.png)
 
 ### Sampling timepoints
@@ -1042,7 +1042,11 @@ ggplot(data, aes(x=V11,xend=V12,y=reorder(paste0(V1," (",V4,")"),V11,FUN=mean),y
      theme_bw() + theme(legend.position="bottom")
 
 ggsave("samplingsites_time.png", height=5, width=5)
+ggsave("samplingsites_time.pdf", height=5, width=5, useDingbats=FALSE)
 ```
+Figure: [map](../04_analysis/samplingsites_time.pdf)
+- will use this in the supplementary data
+
 ![samplingsites_time](../04_analysis/samplingsites_time.png)
 
 
