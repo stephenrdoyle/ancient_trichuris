@@ -1022,9 +1022,10 @@ ggplot() +
 
 # save it
 ggsave("worldmap_samplingsites.png", height=5, width=12)
-ggsave("worldmap_samplingsites.pdf", height=5, width=12)
+ggsave("worldmap_samplingsites.pdf", height=5, width=12, useDingbats=FALSE)
 ```
 Figure: [map](../04_analysis/worldmap_samplingsites.pdf)
+- will use this as Figure 1A 
 ![worldmap_samplingsites](../04_analysis/worldmap_samplingsites.png)
 
 ### Sampling timepoints
