@@ -1719,7 +1719,7 @@ ggsave("plot_PCA_mito_samples3x_missing0.8.png")
 #ggplot(tab,aes(EV1,EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) + geom_point(size=4)
 
 ```
-![](..04_analysis/plot_PCA_mito_samples3x_missing0.8.png)
+![](../04_analysis/plot_PCA_mito_samples3x_missing0.8.png)
 
 - the CHN LF samples are the outliers in the above plot, so rerunning to remove these
 
