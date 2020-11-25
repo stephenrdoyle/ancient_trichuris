@@ -1041,8 +1041,8 @@ ggplot(data, aes(x=V11,xend=V12,y=reorder(paste0(V1," (",V4,")"),V11,FUN=mean),y
      scale_y_discrete(limits=rev) +
      theme_bw() + theme(legend.position="bottom")
 
-ggsave("samplingsites_time.png", height=5, width=5)
-ggsave("samplingsites_time.pdf", height=5, width=5, useDingbats=FALSE)
+ggsave("samplingsites_time.png", height=5, width=7)
+ggsave("samplingsites_time.pdf", height=5, width=7, useDingbats=FALSE)
 ```
 Figure: [map](../04_analysis/samplingsites_time.pdf)
 - will use this in the supplementary data
