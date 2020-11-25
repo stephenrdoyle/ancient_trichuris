@@ -1000,9 +1000,9 @@ setwd("/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/MAP"
 library(ggplot2)
 library(dplyr)
 require(maps)
-require(viridis)
 library(ggrepel)
 library(patchwork)
+library(ggsci)
 
 # load world data
 world_map <- map_data("world")
@@ -1013,11 +1013,12 @@ data <- read.delim("map_metadata.txt", sep="\t", header=T)
 # make a map
 ggplot() +
   geom_polygon(data = world_map, aes(x = world_map$long, y = world_map$lat, group = world_map$group), fill="grey90") +
-  geom_point(data = data, aes(x = LONGITUDE, y = LATITUDE, colour = SAMPLE_AGE, shape = SAMPLE_LOCATION), size=3) +
-  geom_text_repel(data = data, aes(x = LONGITUDE, y = LATITUDE, label = paste0(COUNTRY," (",REGION_ID,"); n = ", SAMPLE_N)), size=3) +        
+  geom_point(data = data, aes(x = LONGITUDE, y = LATITUDE, colour = REGION, shape = SAMPLE_AGE), size=3) +
+  geom_text_repel(data = data, aes(x = LONGITUDE, y = LATITUDE, label = paste0(COUNTRY," (",POPULATION_ID,"); n = ", SAMPLE_N)), size=3) +        
   theme_void() +
   ylim(-55,85) +
-  labs(title="A", colour="", shape="")
+  labs(title="A", colour="", shape="") +
+  scale_colour_npg()
 
 # save it
 ggsave("worldmap_samplingsites.png", height=5, width=12)
@@ -1043,138 +1044,6 @@ ggsave("samplingsites_time.png", height=5, width=5)
 ![samplingsites_time](../04_analysis/samplingsites_time.png)
 
 
-
-
-
----
-
-
-## Genetic diversity
-
-### PCA of mtDNA genotypes
-```bash
-#--- filter
-bcftools-1.9 view -e 'FORMAT/DP[0]<10 | MQ[*]<30' 7.hcontortus_chr_mtDNA_arrow_pilon.cohort.vcf.gz | bcftools-1.9 view -i 'TYPE="snp" & AF>0.01' -O z -o allsamples.mtDNA.filtered.vcf.gz
-
-awk -F '[_]' '{print $0,$1,$2}' OFS="\t" samples.list > samples.pops.list
-```
-
-
-```R
-# load libraries
-library(gdsfmt)
-library(SNPRelate)
-library(ggplot2)
-
-vcf.in <- "allsamples.mtDNA.filtered.vcf.gz"
-gds<-snpgdsVCF2GDS(vcf.in, "mtDNA.gds", method="biallelic.only")
-
-genofile <- snpgdsOpen(gds)
-
-pca	<-	snpgdsPCA(genofile, num.thread=2,autosome.only = F)
-
-pops<-	read.table("samples.pops.list",header=F)
-
-tab <- data.frame(sample.id = pca$sample.id,
-                  EV1 = pca$eigenvect[,1],    # the first eigenvector
-                  EV2 = pca$eigenvect[,2],
-                  EV3 = pca$eigenvect[,3],
-                  EV4 = pca$eigenvect[,4],
-                  EV5 = pca$eigenvect[,5],
-                  EV6 = pca$eigenvect[,6],    # the second eigenvector
-                  COUNTRY = pops$V2,
-                  POP = pops$V3,
-                  stringsAsFactors = FALSE)
-
-plot(tab$EV2, tab$EV1, xlab="eigenvector 2", ylab="eigenvector 1",pch=20,cex=2,col=pops$V2)
-```
-
-```R
-# load libraries
-library(vcfR)
-library(poppr)
-library(ape)
-library(RColorBrewer)
-library(dplyr)
-library(ggplot2)
-library(ggrepel)
-library(patchwork)
-
-metadata<-read.table("sample_metadata_colours.list",header=T,comment.char="",sep="\t")
-
-rubi.VCF <- read.vcfR("allsamples.mtDNA.filtered.vcf.gz")
-pop.data <- read.table("samples.pops.list", sep = "\t", header = F)
-gl.rubi <- vcfR2genlight(rubi.VCF)
-ploidy(gl.rubi) <- 1
-
-pop(gl.rubi) <- metadata$country
-
-# distance matrix from genlight object
-#x.dist <- poppr::bitwise.dist(gl.rubi)
-
-# make a tree
-#tree <- aboot(gl.rubi, tree = "upgma", distance = bitwise.dist, sample = 100, showtree = F, cutoff = 50, quiet = T)
-#write.tree(tree, file="MyNewickTreefile.nwk")
-
-#cols <- brewer.pal(n = nPop(gl.rubi), name = "Dark2")
-#plot.phylo(tree, cex = 0.3, font = 2, adj = 0)
-#nodelabels(tree$node.label, adj = c(1.3, -0.5), frame = "n", cex = 0.3,font = 3, xpd = TRUE)
-#legend(35,10,c("CA","OR","WA"),cols, border = FALSE, bty = "n")
-#legend('topleft', legend = c("CA","OR","WA"),fill = cols, border = FALSE, bty = "n", cex = 2)
-#axis(side = 1)
-#title(xlab = "Genetic distance (proportion of loci that are different)")
-
-# pca
-rubi.pca <- glPca(gl.rubi, nf = 10)
-var_frac <- rubi.pca$eig/sum(rubi.pca$eig)*100
-rubi.pca.scores <- as.data.frame(rubi.pca$scores)
-rubi.pca.scores$pop <- pop(gl.rubi)
-rubi.pca.scores$strain <- metadata$strain
-set.seed(9)
-
-
-#--- plot eigenvectors
-barplot(100*rubi.pca$eig/sum(rubi.pca$eig), col = heat.colors(50), main="PCA Eigenvalues")
-title(ylab="Percent of variance\nexplained", line = 2)
-title(xlab="Eigenvalues", line = 1)
-
-
-#--- plot PCA
-#p12 <- ggplot(rubi.pca.scores, aes(x=PC1, y=PC2, colour=pop, label=pop)) + geom_point(size=2)+ theme_bw() + geom_text_repel(data = subset(rubi.pca.scores, pop == "ZAI" ))
-#p34 <- ggplot(rubi.pca.scores, aes(x=PC3, y=PC4, colour=pop, label=pop)) + geom_point(size=2)+ theme_bw() + geom_text_repel(data = subset(rubi.pca.scores, pop == "ZAI" ))
-#p56 <- ggplot(rubi.pca.scores, aes(x=PC5, y=PC6, colour=pop, label=pop)) + geom_point(size=2)+ theme_bw() + geom_text_repel(data = subset(rubi.pca.scores, pop == "ZAI" ))
-#p12 + p34 + p56
-
-country_colours_shapes1 <- c("#31A197","#E15956","#EF724B","#D35E5C","#606EB8","#6570B0","#34AFE7","#6973A8","#3C9C93","#6E75A0","#C56462","#B76968","#A64EB4","#727898","#A96F6E","#9B7474","#3FA8D8","#8D7A7A")
-country_colours_shapes2 <-c("16","16","16","16","17","16","16","17","16","16","16","16","17","16","16","16","17","16")
-country_colours_shapes3 <-c("0.5","0.5","0.5","0.5","1","0.5","0.5","1","0.5","0.5","0.5","0.5","1","0.5","0.5","0.5","1","0.5")
-
-country_colours_shapes <- rbind(country_colours_shapes1,country_colours_shapes2,country_colours_shapes3)
-
-#add names to the data
-colnames(country_colours_shapes) <- c("Australia","Benin","Brazil","Cape_Verde","Switzerland","France","Guadeloupe","United_Kingdom","Indonesia","Italy","Morocco","Namibia","Pakistan","Portugal","South_Africa","São_Tomé","USA","DRC")
-
-# sort the columns by name - this is really important.
-country_colours_shapes <- country_colours_shapes[ , order(names(as.data.frame(country_colours_shapes)))]
-
-PC1_variance <- formatC(head(rubi.pca$eig)[1]/sum(rubi.pca$eig)*100)
-PC2_variance <- formatC(head(rubi.pca$eig)[2]/sum(rubi.pca$eig)*100)
-#--- note: formatC() limits output to two decimal places
-
-ggplot(rubi.pca.scores, aes(x=PC1, y=PC2, colour=pop, label=pop, shape=pop)) +
-          geom_point(data = subset(rubi.pca.scores, pop == "Australia" | pop == "Benin" | pop == "Brazil" | pop == "Cape_Verde" | pop == "France" | pop == "Guadeloupe" | pop == "Indonesia" | pop == "Italy" | pop == "Morocco" | pop == "Namibia" | pop == "Portugal" | pop == "South_Africa" | pop == "São_Tomé"| pop == "DRC"), size=3,alpha=0.8)+
-          geom_point(data = subset(rubi.pca.scores, pop == "Switzerland" | pop == "USA" | pop== "Pakistan" | pop == "United_Kingdom"), size=3,alpha=0.8)+
-          theme_bw()+
-          scale_colour_manual(values = country_colours_shapes[1,])+
-          scale_shape_manual(values = as.numeric(country_colours_shapes[2,]))+
-          labs(x=paste("PC1: ",PC1_variance,"% variance"),y=paste("PC2: ",PC2_variance,"% variance"))+
-          geom_text_repel(data = subset(rubi.pca.scores[grep("^GB_ISEN1_001", row.names(rubi.pca.scores)),]),label="ISE.N1",show.legend = FALSE,point.padding=1)
-
-ggsave("global_diversity_mtDNA_SNPs.pdf",height=6,width=7.5,useDingbats = FALSE)
-ggsave("global_diversity_mtDNA_SNPs.png",height=6,width=7.5)
-
-```
-![](../04_analysis/global_diversity_mtDNA_SNPs.png)
 
 
 ### Querying SNP and INDEL QC profiles to determine thresholds for filters
@@ -1792,6 +1661,8 @@ After filtering, kept 59 out of 73 Individuals
 After filtering, kept 11 out of a possible 1647 Sites
 
 
+cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/PCA
+
 vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --keep mtDNA_3x.list --max-missing 0.8 --recode --out mito_samples3x_missing0.8
 ```
 
@@ -1893,19 +1764,19 @@ ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
      labs(title="mito_samples3x_missing0.8",
           x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
-          scale_colour_npg()
+          scale_colour_npg(guide = FALSE)
 
 ggsave("plot_PCA_mito_samples3x_missing0.8_noLF.png")
 
 
 ggplot(data, aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COUNTRY,"_",POPULATION,"_",HOST))) +
-     geom_text(size=4) +
+     geom_text(size=3) +
      theme_bw() +
      labs(title="mito_samples3x_missing0.8",
-          x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
-          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
+          x = "PC1",
+          y = "PC2") +
      xlim(-0.14,-0.06) + ylim(-0.01, 0.03) +
-     scale_colour_npg()
+     scale_colour_npg(guide = FALSE)
 
 ggsave("plot_PCA_mito_samples3x_missing0.8_noLF_zoomin.png")
 ```
@@ -1959,13 +1830,13 @@ data <- data.frame(sample.id = pca$sample.id,
                   stringsAsFactors = FALSE)
 
 
-ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
+ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = HOST)) +
      geom_text(size=4) +
      theme_bw() +
      labs(title="nuclear_samples3x_missing0.8",
           x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%"))+
-          scale_colour_npg()
+          scale_colour_npg(guide = FALSE)
 
 
 ggsave("plot_PCA_nuclear_samples3x_missing0.8.png")
@@ -1978,7 +1849,7 @@ ggplot(data, aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",C
           x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
      xlim(-0.06,-0.01) + ylim(-0.035,-0.015) +
-     scale_colour_npg()
+     scale_colour_npg(guide = FALSE)
 
 ggsave("plot_PCA_nuclear_samples3x_missing0.8_zoomin.png")
 ```
@@ -2028,12 +1899,12 @@ data <- data.frame(sample.id = pca$sample.id,
 
 
 ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
-     geom_text(size=4) +
+     geom_text(size=3) +
      theme_bw() +
      labs(title="nuclear_samples3x_missing0.8_animalPhonly",
           x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
-          scale_colour_npg()
+          scale_colour_npg(guide = FALSE)
 
 ggsave("plot_PCA_nuclear_samples3x_missing0.8_animalPhonly.png")
 
@@ -2044,7 +1915,7 @@ ggplot(data,aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",CO
      labs(title="nuclear_samples3x_missing0.8",
           x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
-          scale_colour_npg()
+          scale_colour_npg(guide = FALSE)
 
 ggsave("plot_PCA_nuclear_samples3x_missing0.8_animalPhonly_2.png")
 ```
@@ -2456,6 +2327,99 @@ ggsave("plot_smcpp_all_populations.png")
 ```
 
 
+vcftools  --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz \
+--indv MN_ECU_QUI_HS_001 \
+--indv MN_ECU_QUI_HS_002 \
+--indv MN_ECU_QUI_HS_004 \
+--indv MN_ECU_QUI_HS_005 \
+--indv MN_ECU_QUI_HS_006 \
+--indv MN_ECU_QUI_HS_007 \
+--indv MN_ECU_TEL_HS_001 \
+--indv MN_ECU_TEL_HS_002 \
+--indv MN_CHN_GUA_HS_001 \
+--indv MN_CHN_GUA_HS_002 \
+--indv MN_CHN_GUA_HS_003 \
+--indv MN_CHN_GUA_HS_004 \
+--indv MN_CHN_GUA_HS_005 \
+--indv MN_CHN_GUA_HS_006 \
+--indv MN_CHN_GUA_HS_007 \
+--max-missing 1 --recode --out ECU_v_CHN
+bgzip ECU_v_CHN.recode.vcf
+tabix ECU_v_CHN.recode.vcf.gz
+
+mkdir ECU_v_CHN.SMC_DATA
+smc++ vcf2smc ECU_v_CHN.recode.vcf.gz ECU_v_CHN.SMC_DATA/ECU.smc.gz Trichuris_trichiura_2_001 ECU:MN_ECU_QUI_HS_001,MN_ECU_QUI_HS_002,MN_ECU_QUI_HS_004,MN_ECU_QUI_HS_005,MN_ECU_QUI_HS_006,MN_ECU_QUI_HS_007,MN_ECU_TEL_HS_001,MN_ECU_TEL_HS_002
+smc++ vcf2smc ECU_v_CHN.recode.vcf.gz ECU_v_CHN.SMC_DATA/CHN.smc.gz Trichuris_trichiura_2_001 CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007
+
+
+# mutation rate (C.elegans) = 2.7e-9 (https://www.pnas.org/content/106/38/163100)
+smc++ estimate -o ECU/ 2.7e-9 ECU_v_CHN.SMC_DATA/ECU.smc.gz
+smc++ estimate -o CHN/ 2.7e-9 ECU_v_CHN.SMC_DATA/CHN.smc.gz
+
+
+# # Next, create datasets containing the joint frequency spectrum for both populations:
+smc++ vcf2smc ECU_v_CHN.recode.vcf.gz ECU_v_CHN.SMC_DATA/pop12.smc.gz Trichuris_trichiura_2_001 ECU:MN_ECU_QUI_HS_001,MN_ECU_QUI_HS_002,MN_ECU_QUI_HS_004,MN_ECU_QUI_HS_005,MN_ECU_QUI_HS_006,MN_ECU_QUI_HS_007,MN_ECU_TEL_HS_001,MN_ECU_TEL_HS_002 CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007
+smc++ vcf2smc ECU_v_CHN.recode.vcf.gz ECU_v_CHN.SMC_DATA/pop21.smc.gz Trichuris_trichiura_2_001 CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007 ECU:MN_ECU_QUI_HS_001,MN_ECU_QUI_HS_002,MN_ECU_QUI_HS_004,MN_ECU_QUI_HS_005,MN_ECU_QUI_HS_006,MN_ECU_QUI_HS_007,MN_ECU_TEL_HS_001,MN_ECU_TEL_HS_002
+
+
+smc++ split -o ECU_v_CHN.split/ ECU/model.final.json CHN/model.final.json ECU_v_CHN.SMC_DATA/*.smc.gz
+smc++ plot -g 0.33 -c ECU_v_CHN.joint.pdf ECU_v_CHN.split/model.final.json
+#
+# #---------
+library(ggplot2)
+data <- read.delim("ECU_v_CHN.joint.csv",header=T,sep=",")
+ggplot(data,aes(log10(x),y,col=label))+geom_line()
+
+
+
+
+vcftools  --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz \
+--indv MN_UGA_DK_HS_001 \
+--indv MN_UGA_DK_HS_002 \
+--indv MN_UGA_DK_HS_003 \
+--indv MN_UGA_KAB_HS_001 \
+--indv MN_UGA_KAB_HS_002 \
+--indv MN_UGA_KAB_HS_003 \
+--indv MN_UGA_KAB_HS_004 \
+--indv MN_UGA_KAB_HS_005 \
+--indv MN_UGA_KAB_HS_006 \
+--indv MN_UGA_KAB_HS_007 \
+--indv MN_UGA_KAB_HS_008 \
+--indv MN_UGA_KAB_HS_009 \
+--indv MN_CHN_GUA_HS_001 \
+--indv MN_CHN_GUA_HS_002 \
+--indv MN_CHN_GUA_HS_003 \
+--indv MN_CHN_GUA_HS_004 \
+--indv MN_CHN_GUA_HS_005 \
+--indv MN_CHN_GUA_HS_006 \
+--indv MN_CHN_GUA_HS_007 \
+--max-missing 1 --recode --out UGA_v_CHN
+bgzip UGA_v_CHN.recode.vcf
+tabix UGA_v_CHN.recode.vcf.gz
+
+mkdir UGA_v_CHN.SMC_DATA
+smc++ vcf2smc UGA_v_CHN.recode.vcf.gz UGA_v_CHN.SMC_DATA/UGA.smc.gz Trichuris_trichiura_2_001 UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009
+smc++ vcf2smc UGA_v_CHN.recode.vcf.gz UGA_v_CHN.SMC_DATA/CHN.smc.gz Trichuris_trichiura_2_001 CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007
+
+
+# mutation rate (C.elegans) = 2.7e-9 (https://www.pnas.org/content/106/38/163100)
+smc++ estimate -o UGA/ 2.7e-9 UGA_v_CHN.SMC_DATA/UGA.smc.gz
+smc++ estimate -o CHN/ 2.7e-9 UGA_v_CHN.SMC_DATA/CHN.smc.gz
+
+
+# # Next, create datasets containing the joint frequency spectrum for both populations:
+smc++ vcf2smc UGA_v_CHN.recode.vcf.gz UGA_v_CHN.SMC_DATA/pop12.smc.gz Trichuris_trichiura_2_001 UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009 CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007
+smc++ vcf2smc UGA_v_CHN.recode.vcf.gz UGA_v_CHN.SMC_DATA/pop21.smc.gz Trichuris_trichiura_2_001 CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007 UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009
+
+
+smc++ split -o UGA_v_CHN.split/ UGA/model.final.json CHN/model.final.json UGA_v_CHN.SMC_DATA/*.smc.gz
+smc++ plot -g 0.33 -c UGA_v_CHN.joint.pdf UGA_v_CHN.split/model.final.json
+#
+# #---------
+library(ggplot2)
+data <- read.delim("ECU_v_CHN.joint.csv",header=T,sep=",")
+ggplot(data,aes(log10(x),y,col=label))+geom_line()
+
 
 
 
@@ -2548,14 +2512,10 @@ library(tidyverse)
 data <- read.delim("qp3Pop.clean.out", header=F, sep="\t")
 colnames(data) <- c("Source_1", "Source_2", "Target", "f_3", "std_err", "Z_score", "SNPs")
 
-
-
-
-
-ggplot(data,aes(f_3, reorder(paste0(Source_1,",",Source_2), -f_3), col=Z_score)) +
+ggplot(data,aes(f_3, reorder(paste0(Source_1,",",Source_2), -f_3), col=log10(Z_score))) +
      geom_point(size = 2) +
      geom_segment(aes(x = f_3-std_err, y = paste0(Source_1,",",Source_2), xend = f_3+std_err, yend = paste0(Source_1,",",Source_2))) +
-     theme_bw() +
+     theme_bw() + xlim(0,1) +
      labs(x = "f3(Source1,Source2;Outgroup)" , y = "") +
      facet_grid(Target~., scale="free_y", space = "free_y")
 
@@ -2564,6 +2524,25 @@ ggsave("plot_admixtools_f3_statistics.png")
 ```
 ![](../04_analysis/plot_admixtools_f3_statistics.png)
 
+
+
+#```R
+# # load data
+# library(tidyverse)
+#
+#
+# data <- read.table("nuclear_LFCGout_GLs_BBAA.txt",header=T)
+# colnames(data) <- c("P1","P2","P3","Dstatistic","z_score","p_value","f4_ratio","BBAA","ABBA","BABA")
+#
+# # plot D (sorted) for each three population test
+# #-
+# ggplot(data, aes(Dstatistic, reorder(paste0(P1,"_",P2,"_",P3), -Dstatistic), col = -log10(p_value))) +
+#      geom_point(size = 2) +
+#      theme_bw() +
+#      labs(x = "D statistic (ABBA/BABA)" , y = "")
+#
+# ggsave("plot_D_statistics.png")
+#```
 
 
 
@@ -2735,19 +2714,6 @@ Rscript treemixVarianceExplained.R treemix.m_2.s_2
 # ![](../04_analysis/plot_treemix_f4_statistics.png)
 
 
-# load data
-data <- read.table("nuclear_LFCGout_GLs_BBAA.txt",header=T)
-colnames(data) <- c("P1","P2","P3","Dstatistic","z_score","p_value","f4_ratio","BBAA","ABBA","BABA")
-
-# plot D (sorted) for each three population test
-#-
-ggplot(data, aes(Dstatistic, reorder(paste0(P1,"_",P2,"_",P3), -Dstatistic), col = -log10(p_value))) +
-     geom_point(size = 2) +
-     theme_bw() +
-     labs(x = "D statistic (ABBA/BABA)" , y = "")
-
-ggsave("plot_D_statistics.png")
----
 
 
 
@@ -3090,8 +3056,14 @@ MITO_REF=Trichuris_trichiura_MITO
 VCF=mito_samples3x_missing0.8.recode.vcf.gz
 
 while read SAMPLE; do \
-     samtools faidx ${REF} ${MITO_REF} | bcftools consensus ${VCF} --mask /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_REF/mito.mask.bed --missing N --output ${SAMPLE}.mito.fa --sample ${SAMPLE};
+     samtools faidx ${REF} ${MITO_REF} | bcftools consensus ${VCF} --missing N --output ${SAMPLE}.mito.fa --sample ${SAMPLE};
 done < samples.list
+
+# # mask to only include protein coding regions
+# while read SAMPLE; do \
+#      samtools faidx ${REF} ${MITO_REF} | bcftools consensus ${VCF} --mask /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_REF/mito.mask.bed --missing N --output ${SAMPLE}.mito.fa --sample ${SAMPLE};
+# done < samples.list
+
 
 # fix sample names in the file
 for i in *.mito.fa; do \
@@ -3104,5 +3076,44 @@ cat *mito.fa > all_pseudoreferences.fa
 
 module load mafft/7.407=1-c1
 
-bsub.py --threads 20 10 mafft "mafft --thread 20 --maxiterate 1000 --globalpair all_pseudoreferences.fa \> all_pseudoreferences.aln"
+bsub.py --threads 20 10 mafft "mafft --thread 20 --maxiterate 1000 --globalpair all_pseudoreferences.fa \> AN_MN_pseudomtDNA.aln"
+
+bsub.py --threads 20 10 mafft_refs "mafft --thread 20 --maxiterate 1000 --globalpair refs.fa \> refs.aln"
 ```
+
+
+
+
+```R
+library(gplots)
+
+cov_data <- as.matrix(read.table("angsdput.covMat",header=F))
+ibs_data <- as.matrix(read.table("angsdput.ibsMat",header=F))
+
+names <- as.matrix(read.table("sample.names"))
+rownames(ibs_data) <- names
+colnames(ibs_data) <- names
+rownames(cov_data) <- names
+colnames(cov_data) <- names
+
+
+png("nuclear_ibs_heatmap.png")
+heatmap.2(ibs_data, trace="none", margins=c(10,10))
+dev.off()
+
+png("nuclear_covariance_heatmap.png")
+cov_data[cov_data > 1] <- 1
+heatmap.2(cov_data, trace="none", margins=c(10,10))
+dev.off()
+```
+- IBS for nuclear markers
+![](../04_analysis/nuclear_ibs_heatmap.png)
+
+- covariance of IBS for nuclear markers
+![](../04_analysis/nuclear_covariance_heatmap.png)
+
+# BAYESCAN
+cd ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/BAYESCAN
+
+# from here: https://github.com/santiagosnchez/vcf2bayescan
+perl vcf2bayescan.pl -p bayescan_pops.list -v nuclear_samples3x_missing0.8_animalPhonly.recode.vcf
