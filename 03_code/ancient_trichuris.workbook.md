@@ -3097,7 +3097,7 @@ rownames(cov_data) <- names
 colnames(cov_data) <- names
 
 
-png("nuclear_ibs_heatmap.png")
+png("nuclear_ibs_heatmap.png", res=150)
 heatmap.2(ibs_data, trace="none", margins=c(10,10))
 dev.off()
 
