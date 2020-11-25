@@ -1768,7 +1768,7 @@ data <- data.frame(sample.id = pca$sample.id,
 
 
 plot <- ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
-     geom_rect(aes(xmin=-0.14, ymin=-0.01, xmax=-0.06, ymax=0.03), fill=NA, col="black", linetype="dotted", size=0.2) +
+     geom_rect(aes(xmin=-0.14, ymin=-0.02, xmax=-0.06, ymax=0.04), fill=NA, col="black", linetype="dotted", size=0.3) +
      geom_point(size=4) +
      theme_bw() +
      labs(x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
@@ -1787,7 +1787,7 @@ plot_zoom <- ggplot(data, aes(EV1,EV2, col = COUNTRY, shape = TIME, label = past
 plot + plot_zoom + plot_layout(guides = "collect")
 
 ggsave("plot_PCA_mito_samples3x_missing0.8_noLF.png")
-ggsave("plot_PCA_mito_samples3x_missing0.8_noLF.pdf", height = 5, width = 12, useDingbats=FALSE)
+ggsave("plot_PCA_mito_samples3x_missing0.8_noLF.pdf", height = 5, width = 11, useDingbats=FALSE)
 ```
 Figure: [plot_PCA_mito_samples3x_missing0.8_noLF](plot_PCA_mito_samples3x_missing0.8_noLF.pdf)
 - will uses this in Figure 1 panels A and B
