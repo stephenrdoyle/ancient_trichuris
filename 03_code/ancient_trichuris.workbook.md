@@ -1720,6 +1720,7 @@ ggsave("plot_PCA_mito_samples3x_missing0.8.png")
 
 ```
 ![](..04_analysis/plot_PCA_mito_samples3x_missing0.8.png)
+
 - the CHN LF samples are the outliers in the above plot, so rerunning to remove these
 
 ```bash
@@ -1738,6 +1739,7 @@ library(tidyverse)
 library(gdsfmt)
 library(SNPRelate)
 library(ggsci)
+library(patchwork)
 
 snpgdsClose(genofile)
 vcf.in <- "mito_samples3x_missing0.8_noLF.recode.vcf"
@@ -1765,30 +1767,33 @@ data <- data.frame(sample.id = pca$sample.id,
                   stringsAsFactors = FALSE)
 
 
-ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
-     geom_text(size=4) +
+plot <- ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
+     geom_rect(aes(xmin=-0.14, ymin=-0.01, xmax=-0.06, ymax=0.03), fill=NA, col="black", linetype="dotted", size=0.2) +
+     geom_point(size=4) +
      theme_bw() +
-     labs(title="mito_samples3x_missing0.8",
-          x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
+     labs(x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
-          scale_colour_npg(guide = FALSE)
-
-ggsave("plot_PCA_mito_samples3x_missing0.8_noLF.png")
+          scale_colour_npg()
 
 
-ggplot(data, aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COUNTRY,"_",POPULATION,"_",HOST))) +
-     geom_text(size=3) +
+plot_zoom <- ggplot(data, aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COUNTRY,"_",POPULATION,"_",HOST))) +
+     geom_point(size=4) +
      theme_bw() +
-     labs(title="mito_samples3x_missing0.8",
-          x = "PC1",
+     labs(x = "PC1",
           y = "PC2") +
      xlim(-0.14,-0.06) + ylim(-0.01, 0.03) +
-     scale_colour_npg(guide = FALSE)
+     scale_colour_npg()
 
-ggsave("plot_PCA_mito_samples3x_missing0.8_noLF_zoomin.png")
+plot + plot_zoom + plot_layout(guides = "collect")
+
+ggsave("plot_PCA_mito_samples3x_missing0.8_noLF.png")
+ggsave("plot_PCA_mito_samples3x_missing0.8_noLF.pdf", height = 5, width = 12, useDingbats=FALSE)
 ```
+Figure: [plot_PCA_mito_samples3x_missing0.8_noLF](plot_PCA_mito_samples3x_missing0.8_noLF.pdf)
+- will uses this in Figure 1 panels A and B
+
 ![](..04_analysis/plot_PCA_mito_samples3x_missing0.8_noLF.png)
-![](..04_analysis/plot_PCA_mito_samples3x_missing0.8_noLF_zoomin.png)
+
 
 ### Nuclear variants
 - human + animal + 2 ancients
