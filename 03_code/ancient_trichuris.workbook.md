@@ -1790,6 +1790,7 @@ ggsave("plot_PCA_mito_samples3x_missing0.8_noLF.png")
 ggsave("plot_PCA_mito_samples3x_missing0.8_noLF.pdf", height = 5, width = 11, useDingbats=FALSE)
 ```
 Figure: [plot_PCA_mito_samples3x_missing0.8_noLF](plot_PCA_mito_samples3x_missing0.8_noLF.pdf)
+
 - will uses this in Figure 1 panels A and B
 
 ![](../04_analysis/plot_PCA_mito_samples3x_missing0.8_noLF.png)
@@ -1911,13 +1912,13 @@ data <- data.frame(sample.id = pca$sample.id,
 
 
 ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
-     geom_text(size=3) +
+     geom_point(size=4) +
      theme_bw() +
-     labs(title="nuclear_samples3x_missing0.8_animalPhonly",
-          x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
+     labs(x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
-          scale_colour_npg(guide = FALSE)
+          scale_colour_npg()
 
+ggsave("plot_PCA_nuclear_samples3x_missing0.8_animalPhonly.pdf", height = 5, width = 5, useDingbats=FALSE)
 ggsave("plot_PCA_nuclear_samples3x_missing0.8_animalPhonly.png")
 
 
@@ -1931,6 +1932,9 @@ ggplot(data,aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",CO
 
 ggsave("plot_PCA_nuclear_samples3x_missing0.8_animalPhonly_2.png")
 ```
+Figure: [plot_PCA_nuclear_samples3x_missing0.8_animalPhonly](plot_PCA_nuclear_samples3x_missing0.8_animalPhonly.pdf)
+- to be used in Figure 1, panel D
+
 ![](../04_analysis/plot_PCA_nuclear_samples3x_missing0.8_animalPhonly.png)
 ![](../04_analysis/plot_PCA_nuclear_samples3x_missing0.8_animalPhonly_2.png)
 
