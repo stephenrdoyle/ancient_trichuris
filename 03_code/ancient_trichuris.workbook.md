@@ -2022,10 +2022,10 @@ k_2_plot + k_3_plot + k_4_plot + k_5_plot + k_6_plot + k_7_plot + k_8_plot + k_9
 
 # save it
 ggsave("admixture_plots_k2-10.png")
-ggsave("admixture_plots_k2-10.pdf", height=20, width=10)
+ggsave("admixture_plots_k2-10.pdf", height=15, width=10)
 
-k_3_plot
-ggsave("admixture_plots_k2-10.pdf", height=2, width=10)
+k_4_plot
+ggsave("admixture_plots_k4.pdf", height=1.5, width=10)
 
 
 
@@ -2061,6 +2061,8 @@ rm *log *gz
 ```
 
 ```R
+library(tidyverse)
+
 rep="./"
 prefix="no"
 k=seq(2,10,1)
@@ -2081,12 +2083,16 @@ for(K in k){
   rm(admix.GW_ld.CV1,admix.GW_ld.CV2,admix.GW_ld.CV3,admix.GW_ld.CV4,admix.GW_ld.CV5)
 }
 
+# make a
 ggplot() +
      geom_point(aes(k,log10(cv1))) +
      geom_line(aes(k,log10(cv1))) +
      theme_bw() +
      labs(x = "Ancestral populations (k)", y = "Median absolute deviation")
+
+# save it     
 ggsave("plot_admixture_validation_MAD.png")
+ggsave("plot_admixture_validation_MAD.pdf", height = 5, width = 5, useDingbats=FALSE)
 
 ```
 ![](../04_analysis/plot_admixture_validation_MAD.png)
@@ -2273,6 +2279,7 @@ smc++ plot -g 0.33 -c SMCPP_UGA.pdf UGA/model.final.json
 ```R
 library(tidyverse)
 library(patchwork)
+library(ggsci)
 
 ECU_data <- read.delim("SMCPP_ECU.csv", header = T , sep = ",")
 ECU_data$ID <- "ECU"
@@ -2293,11 +2300,16 @@ data <- bind_rows(ECU_data, HND_data, CHN_data, ANCIENT_data, BABOON_data, UGA_d
 ggplot(data,aes(x,y,col=ID)) +
      geom_rect(aes(xmin=100000,ymin=0,xmax=200000,ymax=1.5E6), fill="grey95", col=NA) +
      geom_line(size=1) +
-     labs(x = "Years before present", y = "Effective population size (Ne)") +
-     theme_bw() + scale_x_log10(labels = prettyNum)
+     labs(x = "Years before present", y = "Effective population size (Ne)", col="Population") +
+     theme_bw() + scale_x_log10(labels = prettyNum) +
+     scale_colour_npg()
 
 ggsave("plot_smcpp_all_populations.png")
+ggsave("plot_smcpp_all_populations.pdf", height = 4, width = 5, useDingbats = FALSE)
 ```
+Figure: [plot_smcpp_all_populations](plot_smcpp_all_populations.pdf)
+- use this in Figure 2 panel D
+
 ![](../04_analysis/plot_smcpp_all_populations.png)
 
 
@@ -2535,7 +2547,7 @@ library(tidyverse)
 data <- read.delim("qp3Pop.clean.out", header=F, sep="\t")
 colnames(data) <- c("Source_1", "Source_2", "Target", "f_3", "std_err", "Z_score", "SNPs")
 
-ggplot(data,aes(f_3, reorder(paste0(Source_1,",",Source_2), -f_3), col=log10(Z_score))) +
+ggplot(data,aes(f_3, reorder(paste0(Source_1,",",Source_2), -f_3), col=Z_score)) +
      geom_point(size = 2) +
      geom_segment(aes(x = f_3-std_err, y = paste0(Source_1,",",Source_2), xend = f_3+std_err, yend = paste0(Source_1,",",Source_2))) +
      theme_bw() + xlim(0,1) +
@@ -2543,6 +2555,7 @@ ggplot(data,aes(f_3, reorder(paste0(Source_1,",",Source_2), -f_3), col=log10(Z_s
      facet_grid(Target~., scale="free_y", space = "free_y")
 
 ggsave("plot_admixtools_f3_statistics.png")
+ggsave("plot_admixtools_f3_statistics.pdf", height = 4, width = 6, useDingbats = FALSE)
 
 ```
 ![](../04_analysis/plot_admixtools_f3_statistics.png)
@@ -2642,6 +2655,8 @@ prefix="treemix"
 
 # plot trees across range of migration edges
 par(mfrow=c(2,6))
+
+pdf("treemix_edges_2-6.pdf")
 for(edge in 0:5){
   plot_tree(cex=0.8,paste0(prefix,".m_",edge,".s_2"))
   title(paste(edge,"edges"))
@@ -2652,7 +2667,7 @@ for(edge in 0:5){
  plot_resid(stem=paste0(prefix,".m_",edge,".s_2"),pop_order="populations.list")
  title(paste(edge,"edges"))
 }
-
+dev.off()
 
 # Estimating the optimal number of migration edges : https://rdrr.io/cran/OptM/#vignettes
 # run in the folder with the treemix output files
