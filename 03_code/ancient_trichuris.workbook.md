@@ -2022,6 +2022,13 @@ k_2_plot + k_3_plot + k_4_plot + k_5_plot + k_6_plot + k_7_plot + k_8_plot + k_9
 
 # save it
 ggsave("admixture_plots_k2-10.png")
+ggsave("admixture_plots_k2-10.pdf", height=20, width=10)
+
+k_3_plot
+ggsave("admixture_plots_k2-10.pdf", height=2, width=10)
+
+
+
 ```
 ![](../04_analysis/admixture_plots_k2-10.png)
 
