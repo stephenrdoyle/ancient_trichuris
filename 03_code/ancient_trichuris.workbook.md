@@ -1747,6 +1747,7 @@ gds<-snpgdsVCF2GDS(vcf.in, "mtDNA.gds", method="biallelic.only")
 
 genofile <- snpgdsOpen(gds)
 pca <-snpgdsPCA(genofile, num.thread=2,autosome.only = F)
+# Working space: 56 samples, 802 SNPs
 
 samples <- as.data.frame(pca$sample.id)
 colnames(samples) <- "name"
@@ -1823,6 +1824,7 @@ gds<-snpgdsVCF2GDS(vcf.in, "nuclear.gds", method="biallelic.only")
 
 genofile <- snpgdsOpen(gds)
 pca <-snpgdsPCA(genofile, num.thread=2,autosome.only = F)
+# Working space: 44 samples, 5,133,662 SNPs
 
 samples <- as.data.frame(pca$sample.id)
 colnames(samples) <- "name"
@@ -1891,6 +1893,7 @@ gds<-snpgdsVCF2GDS(vcf.in, "nuclear.gds", method="biallelic.only")
 
 genofile <- snpgdsOpen(gds)
 pca <-snpgdsPCA(genofile, num.thread=2,autosome.only = F)
+# Working space: 39 samples, 2,544,110 SNPs
 
 samples <- as.data.frame(pca$sample.id)
 colnames(samples) <- "name"
@@ -1952,10 +1955,11 @@ mkdir CHROMOSOMES_PL
 ln -s /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf
 
 cat ../../01_REF/trichuris_trichiura.fa.fai | cut -f1 | grep -v "MITO" | while read -r CHR; do
-vcftools --vcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf  --out CHROMOSOMES_PL/${CHR} --BEAGLE-PL --chr ${CHR};
+vcftools --gzvcf ../../04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz  --out CHROMOSOMES_PL/${CHR} --BEAGLE-PL --chr ${CHR};
 done
 
 # merge the data from individual chromosomes into a single dataset
+cd CHROMOSOMES_PL
 cat $(ls -1 *PL | head -n1 ) | head -n1 > merged.PL
 for i in *PL; do cat ${i} | grep -v "marker" >> merged.PL; done
 
@@ -2142,7 +2146,7 @@ while read CHROMOSOME; do
      smc++ vcf2smc HND.recode.vcf.gz SMC_DATA/HND.${CHROMOSOME}.smc.gz ${CHROMOSOME} HND:MN_HND_OLA_HS_001,MN_HND_OLA_HS_002,MN_HND_OLA_HS_003,MN_HND_OLA_HS_004,MN_HND_OLA_HS_005,MN_HND_OLA_HS_006,MN_HND_OLA_HS_007,MN_HND_SAL_HS_001;
 done < chromosomes.list
 
-# mutation rate (C.elegans) = 2.7e-9 (https://www.pnas.org/content/106/38/163100)
+# mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
 smc++ estimate -o HND/ 2.7e-9 SMC_DATA/HND.*.smc.gz
 
 # plot
