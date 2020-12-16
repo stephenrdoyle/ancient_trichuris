@@ -2327,6 +2327,7 @@ ggplot(data,aes(x,y,col=ID)) +
 
 ggsave("plot_smcpp_all_populations.png")
 ggsave("plot_smcpp_all_populations.pdf", height = 4, width = 5, useDingbats = FALSE)
+
 ```
 Figure: [plot_smcpp_all_populations](plot_smcpp_all_populations.pdf)
 - use this in Figure 2 panel D
@@ -2335,7 +2336,7 @@ Figure: [plot_smcpp_all_populations](plot_smcpp_all_populations.pdf)
 
 
 
-```
+```bash
 # # joint
 #
 # vcftools  --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz \
@@ -2382,7 +2383,7 @@ Figure: [plot_smcpp_all_populations](plot_smcpp_all_populations.pdf)
 # # ggplot(data,aes(x,y,col=label))+geom_line()
 ```
 
-
+```bash
 vcftools  --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz \
 --indv MN_ECU_QUI_HS_001 \
 --indv MN_ECU_QUI_HS_002 \
@@ -2420,15 +2421,17 @@ smc++ vcf2smc ECU_v_CHN.recode.vcf.gz ECU_v_CHN.SMC_DATA/pop21.smc.gz Trichuris_
 
 smc++ split -o ECU_v_CHN.split/ ECU/model.final.json CHN/model.final.json ECU_v_CHN.SMC_DATA/*.smc.gz
 smc++ plot -g 0.33 -c ECU_v_CHN.joint.pdf ECU_v_CHN.split/model.final.json
-#
-# #---------
+```
+
+
+```R
 library(ggplot2)
 data <- read.delim("ECU_v_CHN.joint.csv",header=T,sep=",")
 ggplot(data,aes(log10(x),y,col=label))+geom_line()
+```
 
 
-
-
+```bash
 vcftools  --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz \
 --indv MN_UGA_DK_HS_001 \
 --indv MN_UGA_DK_HS_002 \
@@ -2470,12 +2473,13 @@ smc++ vcf2smc UGA_v_CHN.recode.vcf.gz UGA_v_CHN.SMC_DATA/pop21.smc.gz Trichuris_
 
 smc++ split -o UGA_v_CHN.split/ UGA/model.final.json CHN/model.final.json UGA_v_CHN.SMC_DATA/*.smc.gz
 smc++ plot -g 0.33 -c UGA_v_CHN.joint.pdf UGA_v_CHN.split/model.final.json
-#
-# #---------
+```
+
+```R
 library(ggplot2)
 data <- read.delim("ECU_v_CHN.joint.csv",header=T,sep=",")
 ggplot(data,aes(log10(x),y,col=label))+geom_line()
-
+```
 
 
 
