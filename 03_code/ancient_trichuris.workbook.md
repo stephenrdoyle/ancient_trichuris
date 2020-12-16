@@ -1670,7 +1670,12 @@ After filtering, kept 11 out of a possible 1647 Sites
 
 cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/PCA
 
-vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --keep mtDNA_3x.list --max-missing 0.8 --recode --out mito_samples3x_missing0.8
+vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf \
+     --keep mtDNA_3x.list \
+     --max-missing 0.8 \
+     --recode --recode-INFO-all \
+     --out mito_samples3x_missing0.8
+#> After filtering, kept 869 out of a possible 1647 Sites
 ```
 
 ```R
@@ -1728,7 +1733,7 @@ vcftools \
 --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf \
 --keep mtDNA_3x_noLF.list \
 --max-missing 0.8 \
---recode \
+--recode --recode-INFO-all \
 --out mito_samples3x_missing0.8_noLF
 
 #After filtering, kept 56 out of 73 Individuals
@@ -1806,7 +1811,7 @@ vcftools \
 --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf \
 --keep nuclear_3x_animal.list \
 --max-missing 0.8 \
---recode \
+--recode --recode-INFO-all \
 --out nuclear_samples3x_missing0.8
 
 #> After filtering, kept 44 out of 73 Individuals
@@ -1875,7 +1880,7 @@ vcftools \
 --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf \
 --keep nuclear_3x_animalPhonly.list \
 --max-missing 0.8 \
---recode \
+--recode --recode-INFO-all \
 --out nuclear_samples3x_missing0.8_animalPhonly
 
 #> After filtering, kept 39 out of 73 Individuals
@@ -1955,7 +1960,7 @@ mkdir CHROMOSOMES_PL
 ln -s /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf
 
 cat ../../01_REF/trichuris_trichiura.fa.fai | cut -f1 | grep -v "MITO" | while read -r CHR; do
-vcftools --gzvcf ../../04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz  --out CHROMOSOMES_PL/${CHR} --BEAGLE-PL --chr ${CHR};
+vcftools --gzvcf ../../04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz  --max-missing 1 --out CHROMOSOMES_PL/${CHR} --BEAGLE-PL --chr ${CHR};
 done
 
 # merge the data from individual chromosomes into a single dataset
@@ -1967,9 +1972,21 @@ for i in *PL; do cat ${i} | grep -v "marker" >> merged.PL; done
 # vcftools --gzvcf ../../04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz  --out CHROMOSOMES_PL/all_chromosomes --BEAGLE-PL --chr ${chromosomes}
 
 # run admixture for multiple values of K
-for i in 2 3 4 5 6 7 8 9 10; do
-     bsub.py --threads 4 2 NGS_admix_multiK "NGSadmix -likes CHROMOSOMES_PL/merged.PL -K ${i} -P 4 -o k_${i}_out -minMaf 0.05" ;
+for j in 1 2 3 4 5; do
+     for i in 2 3 4 5 6 7 8 9 10; do
+     bsub.py --queue long --threads 10 3 NGS_admix_multiK_rerun "NGSadmix -likes CHROMOSOMES_PL/merged.PL -K ${i} -P 10 -seed ${j} -minMaf 0.05 -misTol 0.9 -o k_${i}_s_${j}_out" ;
+     done;
 done
+
+
+for j in 1 2 5; do
+     for i in 2 3 4 5; do
+     bsub.py --queue long --threads 10 3 NGS_admix_multiK_rerun2 "NGSadmix -likes CHROMOSOMES_PL/merged.PL -K ${i} -P 10 -seed ${j} -minMaf 0.05 -misTol 0.9 -o k_${i}_s_${j}_out2" ;
+     done;
+done
+
+
+
 ```
 
 ### make some admixture plots
@@ -2011,15 +2028,15 @@ ggplot(data,aes(sample_ID,value,fill=variable)) +
 }
 
 # run function for each value of K
-k_2_plot <- plot_admixture("k_2_out.qopt", "K_2")
-k_3_plot <- plot_admixture("k_3_out.qopt", "K_3")
-k_4_plot <- plot_admixture("k_4_out.qopt", "K_4")
-k_5_plot <- plot_admixture("k_5_out.qopt", "K_5")
-k_6_plot <- plot_admixture("k_6_out.qopt", "K_6")
-k_7_plot <- plot_admixture("k_7_out.qopt", "K_7")
-k_8_plot <- plot_admixture("k_8_out.qopt", "K_8")
-k_9_plot <- plot_admixture("k_9_out.qopt", "K_9")
-k_10_plot <- plot_admixture("k_10_out.qopt", "K_10")
+k_2_plot <- plot_admixture("k_2_run_1_out.qopt", "K_2")
+k_3_plot <- plot_admixture("k_3_run_1_out.qopt", "K_3")
+k_4_plot <- plot_admixture("k_4_run_1_out.qopt", "K_4")
+k_5_plot <- plot_admixture("k_5_run_1_out.qopt", "K_5")
+k_6_plot <- plot_admixture("k_6_run_1_out.qopt", "K_6")
+k_7_plot <- plot_admixture("k_7_run_1_out.qopt", "K_7")
+k_8_plot <- plot_admixture("k_8_run_1_out.qopt", "K_8")
+k_9_plot <- plot_admixture("k_9_run_1_out.qopt", "K_9")
+k_10_plot <- plot_admixture("k_10_run_1_out.qopt", "K_10")
 
 # bring the plots together
 k_2_plot + k_3_plot + k_4_plot + k_5_plot + k_6_plot + k_7_plot + k_8_plot + k_9_plot + k_10_plot + plot_layout(ncol=1)
@@ -2607,7 +2624,7 @@ ggsave("plot_admixtools_f3_statistics.pdf", height = 4, width = 6, useDingbats =
 #
 # ggplot(data,aes(f4_ratio,paste0(P1,"_",P2,"/",P3),col=-log10(p_value))) +
 #           geom_point() + theme_bw()
-
+#```
 
 
 
@@ -3151,3 +3168,12 @@ cd ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/BAYESCAN
 perl vcf2bayescan.pl -p bayescan_pops.list -v nuclear_samples3x_missing0.8_animalPhonly.recode.vcf
 
 ```
+
+
+
+library(tidyverse)
+
+mu <- 2.7e-9
+gen <- 0.33
+data2 <- read.table("msmc2_out.final.txt", header=T)
+ggplot(data, aes(right_time_boundary/mu*gen,(1/lambda)/mu)) + geom_line() + scale_y_log10() + scale_x_log10()
