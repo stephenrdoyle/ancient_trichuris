@@ -21,7 +21,7 @@
 ## Background
 
 
-### Sampling (from martins slides - need to check this against samples i have)
+### Original sampling data
 - Modern genomes  from human hosts (49)
      - Human worm isolates (35)
           - Uganda (12), China (7), Ecuador (8), Honduras (8)
@@ -32,9 +32,7 @@
      - Worm isolates (7)
           - Baboon – Denmark (2), Colobus - Spain (2), Leaf-Monkey – China (3)
 
-- Ancient samples (19 samples from 10 sites)
-     - 4-500 BC: Qala’at al-Bahrain (1) –  in analysis - **can't find this data**
-     - 300 BC: Tollundmanden, DK (1) – in analysis - **can't find this data**
+- Ancient samples (17 samples from 10 sites)
      - 1000 AD: Viborg, DK (2) – 2x Mito + 0,01x/0,16x NG
      - 1350 AD : Kampen, Netherlands (2) – 2x Mito + 1,8x/4,7x NG - yes
      - 1350-1400 AD: Odense, DK (4) – in analysis - yes
@@ -98,7 +96,6 @@ WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
 
 ```
 
-
 ## Project setup
 ```shell
 mkdir 00_SCRIPTS 01_REF 02_RAW 03_MAPPING
@@ -107,7 +104,10 @@ mkdir 00_SCRIPTS 01_REF 02_RAW 03_MAPPING
 
 ## Reference
 - the reference is the unpublished Trichuris trichiura assembly
-- genome stats
+- this is a new assembly, rahter than an improvement from the original assembly published by Foth et al (2014)
+     - this assembly is from worms extracted from Peter Nejsum that originated in Uganda, whereas the Foth assembly was from Ecuadorian worms.
+
+- genome stats of the new assmebly
      - sum = 80573711, n = 113, ave = 713041.69, largest = 29164577
      - N50 = 11299416, n = 2
      - N60 = 9167782, n = 3
@@ -117,6 +117,16 @@ mkdir 00_SCRIPTS 01_REF 02_RAW 03_MAPPING
      - N100 = 1808, n = 113
      - N_count = 250000
      - Gaps = 25
+
+- BUSCO stats of the assembly
+     - C:81.4%[S:79.3%,D:2.1%],F:1.7%,M:16.9%,n:978
+     - 797	Complete BUSCOs (C)
+     - 776	Complete and single-copy BUSCOs (S)
+     - 21	Complete and duplicated BUSCOs (D)
+     - 17	Fragmented BUSCOs (F)
+     - 164	Missing BUSCOs (M)
+     - 978	Total BUSCO groups searched
+
 
 ```shell
 cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_REF
@@ -3367,27 +3377,6 @@ Figure: [covariance of IBS for nuclear markers](../04_analysis/nuclear_covarianc
 
 
 
-## Bayescan
-- works on small test datasets, not so much on whole genome. Need to thin the variants.
-```bash
-cd ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/BAYESCAN
-
-# from here: https://github.com/santiagosnchez/vcf2bayescan
-perl vcf2bayescan.pl -p bayescan_pops.list -v nuclear_samples3x_missing0.8_animalPhonly.recode.vcf
-
-```
-
-
-
-library(tidyverse)
-
-mu <- 2.7e-9
-gen <- 0.33
-data2 <- read.table("msmc2_out.final.txt", header=T)
-ggplot(data, aes(right_time_boundary/mu*gen,(1/lambda)/mu)) + geom_line() + scale_y_log10() + scale_x_log10()
-
-
-
 
 
 
@@ -3401,6 +3390,7 @@ vcftools --gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz
 R
 library(tidyverse)
 library(ggsci)
+library(patchwork)
 
 exons <- read.table("btubulin.exons.bed", header=T)
 nuc <- read.table("out.sites.pi", header=T)
@@ -3416,8 +3406,8 @@ ggplot() +
       axis.text.y=element_blank(),
       axis.ticks.y=element_blank())
 
-
-
+ggsave("btubulin_variation_gene.png")
+ggsave("btubulin_variation_gene.pdf")
 
 
 file_names <- list.files(path = "./",pattern = "_x_nuclear_3x_animalPhonly_50k.windowed.pi")
@@ -3432,7 +3422,7 @@ nucdiv <- purrr::map_df(file_names, function(x) {
 nucdiv <- dplyr::filter(nucdiv, grepl('Trichuris_trichiura_1_001', CHROM))
 
 
-ggplot(nucdiv,aes(NUM*50000,PI,col=CHROM, group=pop_id)) +
+plot_btub_pi <- ggplot(nucdiv,aes(NUM*50000,PI,col=CHROM, group=pop_id)) +
      geom_point() +
      labs(x = "Genomic position (bp)" , y = "Nucleotide diversity (Pi)", col=NA) +
      theme_bw() +
@@ -3453,7 +3443,7 @@ tajD <- purrr::map_df(file_names, function(x) {
 tajD <- dplyr::filter(tajD, grepl('Trichuris_trichiura_1_001', CHROM))
 
 
-ggplot(tajD,aes(NUM*50000,TajimaD,col=CHROM, group=pop_id)) +
+plot_btub_taj <- ggplot(tajD,aes(NUM*50000,TajimaD,col=CHROM, group=pop_id)) +
           geom_point() +
           labs(x = "Genomic position (bp)" , y = "Tajimas D", col=NA) +
           theme_bw() +
@@ -3462,7 +3452,10 @@ ggplot(tajD,aes(NUM*50000,TajimaD,col=CHROM, group=pop_id)) +
           geom_vline(xintercept=c(10684531,10686350))
 
 
+plot_btub_pi + plot_btub_taj + plot_layout(ncol=2)
 
+ggsave("btubulin_variation_scaffold.png")
+ggsave("btubulin_variation_scaffold.pdf")
 
 
 
