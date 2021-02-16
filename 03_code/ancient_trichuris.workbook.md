@@ -118,7 +118,7 @@ mkdir 00_SCRIPTS 01_REF 02_RAW 03_MAPPING
      - N_count = 250000
      - Gaps = 25
 
-- BUSCO stats of the assembly
+- BUSCO stats of the assembly (see below for commands and comparison against old assembly)
      - C:81.4%[S:79.3%,D:2.1%],F:1.7%,M:16.9%,n:978
      - 797	Complete BUSCOs (C)
      - 776	Complete and single-copy BUSCOs (S)
@@ -2065,7 +2065,7 @@ ggsave("admixture_plots_k3.pdf", height=1.5, width=10)
 - Guillaume Salle used a MAD approach, calculating admixture for the population, leaving one chromosome out a time.
 - Will try this, using scaffolds longer than 1 Mb to make it manageable.
 
-# ```bash
+```bash
 # mkdir ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTURE/VALIDATION
 #
 # cat ../../01_REF/trichuris_trichiura.fa.fai | cut -f1 | grep -v "MITO" > chromosomes.list
@@ -2110,44 +2110,45 @@ ggsave("admixture_plots_k3.pdf", height=1.5, width=10)
 #   cv2[K-1] <- var(c(admix.Trichuris_trichiura_3_004,admix.Trichuris_trichiura_1_001,admix.Trichuris_trichiura_3_001,admix.Trichuris_trichiura_3_002,admix.Trichuris_trichiura_1_002,admix.Trichuris_trichiura_3_003,admix.Trichuris_trichiura_1_003,admix.Trichuris_trichiura_00_001,admix.Trichuris_trichiura_1_004,admix.Trichuris_trichiura_1_005,admix.Trichuris_trichiura_3_004))
 #   rm(admix.GW_ld.CV1,admix.GW_ld.CV2,admix.GW_ld.CV3,admix.GW_ld.CV4,admix.GW_ld.CV5)
 # }
-
-- ran Guillaumes approach dropping on chromosome at a time, whcih was ok.
-- also reran to generate using different seeds on whole data, and so this is the code to generate the MAD on those data
+# ```
+# - ran Guillaumes approach dropping on chromosome at a time, which was ok.
+# - also reran to generate using different seeds on whole data, and so this is the code to generate the MAD on those data
+# ```R
+# rep="./"
+# k=seq(2,10,1)
+# s=seq(1,5,1)
+# cv1 = array(-1,length(k))
+# cv2 = array(-1,length(k))
+# for(K in k){
+#   for(S in s){
+#     infile=paste(rep,"k_",K,"_s_",S,"_out.qopt",sep="")
+#
+#     # Admixture
+#     assign(paste0('admix.',S),t(as.matrix(read.table(infile))))
+#   }
+#   # Med absolute deviation
+#   cv1[K-1] <- mad(c(admix.1,admix.2,admix.3,admix.4,admix.5))
+#   # Jackniffing variance
+# }
+#
+# # make a plot
+# ggplot() +
+#      geom_point(aes(k,log10(cv1))) +
+#      geom_line(aes(k,log10(cv1))) +
+#      theme_bw() +
+#      labs(x = "Ancestral populations (k)", y = "Median absolute deviation")
+#
+# # save it     
+# ggsave("plot_admixture_validation_MAD.png")
+# ggsave("plot_admixture_validation_MAD.pdf", height = 5, width = 5, useDingbats=FALSE)
+#
+# ```
+# ![](../04_analysis/plot_admixture_validation_MAD.png)
 ```
-rep="./"
-k=seq(2,10,1)
-s=seq(1,5,1)
-cv1 = array(-1,length(k))
-cv2 = array(-1,length(k))
-for(K in k){
-  for(S in s){
-    infile=paste(rep,"k_",K,"_s_",S,"_out.qopt",sep="")
-
-    # Admixture
-    assign(paste0('admix.',S),t(as.matrix(read.table(infile))))
-  }
-  # Med absolute deviation
-  cv1[K-1] <- mad(c(admix.1,admix.2,admix.3,admix.4,admix.5))
-  # Jackniffing variance
-}
-
-# make a plot
-ggplot() +
-     geom_point(aes(k,log10(cv1))) +
-     geom_line(aes(k,log10(cv1))) +
-     theme_bw() +
-     labs(x = "Ancestral populations (k)", y = "Median absolute deviation")
-
-# save it     
-ggsave("plot_admixture_validation_MAD.png")
-ggsave("plot_admixture_validation_MAD.pdf", height = 5, width = 5, useDingbats=FALSE)
-
-```
-![](../04_analysis/plot_admixture_validation_MAD.png)
-
 
 
 ### Clumpak
+- another way is
 https://github.com/alexkrohn/AmargosaVoleTutorials/blob/master/ngsAdmix_tutorial.md
 ```bash
 (for log in `ls *.log`; do grep -Po 'like=\K[^ ]+' $log; done) > logfile
