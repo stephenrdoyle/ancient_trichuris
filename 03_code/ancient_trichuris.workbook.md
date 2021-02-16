@@ -1685,7 +1685,7 @@ library(SNPRelate)
 library(ggsci)
 
 snpgdsClose(genofile)
-vcf.in <- "mito_samples3x_missing0.8.recode.vcf"
+vcf.in <- "mito_samples3x_missing0.8.recode.vcf.gz"
 gds<-snpgdsVCF2GDS(vcf.in, "mtDNA.gds", method="biallelic.only")
 
 genofile <- snpgdsOpen(gds)
@@ -1747,7 +1747,7 @@ library(ggsci)
 library(patchwork)
 
 snpgdsClose(genofile)
-vcf.in <- "mito_samples3x_missing0.8_noLF.recode.vcf"
+vcf.in <- "mito_samples3x_missing0.8_noLF.recode.vcf.gz"
 gds<-snpgdsVCF2GDS(vcf.in, "mtDNA.gds", method="biallelic.only")
 
 genofile <- snpgdsOpen(gds)
@@ -1824,7 +1824,7 @@ library(gdsfmt)
 library(SNPRelate)
 
 snpgdsClose(genofile)
-vcf.in <- "nuclear_samples3x_missing0.8.recode.vcf"
+vcf.in <- "nuclear_samples3x_missing0.8.recode.vcf.gz"
 gds<-snpgdsVCF2GDS(vcf.in, "nuclear.gds", method="biallelic.only")
 
 genofile <- snpgdsOpen(gds)
@@ -1860,6 +1860,7 @@ ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = HOST)) +
 
 
 ggsave("plot_PCA_nuclear_samples3x_missing0.8.png")
+ggsave("plot_PCA_nuclear_samples3x_missing0.8.pdf")
 
 
 ggplot(data, aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COUNTRY,"_",POPULATION,"_",HOST))) +
@@ -1872,7 +1873,10 @@ ggplot(data, aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",C
      scale_colour_npg(guide = FALSE)
 
 ggsave("plot_PCA_nuclear_samples3x_missing0.8_zoomin.png")
+ggsave("plot_PCA_nuclear_samples3x_missing0.8_zoomin.pdf")
 ```
+![](04_analysis/plot_PCA_nuclear_samples3x_missing0.8.png)
+![](04_analysis/plot_PCA_nuclear_samples3x_missing0.8_zoomin.png)
 - main outliers are colobus and leafmonkey, so will remove and rerun
 
 ```
