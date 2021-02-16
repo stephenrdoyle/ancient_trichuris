@@ -2065,6 +2065,7 @@ ggsave("admixture_plots_k3.pdf", height=1.5, width=10)
 - Guillaume Salle used a MAD approach, calculating admixture for the population, leaving one chromosome out a time.
 - Will try this, using scaffolds longer than 1 Mb to make it manageable.
 
+- NOTE: I did not end up using the following code, hence hashed out, but I am keeping it for future reference
 ```bash
 # mkdir ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTURE/VALIDATION
 #
@@ -2148,12 +2149,12 @@ ggsave("admixture_plots_k3.pdf", height=1.5, width=10)
 
 
 ### Clumpak
-- another way is
-https://github.com/alexkrohn/AmargosaVoleTutorials/blob/master/ngsAdmix_tutorial.md
+- rather that the above code, I ended up using Clumpak as suggested here: https://github.com/alexkrohn/AmargosaVoleTutorials/blob/master/ngsAdmix_tutorial.md
 ```bash
 (for log in `ls *.log`; do grep -Po 'like=\K[^ ]+' $log; done) > logfile
 ```
 
+- to collate the data, and generate a clumpak compatible input file
 ```R
 logs <- as.data.frame(read.table("logfile"))
 logs$K <- c(rep("10", 5), rep("2", 5), rep("3", 5), rep("4", 5), rep("5", 5), rep("6", 5), rep("7", 5), rep("8", 5), rep("9", 5))
@@ -2161,7 +2162,7 @@ write.table(logs[, c(2, 1)], "logfile_formatted", row.names = F,
     col.names = F, quote = F)
 ```
 - open clumpak and upload the data
-- suggests k=3 is the optimal ancestral number, which I guess is consistent with the PCA which produces three main clusters.
+- the output suggests k=3 is the optimal ancestral number, which I guess is consistent with the PCA which produces three main clusters.
 
 ---
 
@@ -2223,6 +2224,7 @@ for i in {0..5}; do
 done
 ```
 
+- make some plots
 ```R
 library(RColorBrewer)
 library(R.utils)
@@ -2280,7 +2282,7 @@ Rscript treemixVarianceExplained.R treemix.m_2.s_2
 
 
 
-# ```bash
+```bash
 # threepop -i treemix.LDpruned.treemix.frq.gz -k 500 > threepop.out
 # fourpop -i treemix.LDpruned.treemix.frq.gz -k 500 > fourpop.out
 #
@@ -2332,6 +2334,105 @@ Rscript treemixVarianceExplained.R treemix.m_2.s_2
 
 ---
 
+
+
+## ADMIXTOOLS
+- ADMIXTOOLS is a widely used software package for calculating admixture statistics and testing population admixture hypotheses.
+- need to convert vcf to eigenstrat format first
+     - followed workflow from here: https://speciationgenomics.github.io/ADMIXTOOLS_admixr/
+     - needed additional scripts
+          - "convertVCFtoEigenstrat.sh" found here: https://github.com/joanam/scripts/tree/e8c6aa4b919b58d69abba01e7b7e38a892587111
+               - NOTE: I modified this file to allow non-standard chromosomes names, by indicating a "chom-map.txt" file in the vcftools command
+               - new file called "convertVCFtoEigenstrat_sd.sh"
+
+     - also need in path
+          - vcftools
+          - convertf (from eigensoft package)
+               - conda install -c bioconda eigensoft
+          - admixtools
+               - conda install -c bioconda admixtools
+
+
+### Prepared data and run admixtools
+```bash
+
+mkdir ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTOOLS
+cd ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTOOLS
+
+ln -s ../../04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz
+
+# need to generate a list of scaffold ids, to generate a file called "chrom-map.txt". This is important to make the the scaffold names are parsed properly downstream
+bcftools view -H nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz | cut -f 1 | uniq | awk '{print $0"\t"$0}' > chrom-map.txt
+
+# run the conversion script.
+#--- note have to drop the "vcf.gz" suffix
+
+./convertVCFtoEigenstrat_sd.sh nuclear_samples3x_missing0.8_animalPhonly.recode
+
+
+# need to manually modify the ".ind" file - the thrid column shows "control" where they should show population IDs
+# simply cat the file, copy into a text editor, change it, then move it back
+
+
+
+# make a new populations file
+> admixtools_pops.txt
+
+# set the outgroup
+OUTGROUP=BABOON
+
+# loop throguh the populations to generate the pop file as input to admixtools
+for i in BABOON CHN ECU HND UGA ANCIENT; do
+     for j in  BABOON CHN ECU HND UGA ANCIENT; do
+          if [[ "$i" == "$j" ]] || [[ "$i" == "$OUTGROUP" ]] || [[ "$j" == "$OUTGROUP" ]]; then
+               :
+               else
+               echo -e "${i}\t${j}\t${OUTGROUP}" >> admixtools_pops.txt;
+          fi;
+     done;
+done
+
+# I manually removed duplicates here
+
+# run admixtools to generate f3 stats
+qp3Pop -p PARAMETER_FILE > qp3Pop.out
+
+# parse the output so it is user friendly to plot
+grep "result" qp3Pop.out | awk '{print $2,$3,$4,$5,$6,$7,$8}' OFS="\t" > qp3Pop.clean.out
+
+
+```
+
+- where "PARAMETER_FILE":
+
+```bash
+genotypename:   nuclear_samples3x_missing0.8_animalPhonly.recode.eigenstratgeno (in eigenstrat format)
+snpname:        nuclear_samples3x_missing0.8_animalPhonly.recode.snp      (in eigenstrat format)
+indivname:      nuclear_samples3x_missing0.8_animalPhonly.recode.ind    (in eigenstrat format)
+popfilename:    admixtools_pops.txt
+inbreed: YES
+```
+
+- make a plot
+
+```R
+library(tidyverse)
+
+data <- read.delim("qp3Pop.clean.out", header=F, sep="\t")
+colnames(data) <- c("Source_1", "Source_2", "Target", "f_3", "std_err", "Z_score", "SNPs")
+
+ggplot(data,aes(f_3, reorder(paste0(Source_1,",",Source_2), -f_3), col=Z_score)) +
+     geom_point(size = 2) +
+     geom_segment(aes(x = f_3-std_err, y = paste0(Source_1,",",Source_2), xend = f_3+std_err, yend = paste0(Source_1,",",Source_2))) +
+     theme_bw() + xlim(0,1) +
+     labs(x = "f3(Source1,Source2;Outgroup)" , y = "") +
+     facet_grid(Target~., scale="free_y", space = "free_y")
+
+ggsave("plot_admixtools_f3_statistics.png")
+ggsave("plot_admixtools_f3_statistics.pdf", height = 4, width = 6, useDingbats = FALSE)
+
+```
+![](../04_analysis/plot_admixtools_f3_statistics.png)
 
 
 
@@ -2709,125 +2810,6 @@ ggplot(data,aes(log10(x),y,col=label))+geom_line()
 
 
 
-
-
-## ADMIXTOOLS
-- ADMIXTOOLS is a widely used software package for calculating admixture statistics and testing population admixture hypotheses.
-- need to convert vcf to eigenstrat format first
-     - followed workflow from here: https://speciationgenomics.github.io/ADMIXTOOLS_admixr/
-     - needed additional scripts
-          - "convertVCFtoEigenstrat.sh" found here: https://github.com/joanam/scripts/tree/e8c6aa4b919b58d69abba01e7b7e38a892587111
-               - NOTE: I modified this file to allow non-standard chromosomes names, by indicating a "chom-map.txt" file in the vcftools command
-               - new file called "convertVCFtoEigenstrat_sd.sh"
-
-     - also need in path
-          - vcftools
-          - convertf (from eigensoft package)
-               - conda install -c bioconda eigensoft
-          - admixtools
-               - conda install -c bioconda admixtools
-
-
-### Prepared data and run admixtools
-```bash
-
-mkdir ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTOOLS
-cd ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTOOLS
-
-ln -s ../../04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz
-
-# need to generate a list of scaffold ids, to generate a file called "chrom-map.txt". This is important to make the the scaffold names are parsed properly downstream
-bcftools view -H nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz | cut -f 1 | uniq | awk '{print $0"\t"$0}' > chrom-map.txt
-
-# run the conversion script.
-#--- note have to drop the "vcf.gz" suffix
-
-./convertVCFtoEigenstrat_sd.sh nuclear_samples3x_missing0.8_animalPhonly.recode
-
-
-# need to manually modify the ".ind" file - the thrid column shows "control" where they should show population IDs
-# simply cat the file, copy into a text editor, change it, then move it back
-
-
-
-# make a new populations file
-> admixtools_pops.txt
-
-# set the outgroup
-OUTGROUP=BABOON
-
-# loop throguh the populations to generate the pop file as input to admixtools
-for i in BABOON CHN ECU HND UGA ANCIENT; do
-     for j in  BABOON CHN ECU HND UGA ANCIENT; do
-          if [[ "$i" == "$j" ]] || [[ "$i" == "$OUTGROUP" ]] || [[ "$j" == "$OUTGROUP" ]]; then
-               :
-               else
-               echo -e "${i}\t${j}\t${OUTGROUP}" >> admixtools_pops.txt;
-          fi;
-     done;
-done
-
-# I manually removed duplicates here
-
-# run admixtools to generate f3 stats
-qp3Pop -p PARAMETER_FILE > qp3Pop.out
-
-# parse the output so it is user friendly to plot
-grep "result" qp3Pop.out | awk '{print $2,$3,$4,$5,$6,$7,$8}' OFS="\t" > qp3Pop.clean.out
-
-
-```
-
-- where "PARAMETER_FILE":
-
-```bash
-genotypename:   nuclear_samples3x_missing0.8_animalPhonly.recode.eigenstratgeno (in eigenstrat format)
-snpname:        nuclear_samples3x_missing0.8_animalPhonly.recode.snp      (in eigenstrat format)
-indivname:      nuclear_samples3x_missing0.8_animalPhonly.recode.ind    (in eigenstrat format)
-popfilename:    admixtools_pops.txt
-inbreed: YES
-```
-
-- make a plot
-
-```R
-library(tidyverse)
-
-data <- read.delim("qp3Pop.clean.out", header=F, sep="\t")
-colnames(data) <- c("Source_1", "Source_2", "Target", "f_3", "std_err", "Z_score", "SNPs")
-
-ggplot(data,aes(f_3, reorder(paste0(Source_1,",",Source_2), -f_3), col=Z_score)) +
-     geom_point(size = 2) +
-     geom_segment(aes(x = f_3-std_err, y = paste0(Source_1,",",Source_2), xend = f_3+std_err, yend = paste0(Source_1,",",Source_2))) +
-     theme_bw() + xlim(0,1) +
-     labs(x = "f3(Source1,Source2;Outgroup)" , y = "") +
-     facet_grid(Target~., scale="free_y", space = "free_y")
-
-ggsave("plot_admixtools_f3_statistics.png")
-ggsave("plot_admixtools_f3_statistics.pdf", height = 4, width = 6, useDingbats = FALSE)
-
-```
-![](../04_analysis/plot_admixtools_f3_statistics.png)
-
-
-
-#```R
-# # load data
-# library(tidyverse)
-#
-#
-# data <- read.table("nuclear_LFCGout_GLs_BBAA.txt",header=T)
-# colnames(data) <- c("P1","P2","P3","Dstatistic","z_score","p_value","f4_ratio","BBAA","ABBA","BABA")
-#
-# # plot D (sorted) for each three population test
-# #-
-# ggplot(data, aes(Dstatistic, reorder(paste0(P1,"_",P2,"_",P3), -Dstatistic), col = -log10(p_value))) +
-#      geom_point(size = 2) +
-#      theme_bw() +
-#      labs(x = "D statistic (ABBA/BABA)" , y = "")
-#
-# ggsave("plot_D_statistics.png")
-#```
 
 
 
