@@ -3097,7 +3097,6 @@ ggsave("plot_pairwise_FST_genomewide.pdf", width=170, height=150, units="mm")
 
 ### extracting top 1% of Fst values for each comparison
 ```R
-
 extract_top_1 <- function(file){
      require(tidyverse)
      data <- read.table(file, header=T)
@@ -3111,8 +3110,8 @@ extract_top_1("CHN_v_AMERICAS_50k.windowed.weir.fst")
 extract_top_1("BABOON_v_UGA_50k.windowed.weir.fst")
 
 ```
-```bash
 
+```bash
 # extract the overlapping genes in the top 1% datasets  
 for i in *top1.coords; do
      bedtools intersect -b ${i} -a liftover_annotation.gff3 -wb |\
@@ -3135,7 +3134,7 @@ cat liftover_annotation.gff3 |\
 ```
 
 
-# testing correlation of Fst between UGA-CHN and UGA-Americas to see if there is variation shared by UGA-Americas that is not shared by UGA-China. If true, this might support independent migration into the Americas
+- testing correlation of Fst between UGA-CHN and UGA-Americas to see if there is variation shared by UGA-Americas that is not shared by UGA-China. If true, this might support independent migration into the Americas
 ```R
 library(tidyverse)
 library(patchwork)
@@ -3239,7 +3238,13 @@ shared by all three = 25.78378283%
 shared by UGA and Americas, not China = 5.248175707%
 
 
-### Phylogenetics
+
+
+
+
+
+
+## Genome annotation
 
 
 - first, want to map get protein coding gene annotations onto reference assembly, which doesnt have any annotations
