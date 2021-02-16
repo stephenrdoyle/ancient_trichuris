@@ -1979,14 +1979,6 @@ for j in 1 2 3 4 5; do
 done
 
 
-for j in 1 2 5; do
-     for i in 2 3 4 5; do
-     bsub.py --queue long --threads 10 3 NGS_admix_multiK_rerun2 "NGSadmix -likes CHROMOSOMES_PL/merged.PL -K ${i} -P 10 -seed ${j} -minMaf 0.05 -misTol 0.9 -o k_${i}_s_${j}_out2" ;
-     done;
-done
-
-
-
 ```
 
 ### make some admixture plots
@@ -2027,16 +2019,17 @@ ggplot(data,aes(sample_ID,value,fill=variable)) +
      scale_fill_npg(guide = FALSE)
 }
 
+s = 4
 # run function for each value of K
-k_2_plot <- plot_admixture("k_2_run_1_out.qopt", "K_2")
-k_3_plot <- plot_admixture("k_3_run_1_out.qopt", "K_3")
-k_4_plot <- plot_admixture("k_4_run_1_out.qopt", "K_4")
-k_5_plot <- plot_admixture("k_5_run_1_out.qopt", "K_5")
-k_6_plot <- plot_admixture("k_6_run_1_out.qopt", "K_6")
-k_7_plot <- plot_admixture("k_7_run_1_out.qopt", "K_7")
-k_8_plot <- plot_admixture("k_8_run_1_out.qopt", "K_8")
-k_9_plot <- plot_admixture("k_9_run_1_out.qopt", "K_9")
-k_10_plot <- plot_admixture("k_10_run_1_out.qopt", "K_10")
+k_2_plot <- plot_admixture(paste0("k_2_s_",s,"_out.qopt"), "K = 2")
+k_3_plot <- plot_admixture(paste0("k_3_s_",s,"_out.qopt"), "K = 3")
+k_4_plot <- plot_admixture(paste0("k_4_s_",s,"_out.qopt"), "K = 4")
+k_5_plot <- plot_admixture(paste0("k_5_s_",s,"_out.qopt"), "K = 5")
+k_6_plot <- plot_admixture(paste0("k_6_s_",s,"_out.qopt"), "K = 6")
+k_7_plot <- plot_admixture(paste0("k_7_s_",s,"_out.qopt"), "K = 7")
+k_8_plot <- plot_admixture(paste0("k_8_s_",s,"_out.qopt"), "K = 8")
+k_9_plot <- plot_admixture(paste0("k_9_s_",s,"_out.qopt"), "K = 9")
+k_10_plot <- plot_admixture(paste0("k_10_s_",s,"_out.qopt"), "K = 10")
 
 # bring the plots together
 k_2_plot + k_3_plot + k_4_plot + k_5_plot + k_6_plot + k_7_plot + k_8_plot + k_9_plot + k_10_plot + plot_layout(ncol=1)
@@ -2045,8 +2038,8 @@ k_2_plot + k_3_plot + k_4_plot + k_5_plot + k_6_plot + k_7_plot + k_8_plot + k_9
 ggsave("admixture_plots_k2-10.png")
 ggsave("admixture_plots_k2-10.pdf", height=15, width=10)
 
-k_4_plot
-ggsave("admixture_plots_k4.pdf", height=1.5, width=10)
+k_3_plot
+ggsave("admixture_plots_k3.pdf", height=1.5, width=10)
 
 
 
@@ -2058,53 +2051,73 @@ ggsave("admixture_plots_k4.pdf", height=1.5, width=10)
 - Guillaume Salle used a MAD approach, calculating admixture for the population, leaving one chromosome out a time.
 - Will try this, using scaffolds longer than 1 Mb to make it manageable.
 
-```bash
-mkdir ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTURE/VALIDATION
+# ```bash
+# mkdir ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTURE/VALIDATION
+#
+# cat ../../01_REF/trichuris_trichiura.fa.fai | cut -f1 | grep -v "MITO" > chromosomes.list
+#
+# # merge the data from individual chromosomes into a single dataset
+# while read CHROMOSOME; do
+#      cat $(ls -1 CHROMOSOMES_PL/*BEAGLE.PL | head -n1 | sed 's/CHROMOSOMES_PL\///g') | head -n1 > VALIDATION/no_${CHROMOSOME}.merged.validation.PL;
+#      cat CHROMOSOMES_PL/*BEAGLE.PL | grep -v "marker" | grep -v "${CHROMOSOME}" >> VALIDATION/no_${CHROMOSOME}.merged.validation.PL;
+# done < chromosomes.list
+#
+# # run admixture for multiple values of K
+#
+# while read CHROMOSOME; do
+#      for i in 2 3 4 5 6 7 8 9 10; do
+#      bsub.py --threads 4 2 NGS_admix_multiK "NGSadmix -likes VALIDATION/no_${CHROMOSOME}.merged.validation.PL -K ${i} -P 4 -o VALIDATION/no_${CHROMOSOME}_k_${i}_out -minMaf 0.05" ;
+#      done;
+# done  < chromosomes.list
+#
+# # remove unneeded files
+# rm *log *gz
+# ```
+#
+# ```R
+# library(tidyverse)
 
-cat ../../01_REF/trichuris_trichiura.fa.fai | cut -f1 | grep -v "MITO" > chromosomes.list
+# rep="./"
+# prefix="no"
+# k=seq(2,10,1)
+# chrl=c('Trichuris_trichiura_3_004','Trichuris_trichiura_1_001','Trichuris_trichiura_3_001','Trichuris_trichiura_3_002','Trichuris_trichiura_1_002','Trichuris_trichiura_3_003','Trichuris_trichiura_1_003','Trichuris_trichiura_00_001','Trichuris_trichiura_1_004','Trichuris_trichiura_1_005','Trichuris_trichiura_3_004')
+# cv1 = array(-1,length(k))
+# cv2 = array(-1,length(k))
+# for(K in k){
+#   for(chr in chrl){
+#     infile=paste(rep,prefix,"_",chr,"_k_",K,"_out.qopt",sep="")
+#
+#     # Admixture
+#     assign(paste0('admix.',chr),t(as.matrix(read.table(infile))))
+#   }
+#   # Med absolute deviation
+#   cv1[K-1] <- mad(c(admix.Trichuris_trichiura_3_004,admix.Trichuris_trichiura_1_001,admix.Trichuris_trichiura_3_001,admix.Trichuris_trichiura_3_002,admix.Trichuris_trichiura_1_002,admix.Trichuris_trichiura_3_003,admix.Trichuris_trichiura_1_003,admix.Trichuris_trichiura_00_001,admix.Trichuris_trichiura_1_004,admix.Trichuris_trichiura_1_005,admix.Trichuris_trichiura_3_004))
+#   # Jackniffing variance
+#   cv2[K-1] <- var(c(admix.Trichuris_trichiura_3_004,admix.Trichuris_trichiura_1_001,admix.Trichuris_trichiura_3_001,admix.Trichuris_trichiura_3_002,admix.Trichuris_trichiura_1_002,admix.Trichuris_trichiura_3_003,admix.Trichuris_trichiura_1_003,admix.Trichuris_trichiura_00_001,admix.Trichuris_trichiura_1_004,admix.Trichuris_trichiura_1_005,admix.Trichuris_trichiura_3_004))
+#   rm(admix.GW_ld.CV1,admix.GW_ld.CV2,admix.GW_ld.CV3,admix.GW_ld.CV4,admix.GW_ld.CV5)
+# }
 
-# merge the data from individual chromosomes into a single dataset
-while read CHROMOSOME; do
-     cat $(ls -1 CHROMOSOMES_PL/*BEAGLE.PL | head -n1 | sed 's/CHROMOSOMES_PL\///g') | head -n1 > VALIDATION/no_${CHROMOSOME}.merged.validation.PL;
-     cat CHROMOSOMES_PL/*BEAGLE.PL | grep -v "marker" | grep -v "${CHROMOSOME}" >> VALIDATION/no_${CHROMOSOME}.merged.validation.PL;
-done < chromosomes.list
-
-# run admixture for multiple values of K
-
-while read CHROMOSOME; do
-     for i in 2 3 4 5 6 7 8 9 10; do
-     bsub.py --threads 4 2 NGS_admix_multiK "NGSadmix -likes VALIDATION/no_${CHROMOSOME}.merged.validation.PL -K ${i} -P 4 -o VALIDATION/no_${CHROMOSOME}_k_${i}_out -minMaf 0.05" ;
-     done;
-done  < chromosomes.list
-
-# remove unneeded files
-rm *log *gz
+- ran Guillaumes approach dropping on chromosome at a time, whcih was ok.
+- also reran to generate using different seeds on whole data, and so this is the code to generate the MAD on those data
 ```
-
-```R
-library(tidyverse)
-
 rep="./"
-prefix="no"
 k=seq(2,10,1)
-chrl=c('Trichuris_trichiura_3_004','Trichuris_trichiura_1_001','Trichuris_trichiura_3_001','Trichuris_trichiura_3_002','Trichuris_trichiura_1_002','Trichuris_trichiura_3_003','Trichuris_trichiura_1_003','Trichuris_trichiura_00_001','Trichuris_trichiura_1_004','Trichuris_trichiura_1_005','Trichuris_trichiura_3_004')
+s=seq(1,5,1)
 cv1 = array(-1,length(k))
 cv2 = array(-1,length(k))
 for(K in k){
-  for(chr in chrl){
-    infile=paste(rep,prefix,"_",chr,"_k_",K,"_out.qopt",sep="")
+  for(S in s){
+    infile=paste(rep,"k_",K,"_s_",S,"_out.qopt",sep="")
 
     # Admixture
-    assign(paste0('admix.',chr),t(as.matrix(read.table(infile))))
+    assign(paste0('admix.',S),t(as.matrix(read.table(infile))))
   }
   # Med absolute deviation
-  cv1[K-1] <- mad(c(admix.Trichuris_trichiura_3_004,admix.Trichuris_trichiura_1_001,admix.Trichuris_trichiura_3_001,admix.Trichuris_trichiura_3_002,admix.Trichuris_trichiura_1_002,admix.Trichuris_trichiura_3_003,admix.Trichuris_trichiura_1_003,admix.Trichuris_trichiura_00_001,admix.Trichuris_trichiura_1_004,admix.Trichuris_trichiura_1_005,admix.Trichuris_trichiura_3_004))
+  cv1[K-1] <- mad(c(admix.1,admix.2,admix.3,admix.4,admix.5))
   # Jackniffing variance
-  cv2[K-1] <- var(c(admix.Trichuris_trichiura_3_004,admix.Trichuris_trichiura_1_001,admix.Trichuris_trichiura_3_001,admix.Trichuris_trichiura_3_002,admix.Trichuris_trichiura_1_002,admix.Trichuris_trichiura_3_003,admix.Trichuris_trichiura_1_003,admix.Trichuris_trichiura_00_001,admix.Trichuris_trichiura_1_004,admix.Trichuris_trichiura_1_005,admix.Trichuris_trichiura_3_004))
-  rm(admix.GW_ld.CV1,admix.GW_ld.CV2,admix.GW_ld.CV3,admix.GW_ld.CV4,admix.GW_ld.CV5)
 }
 
-# make a
+# make a plot
 ggplot() +
      geom_point(aes(k,log10(cv1))) +
      geom_line(aes(k,log10(cv1))) +
@@ -2118,11 +2131,207 @@ ggsave("plot_admixture_validation_MAD.pdf", height = 5, width = 5, useDingbats=F
 ```
 ![](../04_analysis/plot_admixture_validation_MAD.png)
 
+
+
+### Clumpak
+https://github.com/alexkrohn/AmargosaVoleTutorials/blob/master/ngsAdmix_tutorial.md
+```bash
+(for log in `ls *.log`; do grep -Po 'like=\K[^ ]+' $log; done) > logfile
+```
+
+```R
+logs <- as.data.frame(read.table("logfile"))
+logs$K <- c(rep("10", 5), rep("2", 5), rep("3", 5), rep("4", 5), rep("5", 5), rep("6", 5), rep("7", 5), rep("8", 5), rep("9", 5))
+write.table(logs[, c(2, 1)], "logfile_formatted", row.names = F,
+    col.names = F, quote = F)
+```
+- open clumpak and upload the data
 - suggests k=3 is the optimal ancestral number, which I guess is consistent with the PCA which produces three main clusters.
+
+---
+
+
+## Treemix
+- https://ppp.readthedocs.io/en/latest/PPP_pages/examples.html
+- https://speciationgenomics.github.io/Treemix/
+
+```bash
+conda activate py-popgen
+export LD_LIBRARY_PATH=/lustre/scratch118/infgen/team133/sd21/software/anaconda2/envs/py-popgen/lib/
+
+mkdir /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/TREEMIX
+cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/TREEMIX
+
+vcftools --gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz --max-missing 1 --keep ../../04_VARIANTS/GATK_HC_MERGED/nuclear_3x_animal.list --recode --stdout | gzip > treemix.vcf.gz
+
+./ldPruning.sh treemix.vcf.gz
+
+# before pruning
+vcftools --gzvcf treemix.vcf.gz
+#> After filtering, kept 280424 out of a possible 280424 Sites
+
+# after pruning
+vcftools --gzvcf treemix.LDpruned.vcf.gz
+#> After filtering, kept 23630 out of a possible 23630 Sites
+
+
+
+
+bcftools query -l treemix.vcf.gz | awk '{split($1,pop,"."); print $1"\t"$1"\t"pop[2]}' > data.clust
+
+# this "data.clust" needs to be edited to put the population in, eg.
+
+"
+AN_DNK_COG_EN_0012	AN_DNK_COG_EN_0012	ANCIENT
+AN_NLD_KAM_EN_0034	AN_NLD_KAM_EN_0034	ANCIENT
+MN_CHN_GUA_HS_001	MN_CHN_GUA_HS_001	CHN
+MN_CHN_GUA_HS_002	MN_CHN_GUA_HS_002	CHN
+MN_CHN_GUA_HS_003	MN_CHN_GUA_HS_003	CHN
+"
+
+
+
+
+
+cat data.clust | cut -f3 | sort | uniq > populations.list
+
+./vcf2treemix.sh treemix.LDpruned.vcf.gz data.clust
+
+
+# run treemix, across a range of migration edges, and across a range of seeds
+#--- the range of seeds is used by optM below to estimate the optimal number of edges.
+
+for i in {0..5}; do
+     for j in {0..10}; do
+          treemix -i treemix.LDpruned.treemix.frq.gz -seed $j -m $i -o treemix.m_$i.s_$j -root COLOBUS -bootstrap -k 500  > treemix_${i}_log &
+     done;
+done
+```
+
+```R
+library(RColorBrewer)
+library(R.utils)
+
+source("plotting_funcs.R")
+prefix="treemix"
+
+# plot trees across range of migration edges
+par(mfrow=c(2,6))
+
+pdf("treemix_edges_2-6.pdf")
+for(edge in 0:5){
+  plot_tree(cex=0.8,paste0(prefix,".m_",edge,".s_2"))
+  title(paste(edge,"edges"))
+}
+
+# plot residuals across range of migration edges - positive values suggest admixture
+for(edge in 0:5){
+ plot_resid(stem=paste0(prefix,".m_",edge,".s_2"),pop_order="populations.list")
+ title(paste(edge,"edges"))
+}
+dev.off()
+
+# Estimating the optimal number of migration edges : https://rdrr.io/cran/OptM/#vignettes
+# run in the folder with the treemix output files
+#install.packages("OptM")
+library(OptM)
+
+optM(folder="./")
+
+#> The maximum value for delta m was 17.3577 at m = 2 edges.
+
+
+# remake the plots, using 2 migration edges
+prefix="treemix"
+
+par(mfrow=c(1,1))
+
+plot_tree(cex=0.8,paste0(prefix,".m_2.s_2"))
+title(paste(2,"edges"))
+
+plot_resid(stem=paste0(prefix,".",2),pop_order="populations.list")
+title(paste(1,"edges"))
+
+```
+
+### calculate the variance explained by the data
+- https://github.com/darencard/RADpipe/blob/master/treemixVarianceExplained.R
+```bash
+Rscript treemixVarianceExplained.R treemix.m_2.s_2
+
+#> Standard error for all entries in the covariance matrix estimated from the data	0.00053440209375
+#> Variance of relatedness between populations explained by the model	0.998712455493422
+```
+
+
+
+# ```bash
+# threepop -i treemix.LDpruned.treemix.frq.gz -k 500 > threepop.out
+# fourpop -i treemix.LDpruned.treemix.frq.gz -k 500 > fourpop.out
+#
+# cat threepop.out | grep ";" | grep -v "COLOBUS" | grep -v "LEAF" > threepop.out_2
+# cat fourpop.out | grep ";" | grep -v "COLOBUS" | grep -v "LEAF" > fourpop.out_2
+# ```
+# - plots
+# ```R
+# # load libraries
+# library(tidyverse)
+#
+# # load data
+# data <- read.table("threepop.out_2",header=F)
+# colnames(data) <- c("three_populations", "f_3", "std_error", "z_score")
+#
+# # plot f_3 (sorted) for each three population test
+# #-
+# ggplot(data, aes(f_3, reorder(three_populations, -f_3), col = z_score)) +
+#      geom_point(size = 2) +
+#      geom_segment(aes(x = f_3-std_error, y = three_populations, xend = f_3+std_error, yend = three_populations)) +
+#      theme_bw() +
+#      labs(x = "f3 statistic" , y = "")
+#
+# ggsave("plot_treemix_f3_statistics.png")
+#
+#
+# # load data
+# data <- read.table("fourpop.out_2",header=F)
+# colnames(data) <- c("four_populations", "f_4", "std_error", "z_score")
+#
+# # plot f_4 (sorted) for each three population test
+# #-
+# ggplot(data, aes(f_4, reorder(four_populations, -f_4), col = z_score)) +
+#      geom_point(size = 2) +
+#      geom_segment(aes(x = f_4-std_error, y = four_populations, xend = f_4+std_error, yend = four_populations)) +
+#      theme_bw() +
+#      labs(x = "f4 statistic" , y = "")
+#
+# ggsave("plot_treemix_f4_statistics.png")
+#
+# ```
+# - f3 stats
+# ![](../04_analysis/plot_treemix_f3_statistics.png)
+#
+# - f4 stats
+# ![](../04_analysis/plot_treemix_f4_statistics.png)
 
 
 
 ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2609,172 +2818,7 @@ ggsave("plot_admixtools_f3_statistics.pdf", height = 4, width = 6, useDingbats =
 
 
 
-# ### Dsuite
-# ```bash
-#
-# Dsuite Dtrios nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz pops.list
-#
-# ```
-#
-# - make some plots
-# ```R
-# library(tidyverse)
-#
-# data <- read.table("pops_lm_cg_BBAA.txt", header=T)
-# colnames(data) <- c("P1","P2","P3","Dstatistic","Z_score","p_value","f4_ratio","BBAA","ABBA","BABA")
-#
-# ggplot(data,aes(Dstatistic,paste0(P1,"_",P2,"/",P3),col=-log10(p_value))) +
-#      geom_point() + theme_bw()
-#
-# ggplot(data,aes(f4_ratio,paste0(P1,"_",P2,"/",P3),col=-log10(p_value))) +
-#           geom_point() + theme_bw()
-#```
 
-
-
-
-
-## Treemix
-- https://ppp.readthedocs.io/en/latest/PPP_pages/examples.html
-
-```bash
-conda activate py-popgen
-export LD_LIBRARY_PATH=/lustre/scratch118/infgen/team133/sd21/software/anaconda2/envs/py-popgen/lib/
-
-mkdir /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/TREEMIX
-cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/TREEMIX
-
-vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --max-missing 1 --keep ../../04_VARIANTS/GATK_HC_MERGED/nuclear_3x_animal.list --recode --stdout | gzip > treemix.vcf.gz
-
-./ldPruning.sh treemix.vcf.gz
-
-gzip treemix.noN.LDpruned.vcf
-
-
-
-bcftools query -l treemix.vcf.gz | awk '{split($1,pop,"."); print $1"\t"$1"\t"pop[2]}' > data.clust
-
-# this "data.clust" needs to be edited to put the population in
-
-cat data.clust | cut -f3 | sort | uniq > populations.list
-
-./vcf2treemix.sh treemix.LDpruned.vcf.gz data.clust
-
-
-# run treemix, across a range of migration edges, and across a range of seeds
-#--- the range of seeds is used by optM below to estimate the optimal number of edges.
-
-for i in {0..5}; do
-     for j in {0..5}; do
-          treemix -i treemix.LDpruned.treemix.frq.gz -seed $j -m $i -o treemix.m_$i.s_$j -root COLOBUS -bootstrap -k 500  > treemix_${i}_log &
-     done;
-done
-```
-
-```R
-library(RColorBrewer)
-library(R.utils)
-
-source("plotting_funcs.R")
-prefix="treemix"
-
-# plot trees across range of migration edges
-par(mfrow=c(2,6))
-
-pdf("treemix_edges_2-6.pdf")
-for(edge in 0:5){
-  plot_tree(cex=0.8,paste0(prefix,".m_",edge,".s_2"))
-  title(paste(edge,"edges"))
-}
-
-# plot residuals across range of migration edges - positive values suggest admixture
-for(edge in 0:5){
- plot_resid(stem=paste0(prefix,".m_",edge,".s_2"),pop_order="populations.list")
- title(paste(edge,"edges"))
-}
-dev.off()
-
-# Estimating the optimal number of migration edges : https://rdrr.io/cran/OptM/#vignettes
-# run in the folder with the treemix output files
-install.packages("OptM")
-library(OptM)
-
-optM(folder="./")
-
-#> The maximum value for delta m was 17.3577 at m = 2 edges.
-
-
-# remake the plots, using 2 migration edges
-prefix="treemix"
-
-par(mfrow=c(1,1))
-
-plot_tree(cex=0.8,paste0(prefix,".m_2.s_2"))
-title(paste(2,"edges"))
-
-plot_resid(stem=paste0(prefix,".",2),pop_order="populations.list")
-title(paste(1,"edges"))
-
-```
-
-### calculate the variance explained by the data
-- https://github.com/darencard/RADpipe/blob/master/treemixVarianceExplained.R
-```bash
-Rscript treemixVarianceExplained.R treemix.m_2.s_2
-
-#> Standard error for all entries in the covariance matrix estimated from the data	0.00053440209375
-#> Variance of relatedness between populations explained by the model	0.998712455493422
-```
-
-
-
-# ```bash
-# threepop -i treemix.LDpruned.treemix.frq.gz -k 500 > threepop.out
-# fourpop -i treemix.LDpruned.treemix.frq.gz -k 500 > fourpop.out
-#
-# cat threepop.out | grep ";" | grep -v "COLOBUS" | grep -v "LEAF" > threepop.out_2
-# cat fourpop.out | grep ";" | grep -v "COLOBUS" | grep -v "LEAF" > fourpop.out_2
-# ```
-# - plots
-# ```R
-# # load libraries
-# library(tidyverse)
-#
-# # load data
-# data <- read.table("threepop.out_2",header=F)
-# colnames(data) <- c("three_populations", "f_3", "std_error", "z_score")
-#
-# # plot f_3 (sorted) for each three population test
-# #-
-# ggplot(data, aes(f_3, reorder(three_populations, -f_3), col = z_score)) +
-#      geom_point(size = 2) +
-#      geom_segment(aes(x = f_3-std_error, y = three_populations, xend = f_3+std_error, yend = three_populations)) +
-#      theme_bw() +
-#      labs(x = "f3 statistic" , y = "")
-#
-# ggsave("plot_treemix_f3_statistics.png")
-#
-#
-# # load data
-# data <- read.table("fourpop.out_2",header=F)
-# colnames(data) <- c("four_populations", "f_4", "std_error", "z_score")
-#
-# # plot f_4 (sorted) for each three population test
-# #-
-# ggplot(data, aes(f_4, reorder(four_populations, -f_4), col = z_score)) +
-#      geom_point(size = 2) +
-#      geom_segment(aes(x = f_4-std_error, y = four_populations, xend = f_4+std_error, yend = four_populations)) +
-#      theme_bw() +
-#      labs(x = "f4 statistic" , y = "")
-#
-# ggsave("plot_treemix_f4_statistics.png")
-#
-# ```
-# - f3 stats
-# ![](../04_analysis/plot_treemix_f3_statistics.png)
-#
-# - f4 stats
-# ![](../04_analysis/plot_treemix_f4_statistics.png)
 
 
 
@@ -2792,6 +2836,10 @@ Rscript treemixVarianceExplained.R treemix.m_2.s_2
 ## Nucleotide diversity and Tajima's D
 
 ```bash
+# extract scaffolds in chromosome linkage groups
+#- this represents 72375426 of 80573711, or 89.83% of genome
+cat ../../01_REF/trichuris_trichiura.fa.fai | grep -v "Trichuris_trichiura_00_*" | grep -v "MITO" | awk '{print $1,1,$2}' OFS="\t" > chromosome_scaffolds.bed
+
 # extract nucleotide diversity for each group
 for i in ancient_x_nuclear_3x_animalPhonly.list \
 CHN_x_nuclear_3x_animalPhonly.list \
@@ -2799,8 +2847,8 @@ BABOON_x_nuclear_3x_animalPhonly.list \
 ECU_x_nuclear_3x_animalPhonly.list \
 HND_x_nuclear_3x_animalPhonly.list \
 UGA_x_nuclear_3x_animalPhonly.list; do \
-     vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --keep ${i} --window-pi 100000 --out ${i%.list};
-     vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --keep ${i} --TajimaD 100000 --out ${i%.list};
+     vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --keep ${i} --bed chromosome_scaffolds.bed --window-pi 50000 --out ${i%.list}_50k;
+     vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --keep ${i} --bed chromosome_scaffolds.bed --TajimaD 50000 --out ${i%.list}_50k;
 done
 
 
@@ -2820,13 +2868,13 @@ library(tidyverse)
 library(ggsci)
 
 # list file names
-file_names <- list.files(path = "./",pattern = "_x_nuclear_3x_animalPhonly.windowed.pi")
+file_names <- list.files(path = "./",pattern = "_x_nuclear_3x_animalPhonly_50k.windowed.pi")
 
 # load data using file names, and make a formatted data frame
 data <- purrr::map_df(file_names, function(x) {
 	data <- read.delim(x, header = T, sep="\t")
      data <- tibble::rowid_to_column(data, "NUM")
-	cbind(pop_id = gsub("_x_nuclear_3x_animalPhonly.windowed.pi","",x), data)
+	cbind(pop_id = gsub("_x_nuclear_3x_animalPhonly_50k.windowed.pi","",x), data)
 	})
 
 
@@ -2840,7 +2888,7 @@ ggplot(data,aes(pop_id,PI,col=pop_id)) +
 
 ggsave("plot_nucleotide_diversity_boxplot.png")
 
-ggplot(data,aes(NUM*100000,PI,col=CHROM, group=pop_id)) +
+ggplot(data,aes(NUM*50000,PI,col=CHROM, group=pop_id)) +
      geom_point() +
      labs(x = "Population" , y = "Nucleotide diversity (Pi)", col=NA) +
      theme_bw() +
@@ -2849,12 +2897,13 @@ ggplot(data,aes(NUM*100000,PI,col=CHROM, group=pop_id)) +
 
 
 
-plot_Pi <-  ggplot(data,aes(NUM*100000,PI,col=pop_id, group=pop_id)) +
-     geom_smooth(span = 0.1, se = FALSE) +
-     labs(x = "Population" , y = "Nucleotide diversity (Pi)", col= "Population") +
-     theme_bw() +
-     theme() +
-     scale_color_npg()
+ggplot(data,aes(NUM*50000,PI,col=CHROM, group=pop_id)) +
+          geom_point() +
+          labs(x = "Population" , y = "Tajima's D", col=NA) +
+          theme_bw() +
+          facet_grid(pop_id~.) +
+          theme(legend.position = "none") +
+          scale_color_npg()
 
 
 ggsave("plot_nucleotide_diversity_genomewide.png")
@@ -2870,13 +2919,13 @@ library(tidyverse)
 library(ggsci)
 
 # list file names
-file_names <- list.files(path = "./",pattern = "_x_nuclear_3x_animalPhonly.Tajima.D")
+file_names <- list.files(path = "./",pattern = "_x_nuclear_3x_animalPhonly_50k.Tajima.D")
 
 # load data using file names, and make a formatted data frame
 data <- purrr::map_df(file_names, function(x) {
 	data <- read.delim(x, header = T, sep="\t")
      data <- tibble::rowid_to_column(data, "NUM")
-	cbind(pop_id = gsub("_x_nuclear_3x_animalPhonly.Tajima.D","",x), data)
+	cbind(pop_id = gsub("_x_nuclear_3x_animalPhonly_50k.Tajima.D","",x), data)
 	})
 
 # plot boxplots and distributions of Tajima's D
@@ -2890,7 +2939,7 @@ ggplot(data,aes(pop_id,TajimaD,col=pop_id)) +
 
 ggsave("plot_tajimaD_boxplot.png")
 
-ggplot(data,aes(NUM*100000,TajimaD,col=CHROM, group=pop_id)) +
+ggplot(data,aes(NUM*50000,TajimaD,col=CHROM, group=pop_id)) +
      geom_point() +
      labs(x = "Population" , y = "Tajima's D", col=NA) +
      theme_bw() +
@@ -2901,7 +2950,7 @@ ggplot(data,aes(NUM*100000,TajimaD,col=CHROM, group=pop_id)) +
 ggsave("plot_tajimaD_genomewide.png")
 
 
-plot_tajD <-     ggplot(data,aes(NUM*100000,TajimaD,col=pop_id, group=pop_id)) +
+plot_tajD <-     ggplot(data,aes(NUM*50000,TajimaD,col=pop_id, group=pop_id)) +
      geom_smooth(span = 0.1, se = FALSE) +
      labs(x = "Population" , y = "Tajima's D", col= "Population") +
      theme_bw() +
@@ -2923,19 +2972,21 @@ BABOON_x_nuclear_3x_animalPhonly.list \
 CHN_x_nuclear_3x_animalPhonly.list \
 ECU_x_nuclear_3x_animalPhonly.list \
 HND_x_nuclear_3x_animalPhonly.list \
-UGA_x_nuclear_3x_animalPhonly.list; do \
+UGA_x_nuclear_3x_animalPhonly.list \
+AMERICAS_x_nuclear_3x_animalPhonly.list; do \
 
      for j in ancient_x_nuclear_3x_animalPhonly.list \
      BABOON_x_nuclear_3x_animalPhonly.list \
      CHN_x_nuclear_3x_animalPhonly.list \
      ECU_x_nuclear_3x_animalPhonly.list \
      HND_x_nuclear_3x_animalPhonly.list \
-     UGA_x_nuclear_3x_animalPhonly.list; do \
+     UGA_x_nuclear_3x_animalPhonly.list \
+     AMERICAS_x_nuclear_3x_animalPhonly.list; do \
 
-          if [[ "$i" == "$j" ]] || [[ -f ${i%_x_nuclear_3x_animalPhonly.list}_v_${j%_x_nuclear_3x_animalPhonly.list}_100k.windowed.weir.fst ]] || [[ -f ${j%_x_nuclear_3x_animalPhonly.list}_v_${i%_x_nuclear_3x_animalPhonly.list}_100k.windowed.weir.fst ]]; then
+          if [[ "$i" == "$j" ]] || [[ -f ${i%_x_nuclear_3x_animalPhonly.list}_v_${j%_x_nuclear_3x_animalPhonly.list}_50k.windowed.weir.fst ]] || [[ -f ${j%_x_nuclear_3x_animalPhonly.list}_v_${i%_x_nuclear_3x_animalPhonly.list}_50k.windowed.weir.fst ]]; then
                echo "Same, same, move on"
                else
-               vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --weir-fst-pop ${i} --weir-fst-pop ${j} --fst-window-size 100000 --out ${i%_x_nuclear_3x_animalPhonly.list}_v_${j%_x_nuclear_3x_animalPhonly.list}_100k;
+               vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --bed chromosome_scaffolds.bed --weir-fst-pop ${i} --weir-fst-pop ${j} --fst-window-size 50000 --out ${i%_x_nuclear_3x_animalPhonly.list}_v_${j%_x_nuclear_3x_animalPhonly.list}_50k;
           fi;
      done;
 done
@@ -2943,7 +2994,9 @@ done
 leafmonkey_colobus.list
 hq_modern_humanonly.list
 
-vcftools --gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --weir-fst-pop leafmonkey_colobus.list  --weir-fst-pop hq_modern_humanonly.list --fst-window-size 100000 --out human_vs_LMCG_100k
+vcftools --gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz --bed chromosome_scaffolds.bed --weir-fst-pop leafmonkey_colobus.list  --weir-fst-pop hq_modern_humanonly.list --fst-window-size 50000 --out human_vs_LMCG_50k
+
+
 ```
 
 
@@ -2955,13 +3008,13 @@ library(ggsci)
 library(patchwork)
 
 # list file names
-file_names <- list.files(path = "./",pattern = "_100k.windowed.weir.fst")
+file_names <- list.files(path = "./",pattern = "_50k.windowed.weir.fst")
 
 # load data using file names, and make a formatted data frame
 data <- purrr::map_df(file_names, function(x) {
 	data <- read.delim(x, header = T, sep="\t")
      data <- tibble::rowid_to_column(data, "NUM")
-	cbind(sample_pair = gsub("_100k.windowed.weir.fst","",x), data)
+	cbind(sample_pair = gsub("_50k.windowed.weir.fst","",x), data)
 	})
 
 
@@ -2978,7 +3031,7 @@ ggsave("plot_human_pop_pairwise_FST_boxplot.png")
 
 
 # plot genome-wide distributions of pairwise Fst analyses
-ggplot(data, aes(NUM*100000, WEIGHTED_FST, col=CHROM, group=sample_pair)) +
+ggplot(data, aes(NUM*50000, WEIGHTED_FST, col=CHROM, group=sample_pair)) +
      geom_point() +
      labs(x = "Population" , y = "WEIGHTED_FST", col=NA) +
      theme_bw() +
@@ -2994,32 +3047,41 @@ plot_pairwise_fst <- function(file) {
      # load and prep data
      data <- read.delim(file, header=T, sep="\t")
      data <- tibble::rowid_to_column(data, "NUM")
-     data$COMPARISON <- gsub("_100k.windowed.weir.fst","",file)
+     data$COMPARISON <- gsub("_50k.windowed.weir.fst","",file)
      # plot
-     ggplot(data, aes(NUM*100000, WEIGHTED_FST, col=CHROM)) +
-     geom_point() +
-     labs(x = "Population" , y = "WEIGHTED_FST", col=NA) +
+     ggplot(data, aes(NUM*50000, WEIGHTED_FST, col=CHROM)) +
+     geom_point(size=0.5) +
+     labs(x = "Genomic position (bp)" , y = "Weighted FST", col=NA) +
      theme_bw() + ylim(0,1) +
      facet_grid(COMPARISON~.) +
-     theme(legend.position = "none")
+     theme(legend.position = "none", text = element_text(size = 10))+
+     scale_color_npg()
 }
 
 # for main text
-BABOON_v_UGA_fst <- plot_pairwise_fst("BABOON_v_UGA_100k.windowed.weir.fst")
-human_vs_LMCG_fst <- plot_pairwise_fst("human_vs_LMCG_100k.windowed.weir.fst")
+CHN_v_UGA_fst <- plot_pairwise_fst("CHN_v_UGA_50k.windowed.weir.fst")
+UGA_v_AMERICAS <- plot_pairwise_fst("UGA_v_AMERICAS_50k.windowed.weir.fst")
+CHN_v_AMERICAS <- plot_pairwise_fst("CHN_v_AMERICAS_50k.windowed.weir.fst")
+BABOON_v_UGA_fst <- plot_pairwise_fst("BABOON_v_UGA_50k.windowed.weir.fst")
 
-BABOON_v_UGA_fst + human_vs_LMCG_fst + plot_layout(ncol=1)
-ggsave("plot_humananimal_pop_pairwise_FST_genomewide.png")
+CHN_v_UGA_fst + UGA_v_AMERICAS + CHN_v_AMERICAS + BABOON_v_UGA_fst + plot_layout(ncol=1)
+ggsave("plot_pairwise_FST_genomewide.pdf", width=170, height=150, units="mm")
 
-# for supplementary data
-CHN_v_UGA_fst <- plot_pairwise_fst("CHN_v_UGA_100k.windowed.weir.fst")
-CHN_v_ECU_fst <- plot_pairwise_fst("CHN_v_ECU_100k.windowed.weir.fst")
-ECU_v_UGA_fst <- plot_pairwise_fst("ECU_v_UGA_100k.windowed.weir.fst")
-
-CHN_v_UGA_fst + CHN_v_ECU_fst + ECU_v_UGA_fst + plot_layout(ncol=1)
-ggsave("plot_human_pop_pairwise_FST_genomewide.png")
-
-
+# BABOON_v_UGA_fst <- plot_pairwise_fst("BABOON_v_UGA_50k.windowed.weir.fst")
+# human_vs_LMCG_fst <- plot_pairwise_fst("human_vs_LMCG_50k.windowed.weir.fst")
+#
+# BABOON_v_UGA_fst + human_vs_LMCG_fst + plot_layout(ncol=1)
+# ggsave("plot_humananimal_pop_pairwise_FST_genomewide.png")
+#
+# # for supplementary data
+# CHN_v_UGA_fst <- plot_pairwise_fst("CHN_v_UGA_50k.windowed.weir.fst")
+# CHN_v_ECU_fst <- plot_pairwise_fst("CHN_v_ECU_50k.windowed.weir.fst")
+# ECU_v_UGA_fst <- plot_pairwise_fst("ECU_v_UGA_50k.windowed.weir.fst")
+#
+# CHN_v_UGA_fst + CHN_v_ECU_fst + ECU_v_UGA_fst + plot_layout(ncol=1)
+# ggsave("plot_human_pop_pairwise_FST_genomewide.png")
+#
+# ECU_V_HND <- plot_pairwise_fst("ECU_v_HND_50k.windowed.weir.fst")
 
 
 ```
@@ -3036,10 +3098,148 @@ ggsave("plot_human_pop_pairwise_FST_genomewide.png")
 
 
 
+### extracting top 1% of Fst values for each comparison
+```R
+
+extract_top_1 <- function(file){
+     require(tidyverse)
+     data <- read.table(file, header=T)
+     data_top1 <- data %>% filter(WEIGHTED_FST > quantile(WEIGHTED_FST, 0.99)) %>% select(CHROM:BIN_END,WEIGHTED_FST)
+     write.table(data_top1, file=paste0(file,".top1.coords"), row.names = F, col.names = F, quote = F, sep = '\t')
+}
+
+extract_top_1("UGA_v_AMERICAS_50k.windowed.weir.fst")
+extract_top_1("CHN_v_UGA_50k.windowed.weir.fst")
+extract_top_1("CHN_v_AMERICAS_50k.windowed.weir.fst")
+extract_top_1("BABOON_v_UGA_50k.windowed.weir.fst")
+
+```
+```bash
+
+# extract the overlapping genes in the top 1% datasets  
+for i in *top1.coords; do
+     bedtools intersect -b ${i} -a liftover_annotation.gff3 -wb |\
+     awk '$3=="gene" {print $9}' | cut -f1 -d ";" | cut -f2 -d ":" \
+     > ${i%.coords}.genes; done
+
+for i in *top1.coords; do
+     bedtools intersect -b ${i} -a liftover_annotation.gff3 -wb |\
+     awk -F '[\t]' '$3=="gene" {print $10,$11,$12,$13,$4,$5,$9}' OFS="\t" | cut -f1 -d ";" | sed 's/ID=gene://g' \
+     > ${i%.coords}.intersect; done
+
+# extract all gene IDs
+cat liftover_annotation.gff3 |\
+     awk '$3=="gene" {print $9}' |\
+     cut -f1 -d ";" | cut -f2 -d ":" \
+     > liftover_annotation.genelist
+
+# use gProfiler to determine intersection
+#>> no enriched genes found for any comparison
+```
+
+
+# testing correlation of Fst between UGA-CHN and UGA-Americas to see if there is variation shared by UGA-Americas that is not shared by UGA-China. If true, this might support independent migration into the Americas
+```R
+library(tidyverse)
+library(patchwork)
+
+
+uga_chn <- read.table("CHN_v_UGA_50k.windowed.weir.fst", header=T)
+uga_chn$pair <- "UGAvCHN"
+chn_americas <-read.table("CHN_v_AMERICAS_50k.windowed.weir.fst", header=T)
+chn_americas$pair <- "CHNvAMERICAS"
+uga_americas <-read.table("UGA_v_AMERICAS_50k.windowed.weir.fst", header=T)
+uga_americas <- "UGAvAMERICAS"
+
+data <- dplyr::bind_rows(uga_chn,chn_americas)
+data <- dplyr::bind_rows(data,chn_americas)
+
+
+uga_chn <- read.table("CHN_v_UGA_50k.windowed.weir.fst", header=T)
+chn_americas <-read.table("CHN_v_AMERICAS_50k.windowed.weir.fst", header=T)
+uga_americas <-read.table("UGA_v_AMERICAS_50k.windowed.weir.fst", header=T)
+
+data <- dplyr::inner_join(uga_chn,chn_americas,by=c("CHROM","BIN_START"))
+data <- dplyr::inner_join(data,uga_americas,by=c("CHROM","BIN_START"))
+data <- data %>% select(CHROM,BIN_START,WEIGHTED_FST.x,WEIGHTED_FST.y,WEIGHTED_FST)
+colnames(data) <- c("CHROM", "BIN_START", "FST_UGAvCHN", "FST_CHNvAMERICAS", "FST_UGAvAMERICAS")
 
 
 
+plot_1 <- ggplot(data, aes(FST_UGAvCHN, FST_UGAvAMERICAS)) +
+     geom_smooth(method = "lm", se = FALSE) +
+     geom_point(size=0.5) +
+     xlim(0,1) +
+     ylim(0,1) +
+     theme_bw()
 
+plot_2 <- ggplot(data, aes(FST_UGAvCHN, FST_CHNvAMERICAS)) +
+     geom_smooth(method = "lm", se = FALSE) +
+     geom_point(size=0.5) +
+     xlim(0,1) +
+     ylim(0,1)+
+     theme_bw()
+
+plot_3 <- ggplot(data, aes(FST_UGAvAMERICAS, FST_CHNvAMERICAS)) +
+     geom_smooth(method = "lm", se = FALSE) +
+     geom_point(size=0.5) +
+     xlim(0,1) +
+     ylim(0,1)+
+     theme_bw()
+
+plot_1 + plot_2 + plot_3 + plot_layout(ncol=3)
+```
+```bash
+# extract data from UGA_CHN_AMERICAS samples, no missing data, to calculate per site allele freq, whcih will be used to calculate private and shared site frequencies
+vcftools --gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz --max-missing 1 --keep UGA_x_nuclear_3x_animalPhonly.list --keep CHN_x_nuclear_3x_animalPhonly.list --keep AMERICAS_x_nuclear_3x_animalPhonly.list --recode --out UGA_CHN_AMERICAS
+#> After filtering, kept 2430928 out of a possible 6571976 Sites
+
+
+vcftools --vcf UGA_CHN_AMERICAS.recode.vcf --keep UGA_x_nuclear_3x_animalPhonly.list --freq --out UGA
+vcftools --vcf UGA_CHN_AMERICAS.recode.vcf --keep CHN_x_nuclear_3x_animalPhonly.list --freq --out CHN
+vcftools --vcf UGA_CHN_AMERICAS.recode.vcf --keep AMERICAS_x_nuclear_3x_animalPhonly.list --freq --out AMERICAS
+
+paste UGA.frq CHN.frq AMERICAS.frq > UGA_CHN_AMERICAS.freq
+
+# alt freq columns
+#UGA_ALT = 8
+#CHR_ALT = 16
+#AMERICAS_ALT = 24
+
+sed 's/:/\t/g' UGA_CHN_AMERICAS.freq | grep -v "CHROM" | cut -f8,16,24 > tmp; mv tmp UGA_CHN_AMERICAS.freq
+```
+
+```R
+R
+library(tidyverse)
+library(UpSetR)
+
+data <- read.table("UGA_CHN_AMERICAS.freq",header=F)
+colnames(data) <- c("UGA", "CHN", "AMERICAS")
+data <- data %>% mutate_if(is.numeric, ~1 * (. > 0.05))
+
+pdf(file="UGA_CHN_AMERICAS_shared_v_private_variants.pdf", onefile=FALSE)
+upset(data,sets.bar.color = "#56B4E9", point.size = 3.5, mainbar.y.label = "Shared variants above freq(alt) = 0.05", sets.x.label = "Variants")
+dev.off()
+
+data %>% group_by_all() %>% summarise(COUNT = n())
+
+
+```
+UGA   CHN AMERICAS   COUNT
+<dbl> <dbl>    <dbl>   <int>
+1     0     0        0 1525320
+2     0     0        1  148959
+3     0     1        0  104363
+4     0     1        1   61574
+5     1     0        0  192793
+6     1     0        1   24115
+7     1     1        0  140304
+8     1     1        1  233500
+
+private = 34.77177763%
+shared by all three = 25.78378283%
+shared by UGA and Americas, not China = 5.248175707%
 
 
 ### Phylogenetics
@@ -3181,3 +3381,308 @@ mu <- 2.7e-9
 gen <- 0.33
 data2 <- read.table("msmc2_out.final.txt", header=T)
 ggplot(data, aes(right_time_boundary/mu*gen,(1/lambda)/mu)) + geom_line() + scale_y_log10() + scale_x_log10()
+
+
+
+
+
+
+
+# beta tubulin
+vcftools --gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz --bed btubulin.exons.bed --site-pi --keep mod_human_samples.list --maf 0.01
+
+#> After filtering, kept 42 out of 73 Individuals
+#> After filtering, kept 9 out of a possible 6571976 Sites
+
+R
+library(tidyverse)
+library(ggsci)
+
+exons <- read.table("btubulin.exons.bed", header=T)
+nuc <- read.table("out.sites.pi", header=T)
+resistant_snps <- read.table("btubulin.canonicalresistantSNPs.bed",header=T)
+
+ggplot() +
+     geom_segment(data=exons, aes(x=min(start),xend=max(end),y=0.5,yend=0.5),col="black", size=2) +
+     geom_rect(data=exons,aes(xmin=start,ymin=0,xmax=end,ymax=1),fill="grey80") +
+     theme_bw() + ylim(-0.5,1.5) + labs(title="Beta-tubulin (TTRE_0000877201)",x="Genomic position (bp)", y="") +
+     geom_segment(data=resistant_snps, aes(x=start,xend=end,y=0,yend=1),col="orange", size=1) +
+     geom_segment(data=nuc, aes(x=POS,xend=POS,y=0,yend=1,col=PI), size=2) +
+     theme(axis.title.y=element_blank(),
+      axis.text.y=element_blank(),
+      axis.ticks.y=element_blank())
+
+
+
+
+
+file_names <- list.files(path = "./",pattern = "_x_nuclear_3x_animalPhonly_50k.windowed.pi")
+
+      # load data using file names, and make a formatted data frame
+nucdiv <- purrr::map_df(file_names, function(x) {
+ 	data <- read.delim(x, header = T, sep="\t")
+     data <- tibble::rowid_to_column(data, "NUM")
+ 	cbind(pop_id = gsub("_x_nuclear_3x_animalPhonly_50k.windowed.pi","",x), data)
+ 	})
+
+nucdiv <- dplyr::filter(nucdiv, grepl('Trichuris_trichiura_1_001', CHROM))
+
+
+ggplot(nucdiv,aes(NUM*50000,PI,col=CHROM, group=pop_id)) +
+     geom_point() +
+     labs(x = "Genomic position (bp)" , y = "Nucleotide diversity (Pi)", col=NA) +
+     theme_bw() +
+     facet_grid(pop_id~.) +
+     theme(legend.position = "none") +
+     geom_vline(xintercept=c(10684531,10686350))
+
+
+
+file_names <- list.files(path = "./",pattern = "_x_nuclear_3x_animalPhonly_50k.Tajima.D")
+
+tajD <- purrr::map_df(file_names, function(x) {
+      	data <- read.delim(x, header = T, sep="\t")
+          data <- tibble::rowid_to_column(data, "NUM")
+      	cbind(pop_id = gsub("_x_nuclear_3x_animalPhonly_50k.Tajima.D","",x), data)
+      	})
+
+tajD <- dplyr::filter(tajD, grepl('Trichuris_trichiura_1_001', CHROM))
+
+
+ggplot(tajD,aes(NUM*50000,TajimaD,col=CHROM, group=pop_id)) +
+          geom_point() +
+          labs(x = "Genomic position (bp)" , y = "Tajimas D", col=NA) +
+          theme_bw() +
+          facet_grid(pop_id~.) +
+          theme(legend.position = "none") +
+          geom_vline(xintercept=c(10684531,10686350))
+
+
+
+
+
+
+
+
+# Liftoff
+- need to identify genes in new genome assembly, which does not yet have a stable annotations
+- propose to simply lift over gene models from original annotation, simply for the purpose of asking, what genes are present
+- doesnt have to be perfect
+- using / trying the new "liftoff" tool - https://github.com/agshumate/Liftoff; https://doi.org/10.1093/bioinformatics/btaa1016
+
+
+
+
+
+
+```bash
+conda activate py37
+pip3 install liftoff --user
+conda install -c bioconda minimap2
+
+
+
+wget ftp://ftp.ebi.ac.uk/pub/databases/wormbase/parasite/releases/WBPS15/species/trichuris_trichiura/PRJEB535/trichuris_trichiura.PRJEB535.WBPS15.annotations.gff3.gz
+
+wget ftp://ftp.ebi.ac.uk/pub/databases/wormbase/parasite/releases/WBPS15/species/trichuris_trichiura/PRJEB535/trichuris_trichiura.PRJEB535.WBPS15.genomic.fa.gz
+
+liftoff -g trichuris_trichiura.PRJEB535.WBPS15.annotations.gff3.gz trichuris_trichiura.fa trichuris_trichiura.PRJEB535.WBPS15.genomic.fa -o newversion.gff -u unmapped_features.txt
+
+
+wc -l unmapped_features.txt
+#> 1199 unmapped_features.txt
+
+awk $3="gene" '{print}' newversion.gff
+#> 8451 genes
+
+
+
+# to be cross-compatible with Apollo, which has the same genome version but with updated scaffold names (changed by Faye after I had started the analysis), had to run the following on the genome and annotation
+
+perl rename_scaffolds.pl trichuris_trichiura.fa > trichuris_trichiura.renamed.fa
+
+perl rename_scaffolds.pl newversion.gff > newversion.renamed.gff
+
+# where "rename_scaffolds.pl" is:
+
+#!/usr/bin/env perl
+use strict;
+use warnings;
+while (<>){
+    s/Trichuris_trichiura/TTRE/;
+    s/_00_/_unplaced_/;
+    s/_1_/_chr1_/;
+    s/_2_001/_chr2/;
+    s/_3_/_chr3_/;
+    s/_[0]+/_scaffold/;
+    print $_;
+}
+
+# found that, becasue the original version has been annotated interpro descriptions etc, the liftover has misformatted some of the lines (in the same way that apollo dumps of the Haemonchus annotations were misformatted). To fix, ran the following:
+
+cat newversion.renamed.gff | while read LINE; do if [[ $LINE =~ (^TTRE*|\#) ]]; then echo -ne "\n${LINE} "; else echo -n "${LINE} ";fi; done > newversion.renamed.v2.gff3
+
+
+cat newversion.gff | while read LINE; do if [[ $LINE =~ (^Trichuris*|\#) ]]; then echo -ne "\n${LINE} "; else echo -n "${LINE} ";fi; done > newversion.v2.gff3
+
+echo -e "##gff-version 3" > UPDATED_annotation.gff3
+cat newversion.renamed.v2.gff3 | sort -k1,1 -k4,4n | sed '/^$/d' >> UPDATED_annotation.gff3
+
+
+```
+- ran really quickly, maybe a few minutes at most
+- shows 1199 features in the "unmapped_features.txt" - have not idea how "bad" this is, but possible ok(?) coming from a draft assembly to something that is more complete. Very likely some at least are errors, but possibly not a big deal for my use.
+- 8451 genes
+
+- will attempt to map protein sequences back to genome with exonerate
+
+```bash
+# extract protein sequences
+gffread <(zcat trichuris_trichiura.PRJEB535.WBPS15.annotations.gff3.gz) -g trichuris_trichiura.PRJEB535.WBPS15.genomic.fa -y old_proteins.fa
+gffread <(zcat trichuris_trichiura.PRJEB535.WBPS15.annotations.gff3.gz) -g trichuris_trichiura.PRJEB535.WBPS15.genomic.fa -x old_cds.fa
+
+# fix line lengths
+fastaq to_fasta -l0 old_proteins.fa tmp; mv tmp old_proteins.fa
+fastaq to_fasta -l0 old_cds.fa tmp; mv tmp old_cds.fa
+
+# extract protein sequences for the unmapped genes
+cat unmapped_features.txt | sed 's/'gene:'//g' | while read -r GENE; do grep -A1 ${GENE} old_proteins.fa >> unmapped_proteins.fa; done
+
+cat unmapped_features.txt | sed 's/'gene:'//g' | while read -r GENE; do grep -A1 ${GENE} old_cds.fa >> unmapped_cds.fa; done
+
+~sd21/bash_scripts/run_exonerate_splitter trichuris_trichiura.fa unmapped_proteins.fa
+
+cat split_exonerate*out | Exonerate_to_evm_gff3.pl - > merged_exonerate.output
+
+rm split_exonerate*out
+rm x*
+rm run_split*
+```
+
+
+
+# run diamond to query species
+```bash
+module load diamond/0.9.24--ha888412_1
+
+diamond blastp \
+--db /nfs/users/nfs_s/sd21/lustre118_link/databases/diamond/uniprot_ref_proteomes.dmnd \
+--query unmapped_proteins.fa \
+--outfmt 6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore staxids \
+--taxonnodes /nfs/users/nfs_s/sd21/lustre118_link/databases/diamond/nodes.dmp \
+--tmpdir /dev/shm \
+--taxonmap /nfs/users/nfs_s/sd21/lustre118_link/databases/diamond/prot.accession2taxid \
+--max-target-seqs 1 > unmapped_proteins.diamond.out
+
+diamond blastx \
+--db /nfs/users/nfs_s/sd21/lustre118_link/databases/diamond/uniprot_ref_proteomes.dmnd \
+--query unmapped_cds.fa \
+--outfmt 6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore staxids \
+--taxonnodes /nfs/users/nfs_s/sd21/lustre118_link/databases/diamond/nodes.dmp \
+--tmpdir /dev/shm \
+--taxonmap /nfs/users/nfs_s/sd21/lustre118_link/databases/diamond/prot.accession2taxid \
+--max-target-seqs 1 > unmapped_cds.diamond.out
+```
+cut -f4 unmapped_proteins.diamond.out | sort | uniq -c | sort -k1nr
+```
+
+796 of 1000 hits classified as contaminants
+204 not in uniprot refseq database
+
+588 83333 Escherichia coli K-12   
+204  No hit
+161 224308     Bacillus subtilis
+13 6239   Caenorhabditis elegans
+ 3 10090  Mus musculus
+ 3 224911 Bradyrhizobium diazoefficiens
+ 3 243274 Thermotoga maritima
+ 2 100226 Streptomyces coelicolor
+ 2 1111708     Synechocystis sp
+ 2 122586 Neisseria meningitidis
+ 2 190304 Fusobacterium nucleatum
+ 2 208964 Pseudomonas aeruginosa
+ 2 224324 Aquifex aeolicus
+ 2 7955   Danio rerio
+ 1 243090 Rhodopirellula baltica
+ 1 243230 Deinococcus radiodurans
+ 1 243232 Methanocaldococcus jannaschii
+ 1 273057 Saccharolobus solfataricus
+ 1 44689 Dictyostelium discoideum
+ 1 515635 Dictyoglomus turgidum
+ 1 7227 Drosophila melanogaster
+ 1 83332 Mycobacterium tuberculosis
+ 1 8364 Xenopus tropicalis
+ 1 85962 Helicobacter pylori
+ 1 9913 Bos taurus
+
+ cut -f13 unmapped_cds.diamond.out | sort | uniq -c | sort -k1nr
+     598 83333 Escherichia coli K-12   
+     206
+     161 224308  Bacillus subtilis
+      13 6239
+       3 10090
+       3 224911
+       3 243274
+       2 100226
+       2 1111708
+       2 122586
+       2 190304
+       2 208964
+       2 224324
+       2 7955
+       1 243090
+       1 243230
+       1 243232
+       1 273057
+       1 44689
+       1 515635
+       1 7227
+       1 83332
+       1 8364
+       1 85962
+       1 9913
+
+
+# busco
+
+
+```bash
+
+export PATH="/nfs/users/nfs_s/sd21/lustre118_link/software/anaconda2/pkgs/augustus-3.1-0/bin:$PATH"
+export PATH="/nfs/users/nfs_s/sd21/lustre118_link/software/anaconda2/pkgs/augustus-3.1-0/scripts:$PATH"
+export AUGUSTUS_CONFIG_PATH="/nfs/users/nfs_s/sd21/lustre118_link/software/anaconda2/pkgs/augustus-3.1-0/config"
+
+bsub.py --threads 20 --queue long 20 busco_tt_new "busco -i trichuris_trichiura.fa -l /nfs/users/nfs_s/sd21/lustre118_link/databases/busco/metazoa_odb9 -o new_assembly_metazoa --mode genome --long -sp caenorhabditis -f --cpu 20"
+
+bsub.py --threads 20 --queue long 20 busco_tt_old "busco -i trichuris_trichiura.PRJEB535.WBPS12.genomic.fa -l /nfs/users/nfs_s/sd21/lustre118_link/databases/busco/metazoa_odb9 -o old_assembly_metazoa --mode genome --long -sp caenorhabditis -f --cpu 20"
+```
+
+
+# Summarized benchmarking in BUSCO notation for file trichuris_trichiura.PRJEB535.WBPS12.genomic.fa
+# BUSCO was run in mode: genome
+
+C:81.9%[S:79.8%,D:2.1%],F:1.8%,M:16.3%,n:978
+
+801	Complete BUSCOs (C)
+780	Complete and single-copy BUSCOs (S)
+21	Complete and duplicated BUSCOs (D)
+18	Fragmented BUSCOs (F)
+159	Missing BUSCOs (M)
+978	Total BUSCO groups searched
+
+
+# Summarized benchmarking in BUSCO notation for file trichuris_trichiura.fa
+# BUSCO was run in mode: genome
+
+C:81.4%[S:79.3%,D:2.1%],F:1.7%,M:16.9%,n:978
+
+797	Complete BUSCOs (C)
+776	Complete and single-copy BUSCOs (S)
+21	Complete and duplicated BUSCOs (D)
+17	Fragmented BUSCOs (F)
+164	Missing BUSCOs (M)
+978	Total BUSCO groups searched
+
+
+
+bsub.py --threads 20 --queue long 20 busco_nz_bacteria "busco -i GCA_007637855.2_ASM763785v2_genomic.fna -l /nfs/users/nfs_s/sd21/lustre118_link/databases/busco/bacteria_odb10 -o nz_genome_bacteria --mode genome --long -f --cpu 20"
