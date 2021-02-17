@@ -3243,7 +3243,7 @@ data %>% group_by_all() %>% summarise(COUNT = n())
 - shared by UGA and Americas, not China = 5.248175707%
 
 ![](../04_analysis/UGA_CHN_AMERICAS_shared_v_private_variants.png)
-![](../04_analysis/UGA_CHN_AMERICAS_shared_v_private_variants.)
+![](../04_analysis/UGA_CHN_AMERICAS_shared_v_private_variants.pdf)
 
 
 
@@ -3573,31 +3573,30 @@ bsub.py --threads 20 --queue long 20 busco_tt_old "busco -i trichuris_trichiura.
 # Summarized benchmarking in BUSCO notation for file trichuris_trichiura.PRJEB535.WBPS12.genomic.fa
 # BUSCO was run in mode: genome
 
-C:81.9%[S:79.8%,D:2.1%],F:1.8%,M:16.3%,n:978
+- C:81.9%[S:79.8%,D:2.1%],F:1.8%,M:16.3%,n:978
 
-801	Complete BUSCOs (C)
-780	Complete and single-copy BUSCOs (S)
-21	Complete and duplicated BUSCOs (D)
-18	Fragmented BUSCOs (F)
-159	Missing BUSCOs (M)
-978	Total BUSCO groups searched
+- 801	Complete BUSCOs (C)
+- 780	Complete and single-copy BUSCOs (S)
+- 21	Complete and duplicated BUSCOs (D)
+- 18	Fragmented BUSCOs (F)
+- 159	Missing BUSCOs (M)
+- 978	Total BUSCO groups searched
 
 
 # Summarized benchmarking in BUSCO notation for file trichuris_trichiura.fa
 # BUSCO was run in mode: genome
 
-C:81.4%[S:79.3%,D:2.1%],F:1.7%,M:16.9%,n:978
+- C:81.4%[S:79.3%,D:2.1%],F:1.7%,M:16.9%,n:978
 
-797	Complete BUSCOs (C)
-776	Complete and single-copy BUSCOs (S)
-21	Complete and duplicated BUSCOs (D)
-17	Fragmented BUSCOs (F)
-164	Missing BUSCOs (M)
-978	Total BUSCO groups searched
+- 797	Complete BUSCOs (C)
+- 776	Complete and single-copy BUSCOs (S)
+- 21	Complete and duplicated BUSCOs (D)
+- 17	Fragmented BUSCOs (F)
+- 164	Missing BUSCOs (M)
+- 978	Total BUSCO groups searched
 
 
 
-bsub.py --threads 20 --queue long 20 busco_nz_bacteria "busco -i GCA_007637855.2_ASM763785v2_genomic.fna -l /nfs/users/nfs_s/sd21/lustre118_link/databases/busco/bacteria_odb10 -o nz_genome_bacteria --mode genome --long -f --cpu 20"
 
 
 
