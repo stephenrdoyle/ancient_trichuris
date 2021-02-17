@@ -3244,86 +3244,9 @@ shared by UGA and Americas, not China = 5.248175707%
 
 
 
-## Genome annotation
-
-
-- first, want to map get protein coding gene annotations onto reference assembly, which doesnt have any annotations
-- using liftoff () to transfer from
-- didnt realise this, but the mito genome in the assembly is quite different to Foth et al.
-     - only about 81% similarity
-- blastn at NCBI identified KT449826.1 as a much better match
-     - this had an annotation, so using that as the liftover
-     - downloaded both the fasta and GFF3 from NCBI
-
-```bash
-cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_REF
-
-conda activate liftoff
-
-liftoff -g KT449826.1.gff3 Trichuris_trichiura_MITO.fasta KT449826.1.fa -o Trichuris_trichiura_MITO.gff3
-
-
-```
-
-# make a mask of non-protein-coding regions
-cat Trichuris_trichiura_MITO.fasta.fai | cut -f1,2 > mito.genome
-bedtools complement -i Trichuris_trichiura_MITO.gff3 -g mito.genome > mito.mask.bed
 
 
 
-```
-cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/PHYLOGENY
-
-# downloaded reference fastas from ENA/ncbi
-KT449822.1_Trichuris_suis.fa
-KT449823.1_Trichuris_suis.fa
-KT449824.1_Trichuris_sp._baboon.fa
-KT449825.1_Trichuris_sp.TTB2.fa
-KT449826.1_Trichuris_trichiura.fa
-NC_002681.1_Trichinella_spiralis.fa
-NC_017747.1_Trichuris_suis.fa
-NC_017750.1_Trichuris_trichiura.fa
-NC_018596.1_Trichuris_discolor.fa
-NC_018597.1_Trichuris_ovis.fa
-NC_028621.1_Trichuris_muris.fa
-
-
-ln -s ../../04_VARIANTS/GATK_HC_MERGED/mito_samples3x_missing0.8.recode.vcf
-
-bgzip mito_samples3x_missing0.8.recode.vcf
-tabix -p vcf mito_samples3x_missing0.8.recode.vcf.gz
-
-bcftools query --list-samples mito_samples3x_missing0.8.recode.vcf > samples.list
-
-REF=../../01_REF/trichuris_trichiura.fa
-MITO_REF=Trichuris_trichiura_MITO
-VCF=mito_samples3x_missing0.8.recode.vcf.gz
-
-while read SAMPLE; do \
-     samtools faidx ${REF} ${MITO_REF} | bcftools consensus ${VCF} --missing N --output ${SAMPLE}.mito.fa --sample ${SAMPLE};
-done < samples.list
-
-# # mask to only include protein coding regions
-# while read SAMPLE; do \
-#      samtools faidx ${REF} ${MITO_REF} | bcftools consensus ${VCF} --mask /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_REF/mito.mask.bed --missing N --output ${SAMPLE}.mito.fa --sample ${SAMPLE};
-# done < samples.list
-
-
-# fix sample names in the file
-for i in *.mito.fa; do \
-     sed -i "s/Trichuris_trichiura_MITO/${i%.mito.fa}/" ${i};
-done
-
-# bring all of the pseudoreferences together with the ENA/NCBI references
-cat *mito.fa > all_pseudoreferences.fa
-
-
-module load mafft/7.407=1-c1
-
-bsub.py --threads 20 10 mafft "mafft --thread 20 --maxiterate 1000 --globalpair all_pseudoreferences.fa \> AN_MN_pseudomtDNA.aln"
-
-bsub.py --threads 20 10 mafft_refs "mafft --thread 20 --maxiterate 1000 --globalpair refs.fa \> refs.aln"
-```
 
 
 ## ANGSD
@@ -3369,12 +3292,15 @@ Figure: [covariance of IBS for nuclear markers](../04_analysis/nuclear_covarianc
 
 
 
-# beta tubulin
+## Analysis of variation within beta tubulin
+```bash
 vcftools --gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz --bed btubulin.exons.bed --site-pi --keep mod_human_samples.list --maf 0.01
 
 #> After filtering, kept 42 out of 73 Individuals
 #> After filtering, kept 9 out of a possible 6571976 Sites
+```
 
+```R
 R
 library(tidyverse)
 library(ggsci)
@@ -3444,7 +3370,7 @@ plot_btub_pi + plot_btub_taj + plot_layout(ncol=2)
 
 ggsave("btubulin_variation_scaffold.png")
 ggsave("btubulin_variation_scaffold.pdf")
-
+```
 
 
 
@@ -3454,10 +3380,6 @@ ggsave("btubulin_variation_scaffold.pdf")
 - propose to simply lift over gene models from original annotation, simply for the purpose of asking, what genes are present
 - doesnt have to be perfect
 - using / trying the new "liftoff" tool - https://github.com/agshumate/Liftoff; https://doi.org/10.1093/bioinformatics/btaa1016
-
-
-
-
 
 
 ```bash
@@ -3671,3 +3593,98 @@ C:81.4%[S:79.3%,D:2.1%],F:1.7%,M:16.9%,n:978
 
 
 bsub.py --threads 20 --queue long 20 busco_nz_bacteria "busco -i GCA_007637855.2_ASM763785v2_genomic.fna -l /nfs/users/nfs_s/sd21/lustre118_link/databases/busco/bacteria_odb10 -o nz_genome_bacteria --mode genome --long -f --cpu 20"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## mitochondrial Genome annotation
+
+
+- first, want to map get protein coding gene annotations onto reference assembly, which doesnt have any annotations
+- using liftoff () to transfer from
+- didnt realise this, but the mito genome in the assembly is quite different to Foth et al.
+     - only about 81% similarity
+- blastn at NCBI identified KT449826.1 as a much better match
+     - this had an annotation, so using that as the liftover
+     - downloaded both the fasta and GFF3 from NCBI
+
+```bash
+cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_REF
+
+conda activate liftoff
+
+liftoff -g KT449826.1.gff3 Trichuris_trichiura_MITO.fasta KT449826.1.fa -o Trichuris_trichiura_MITO.gff3
+
+
+```
+
+# make a mask of non-protein-coding regions
+cat Trichuris_trichiura_MITO.fasta.fai | cut -f1,2 > mito.genome
+bedtools complement -i Trichuris_trichiura_MITO.gff3 -g mito.genome > mito.mask.bed
+
+
+
+```
+cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/PHYLOGENY
+
+# downloaded reference fastas from ENA/ncbi
+KT449822.1_Trichuris_suis.fa
+KT449823.1_Trichuris_suis.fa
+KT449824.1_Trichuris_sp._baboon.fa
+KT449825.1_Trichuris_sp.TTB2.fa
+KT449826.1_Trichuris_trichiura.fa
+NC_002681.1_Trichinella_spiralis.fa
+NC_017747.1_Trichuris_suis.fa
+NC_017750.1_Trichuris_trichiura.fa
+NC_018596.1_Trichuris_discolor.fa
+NC_018597.1_Trichuris_ovis.fa
+NC_028621.1_Trichuris_muris.fa
+
+
+ln -s ../../04_VARIANTS/GATK_HC_MERGED/mito_samples3x_missing0.8.recode.vcf
+
+bgzip mito_samples3x_missing0.8.recode.vcf
+tabix -p vcf mito_samples3x_missing0.8.recode.vcf.gz
+
+bcftools query --list-samples mito_samples3x_missing0.8.recode.vcf > samples.list
+
+REF=../../01_REF/trichuris_trichiura.fa
+MITO_REF=Trichuris_trichiura_MITO
+VCF=mito_samples3x_missing0.8.recode.vcf.gz
+
+while read SAMPLE; do \
+     samtools faidx ${REF} ${MITO_REF} | bcftools consensus ${VCF} --missing N --output ${SAMPLE}.mito.fa --sample ${SAMPLE};
+done < samples.list
+
+# # mask to only include protein coding regions
+# while read SAMPLE; do \
+#      samtools faidx ${REF} ${MITO_REF} | bcftools consensus ${VCF} --mask /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_REF/mito.mask.bed --missing N --output ${SAMPLE}.mito.fa --sample ${SAMPLE};
+# done < samples.list
+
+
+# fix sample names in the file
+for i in *.mito.fa; do \
+     sed -i "s/Trichuris_trichiura_MITO/${i%.mito.fa}/" ${i};
+done
+
+# bring all of the pseudoreferences together with the ENA/NCBI references
+cat *mito.fa > all_pseudoreferences.fa
+
+
+module load mafft/7.407=1-c1
+
+bsub.py --threads 20 10 mafft "mafft --thread 20 --maxiterate 1000 --globalpair all_pseudoreferences.fa \> AN_MN_pseudomtDNA.aln"
+
+bsub.py --threads 20 10 mafft_refs "mafft --thread 20 --maxiterate 1000 --globalpair refs.fa \> refs.aln"
+```
