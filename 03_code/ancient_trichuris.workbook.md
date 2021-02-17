@@ -3570,30 +3570,26 @@ bsub.py --threads 20 --queue long 20 busco_tt_old "busco -i trichuris_trichiura.
 ```
 
 
-# Summarized benchmarking in BUSCO notation for file trichuris_trichiura.PRJEB535.WBPS12.genomic.fa
-# BUSCO was run in mode: genome
-
-- C:81.9%[S:79.8%,D:2.1%],F:1.8%,M:16.3%,n:978
-
-- 801	Complete BUSCOs (C)
-- 780	Complete and single-copy BUSCOs (S)
-- 21	Complete and duplicated BUSCOs (D)
-- 18	Fragmented BUSCOs (F)
-- 159	Missing BUSCOs (M)
-- 978	Total BUSCO groups searched
+- Summarized benchmarking in BUSCO notation for file trichuris_trichiura.PRJEB535.WBPS12.genomic.fa
+- BUSCO was run in mode: genome
+     - C:81.9%[S:79.8%,D:2.1%],F:1.8%,M:16.3%,n:978
+          - 801	Complete BUSCOs (C)
+          - 780	Complete and single-copy BUSCOs (S)
+          - 21	Complete and duplicated BUSCOs (D)
+          - 18	Fragmented BUSCOs (F)
+          - 159	Missing BUSCOs (M)
+          - 978	Total BUSCO groups searched
 
 
-# Summarized benchmarking in BUSCO notation for file trichuris_trichiura.fa
-# BUSCO was run in mode: genome
-
-- C:81.4%[S:79.3%,D:2.1%],F:1.7%,M:16.9%,n:978
-
-- 797	Complete BUSCOs (C)
-- 776	Complete and single-copy BUSCOs (S)
-- 21	Complete and duplicated BUSCOs (D)
-- 17	Fragmented BUSCOs (F)
-- 164	Missing BUSCOs (M)
-- 978	Total BUSCO groups searched
+- Summarized benchmarking in BUSCO notation for file trichuris_trichiura.fa
+- BUSCO was run in mode: genome
+     - C:81.4%[S:79.3%,D:2.1%],F:1.7%,M:16.9%,n:978
+          - 797	Complete BUSCOs (C)
+          - 776	Complete and single-copy BUSCOs (S)
+          - 21	Complete and duplicated BUSCOs (D)
+          - 17	Fragmented BUSCOs (F)
+          - 164	Missing BUSCOs (M)
+          - 978	Total BUSCO groups searched
 
 
 
