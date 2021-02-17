@@ -3222,7 +3222,8 @@ data %>% group_by_all() %>% summarise(COUNT = n())
 
 
 ```
-UGA   CHN AMERICAS   COUNT
+| UGA | CHN | AMERICAS | COUNT |
+| --- | --- | ---   | --- |
 <dbl> <dbl>    <dbl>   <int>
 1     0     0        0 1525320
 2     0     0        1  148959
