@@ -3242,7 +3242,7 @@ data %>% group_by_all() %>% summarise(COUNT = n())
 - shared by all three = 25.78378283%
 - shared by UGA and Americas, not China = 5.248175707%
 
-![](04_analysis/UGA_CHN_AMERICAS_shared_v_private_variants.png)
+![](../04_analysis/UGA_CHN_AMERICAS_shared_v_private_variants.png)
 
 
 
