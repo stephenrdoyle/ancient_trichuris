@@ -3224,19 +3224,18 @@ data %>% group_by_all() %>% summarise(COUNT = n())
 ```
 | UGA | CHN | AMERICAS | COUNT |
 | --- | --- | ---   | --- |
-<dbl> <dbl>    <dbl>   <int>
-1     0     0        0 1525320
-2     0     0        1  148959
-3     0     1        0  104363
-4     0     1        1   61574
-5     1     0        0  192793
-6     1     0        1   24115
-7     1     1        0  140304
-8     1     1        1  233500
+|    0    |    0    |    0    |    1525320   |
+|    0    |    0    |    1    |    148959 |
+|    0    |    1   |    0    |     104363     |
+|    0    |    1    |    1    |    61574     |
+|    1    |    0   |    0    |  192793     |
+|    1    |    0    |    1    |    24115 |
+|    1    |    1    |    0    |    140304 |
+|    1    |    1    |    1    |    233500    |
 
-private = 34.77177763%
-shared by all three = 25.78378283%
-shared by UGA and Americas, not China = 5.248175707%
+- private = 34.77177763%
+- shared by all three = 25.78378283%
+- shared by UGA and Americas, not China = 5.248175707%
 
 
 
