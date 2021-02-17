@@ -3205,8 +3205,8 @@ paste UGA.frq CHN.frq AMERICAS.frq > UGA_CHN_AMERICAS.freq
 sed 's/:/\t/g' UGA_CHN_AMERICAS.freq | grep -v "CHROM" | cut -f8,16,24 > tmp; mv tmp UGA_CHN_AMERICAS.freq
 ```
 
+- make some plots, and summary data
 ```R
-R
 library(tidyverse)
 library(UpSetR)
 
@@ -3217,6 +3217,11 @@ data <- data %>% mutate_if(is.numeric, ~1 * (. > 0.05))
 pdf(file="UGA_CHN_AMERICAS_shared_v_private_variants.pdf", onefile=FALSE)
 upset(data,sets.bar.color = "#56B4E9", point.size = 3.5, mainbar.y.label = "Shared variants above freq(alt) = 0.05", sets.x.label = "Variants")
 dev.off()
+
+png(file="UGA_CHN_AMERICAS_shared_v_private_variants.png")
+upset(data,sets.bar.color = "#56B4E9", point.size = 3.5, mainbar.y.label = "Shared variants above freq(alt) = 0.05", sets.x.label = "Variants")
+dev.off()
+
 
 data %>% group_by_all() %>% summarise(COUNT = n())
 
@@ -3237,7 +3242,7 @@ data %>% group_by_all() %>% summarise(COUNT = n())
 - shared by all three = 25.78378283%
 - shared by UGA and Americas, not China = 5.248175707%
 
-
+![](04_analysis/UGA_CHN_AMERICAS_shared_v_private_variants.png)
 
 
 
