@@ -524,7 +524,11 @@ ggsave("deamination_plot.png", height=5, width=10)
 - simplest solution is to remove the first two bases from all reads before moving forward
 
 
+```bash
+# can calculate the proportion of deamination damage in the 1st position as a proxy for overall damage to the reads
+ls -1 *bam | grep -v "trimmed" | while read -r BAM ; do data=$(samtools view ${BAM} | pmdtools --first --requirebaseq 30 --number=10000); echo -e "${BAM}\t${data}"; done
 
+```
 
 ### trim bases from reads in bam
 Using "bamUtils trimBam" to remove the 5' and 3' 2 bp from mapped reads
