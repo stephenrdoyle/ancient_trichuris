@@ -1786,23 +1786,24 @@ data <- data.frame(sample.id = pca$sample.id,
                   HOST = metadata$host,
                   stringsAsFactors = FALSE)
 
+country_colours <- c("CHN" = "#E64B35B2", "CMR" = "#4DBBD5B2", "DNK" = "#00A087B2", "ECU" = "#3C5488B2", "ESP" = "#F39B7FB2", "HND" = "#8491B4B2", "NLD" = "#91D1C2B2", "UGA" = "#DC0000B2")
 
-plot <- ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
+plot <- ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY),alpha=1) +
      geom_rect(aes(xmin=-0.14, ymin=-0.02, xmax=-0.06, ymax=0.04), fill=NA, col="black", linetype="dotted", size=0.3) +
-     geom_point(size=4) +
+     geom_point(size=4, alpha=1) +
      theme_bw() +
      labs(x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
-          scale_colour_npg()
+          scale_colour_manual(values = country_colours)
 
 
 plot_zoom <- ggplot(data, aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COUNTRY,"_",POPULATION,"_",HOST))) +
-     geom_point(size=4) +
+     geom_point(size=4, alpha=1) +
      theme_bw() +
      labs(x = "PC1",
           y = "PC2") +
      xlim(-0.14,-0.06) + ylim(-0.01, 0.03) +
-     scale_colour_npg()
+     scale_colour_manual(values = country_colours)
 
 plot + plot_zoom + plot_layout(guides = "collect")
 
@@ -1936,25 +1937,27 @@ data <- data.frame(sample.id = pca$sample.id,
                   HOST = metadata$host,
                   stringsAsFactors = FALSE)
 
+country_colours <- c("CHN" = "#E64B35B2", "CMR" = "#4DBBD5B2", "DNK" = "#00A087B2", "ECU" = "#3C5488B2", "ESP" = "#F39B7FB2", "HND" = "#8491B4B2", "NLD" = "#91D1C2B2", "UGA" = "#DC0000B2")
+
 
 ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
-     geom_point(size=4) +
+     geom_point(size=4, alpha=1) +
      theme_bw() +
      labs(x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
-          scale_colour_npg()
+          scale_colour_manual(values = country_colours, guide=FALSE)
 
 ggsave("plot_PCA_nuclear_samples3x_missing0.8_animalPhonly.pdf", height = 5, width = 5, useDingbats=FALSE)
 ggsave("plot_PCA_nuclear_samples3x_missing0.8_animalPhonly.png")
 
 
 ggplot(data,aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COUNTRY,"_",POPULATION,"_",HOST))) +
-     geom_text(size=4) +
+     geom_text(size=4, alpha=1) +
      theme_bw() +
      labs(title="nuclear_samples3x_missing0.8",
           x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
-          scale_colour_npg(guide = FALSE)
+          scale_colour_manual(values = country_colours, guide=FALSE)
 
 ggsave("plot_PCA_nuclear_samples3x_missing0.8_animalPhonly_2.png")
 ```
@@ -3692,3 +3695,17 @@ bsub.py --threads 20 10 mafft "mafft --thread 20 --maxiterate 1000 --globalpair 
 
 bsub.py --threads 20 10 mafft_refs "mafft --thread 20 --maxiterate 1000 --globalpair refs.fa \> refs.aln"
 ```
+
+
+for i in *trimmed.bam; do
+
+bcftools mpileup -C 50 --min-MQ 20 --min-BQ 30 --skip-indels ${i} --fasta-ref ../01_REF/trichuris_trichiura.fa --regions Trichuris_trichiura_MITO | bcftools call --ploidy 1 -c -Oz -o ${i%.trimmed.bam}.vcf.gz
+
+tabix ${i%.trimmed.bam}.vcf.gz
+
+bedtools complement -i ${i%.trimmed.bam}.vcf.gz -g mito.genome > mask.bed
+
+bcftools consensus --mask mask.bed --missing N -f ../01_REF/Trichuris_trichiura_MITO.fasta ${i%.trimmed.bam}.vcf.gz -o ${i%.trimmed.bam}.fa
+
+sed -i "s/Trichuris_trichiura_MITO/${i%.trimmed.bam}/g" ${i%.trimmed.bam}.fa;
+done
