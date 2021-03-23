@@ -1805,7 +1805,8 @@ plot_zoom <- ggplot(data, aes(EV1,EV2, col = COUNTRY, shape = TIME, label = past
      xlim(-0.14,-0.06) + ylim(-0.01, 0.03) +
      scale_colour_manual(values = country_colours)
 
-plot + plot_zoom + plot_layout(guides = "collect")
+
+
 
 ggsave("plot_PCA_mito_samples3x_missing0.8_noLF.png")
 ggsave("plot_PCA_mito_samples3x_missing0.8_noLF.pdf", height = 5, width = 11, useDingbats=FALSE)
@@ -1940,12 +1941,13 @@ data <- data.frame(sample.id = pca$sample.id,
 country_colours <- c("CHN" = "#E64B35B2", "CMR" = "#4DBBD5B2", "DNK" = "#00A087B2", "ECU" = "#3C5488B2", "ESP" = "#F39B7FB2", "HND" = "#8491B4B2", "NLD" = "#91D1C2B2", "UGA" = "#DC0000B2")
 
 
-ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
+nuc_plot <- ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
      geom_point(size=4, alpha=1) +
      theme_bw() +
      labs(x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
           scale_colour_manual(values = country_colours, guide=FALSE)
+
 
 ggsave("plot_PCA_nuclear_samples3x_missing0.8_animalPhonly.pdf", height = 5, width = 5, useDingbats=FALSE)
 ggsave("plot_PCA_nuclear_samples3x_missing0.8_animalPhonly.png")
@@ -2737,18 +2739,28 @@ bgzip ECU_v_CHN.recode.vcf
 tabix ECU_v_CHN.recode.vcf.gz
 
 mkdir ECU_v_CHN.SMC_DATA
-smc++ vcf2smc ECU_v_CHN.recode.vcf.gz ECU_v_CHN.SMC_DATA/ECU.smc.gz Trichuris_trichiura_2_001 ECU:MN_ECU_QUI_HS_001,MN_ECU_QUI_HS_002,MN_ECU_QUI_HS_004,MN_ECU_QUI_HS_005,MN_ECU_QUI_HS_006,MN_ECU_QUI_HS_007,MN_ECU_TEL_HS_001,MN_ECU_TEL_HS_002
-smc++ vcf2smc ECU_v_CHN.recode.vcf.gz ECU_v_CHN.SMC_DATA/CHN.smc.gz Trichuris_trichiura_2_001 CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007
 
+while read CHROMOSOME; do
+     smc++ vcf2smc ECU_v_CHN.recode.vcf.gz ECU_v_CHN.SMC_DATA/ECU.${CHROMOSOME}.smc.gz ${CHROMOSOME} ECU:MN_ECU_QUI_HS_001,MN_ECU_QUI_HS_002,MN_ECU_QUI_HS_004,MN_ECU_QUI_HS_005,MN_ECU_QUI_HS_006,MN_ECU_QUI_HS_007,MN_ECU_TEL_HS_001,MN_ECU_TEL_HS_002;
+done < chromosomes.list
+
+while read CHROMOSOME; do
+     smc++ vcf2smc ECU_v_CHN.recode.vcf.gz ECU_v_CHN.SMC_DATA/CHN.${CHROMOSOME}.smc.gz ${CHROMOSOME} CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007;
+done < chromosomes.list
 
 # mutation rate (C.elegans) = 2.7e-9 (https://www.pnas.org/content/106/38/163100)
-smc++ estimate -o ECU/ 2.7e-9 ECU_v_CHN.SMC_DATA/ECU.smc.gz
-smc++ estimate -o CHN/ 2.7e-9 ECU_v_CHN.SMC_DATA/CHN.smc.gz
+smc++ estimate -o ECU/ 2.7e-9 ECU_v_CHN.SMC_DATA/ECU.*.smc.gz
+smc++ estimate -o CHN/ 2.7e-9 ECU_v_CHN.SMC_DATA/CHN.*.smc.gz
 
 
 # # Next, create datasets containing the joint frequency spectrum for both populations:
-smc++ vcf2smc ECU_v_CHN.recode.vcf.gz ECU_v_CHN.SMC_DATA/pop12.smc.gz Trichuris_trichiura_2_001 ECU:MN_ECU_QUI_HS_001,MN_ECU_QUI_HS_002,MN_ECU_QUI_HS_004,MN_ECU_QUI_HS_005,MN_ECU_QUI_HS_006,MN_ECU_QUI_HS_007,MN_ECU_TEL_HS_001,MN_ECU_TEL_HS_002 CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007
-smc++ vcf2smc ECU_v_CHN.recode.vcf.gz ECU_v_CHN.SMC_DATA/pop21.smc.gz Trichuris_trichiura_2_001 CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007 ECU:MN_ECU_QUI_HS_001,MN_ECU_QUI_HS_002,MN_ECU_QUI_HS_004,MN_ECU_QUI_HS_005,MN_ECU_QUI_HS_006,MN_ECU_QUI_HS_007,MN_ECU_TEL_HS_001,MN_ECU_TEL_HS_002
+while read CHROMOSOME; do
+     smc++ vcf2smc ECU_v_CHN.recode.vcf.gz ECU_v_CHN.SMC_DATA/pop12.smc.gz ${CHROMOSOME} ECU:MN_ECU_QUI_HS_001,MN_ECU_QUI_HS_002,MN_ECU_QUI_HS_004,MN_ECU_QUI_HS_005,MN_ECU_QUI_HS_006,MN_ECU_QUI_HS_007,MN_ECU_TEL_HS_001,MN_ECU_TEL_HS_002 CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007;
+done < chromosomes.list
+
+while read CHROMOSOME; do
+     smc++ vcf2smc ECU_v_CHN.recode.vcf.gz ECU_v_CHN.SMC_DATA/pop21.smc.gz ${CHROMOSOME} CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007 ECU:MN_ECU_QUI_HS_001,MN_ECU_QUI_HS_002,MN_ECU_QUI_HS_004,MN_ECU_QUI_HS_005,MN_ECU_QUI_HS_006,MN_ECU_QUI_HS_007,MN_ECU_TEL_HS_001,MN_ECU_TEL_HS_002;
+done < chromosomes.list
 
 
 smc++ split -o ECU_v_CHN.split/ ECU/model.final.json CHN/model.final.json ECU_v_CHN.SMC_DATA/*.smc.gz
@@ -2789,18 +2801,29 @@ bgzip UGA_v_CHN.recode.vcf
 tabix UGA_v_CHN.recode.vcf.gz
 
 mkdir UGA_v_CHN.SMC_DATA
-smc++ vcf2smc UGA_v_CHN.recode.vcf.gz UGA_v_CHN.SMC_DATA/UGA.smc.gz Trichuris_trichiura_2_001 UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009
-smc++ vcf2smc UGA_v_CHN.recode.vcf.gz UGA_v_CHN.SMC_DATA/CHN.smc.gz Trichuris_trichiura_2_001 CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007
+
+while read CHROMOSOME; do
+     smc++ vcf2smc UGA_v_CHN.recode.vcf.gz UGA_v_CHN.SMC_DATA/UGA.${CHROMOSOME}.smc.gz ${CHROMOSOME} UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009;
+done < chromosomes.list
+
+while read CHROMOSOME; do
+     smc++ vcf2smc UGA_v_CHN.recode.vcf.gz UGA_v_CHN.SMC_DATA/CHN.${CHROMOSOME}.smc.gz ${CHROMOSOME} CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007;
+done < chromosomes.list
 
 
 # mutation rate (C.elegans) = 2.7e-9 (https://www.pnas.org/content/106/38/163100)
-smc++ estimate -o UGA/ 2.7e-9 UGA_v_CHN.SMC_DATA/UGA.smc.gz
-smc++ estimate -o CHN/ 2.7e-9 UGA_v_CHN.SMC_DATA/CHN.smc.gz
+smc++ estimate -o UGA/ 2.7e-9 UGA_v_CHN.SMC_DATA/UGA.*.smc.gz
+smc++ estimate -o CHN/ 2.7e-9 UGA_v_CHN.SMC_DATA/CHN.*.smc.gz
 
 
 # # Next, create datasets containing the joint frequency spectrum for both populations:
-smc++ vcf2smc UGA_v_CHN.recode.vcf.gz UGA_v_CHN.SMC_DATA/pop12.smc.gz Trichuris_trichiura_2_001 UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009 CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007
-smc++ vcf2smc UGA_v_CHN.recode.vcf.gz UGA_v_CHN.SMC_DATA/pop21.smc.gz Trichuris_trichiura_2_001 CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007 UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009
+while read CHROMOSOME; do
+     smc++ vcf2smc UGA_v_CHN.recode.vcf.gz UGA_v_CHN.SMC_DATA/pop12.${CHROMOSOME}.smc.gz ${CHROMOSOME} UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009 CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007;
+done < chromosomes.list
+
+while read CHROMOSOME; do
+     smc++ vcf2smc UGA_v_CHN.recode.vcf.gz UGA_v_CHN.SMC_DATA/pop21.${CHROMOSOME}.smc.gz ${CHROMOSOME} CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007 UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009;
+done < chromosomes.list
 
 
 smc++ split -o UGA_v_CHN.split/ UGA/model.final.json CHN/model.final.json UGA_v_CHN.SMC_DATA/*.smc.gz
