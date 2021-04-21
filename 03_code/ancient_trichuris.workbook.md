@@ -438,7 +438,7 @@ mkdir ${WORKING_DIR}/03_MAPPING/DEAMINATION
 # modern samples
 while read -r OLD_NAME NEW_NAME; do
 # To compute deamination-derived damage patterns separating CpG and non-CpG sites
-samtools view ${NEW_NAME}.bam | head -n 10000 | pmdtools --platypus --requirebaseq 30 > PMD_temp.txt ;
+samtools view ${NEW_NAME}.bam | pmdtools --platypus --requirebaseq 30 --number=10000 > PMD_temp.txt ;
 
 R CMD BATCH ${WORKING_DIR}/00_SCRIPTS/plotPMD.R ;
 
@@ -447,16 +447,15 @@ mv deamination_plot.png ${WORKING_DIR}/03_MAPPING/DEAMINATION/${NEW_NAME}.deamin
 # ancient samples
 while read -r NEW_NAME; do
 # To compute deamination-derived damage patterns separating CpG and non-CpG sites
-samtools view ${NEW_NAME}.bam | head -n 10000 | pmdtools --platypus --requirebaseq 30 > PMD_temp.txt ;
+samtools view ${NEW_NAME}.bam | pmdtools --platypus --requirebaseq 30 --number=10000 > PMD_temp.txt ;
 
 R CMD BATCH ${WORKING_DIR}/00_SCRIPTS/plotPMD.R ;
 
-mv deamination_plot.png ${WORKING_DIR}/03_MAPPING/DEAMINATION/${NEW_NAME}.deamination_plot.png ; done < ancient.sample_list_v2
+mv deamination_plot.png ${WORKING_DIR}/03_MAPPING/DEAMINATION/${NEW_NAME}.deamination_plot.png ; done < ../ancient.sample_list_v2
 
 
 
-# once finished, move all the plots into a new directory
-mkdir ${WORKING_DIR}/04_ANALYSES/deamination && mv ${WORKING_DIR}/03_MAPPING/*deamination_plot.png ${WORKING_DIR}/04_ANALYSES/deamination
+
 ```
 
 - where "plotPMD.R" is:
@@ -657,6 +656,7 @@ ggplot(nucmito,aes(V1,V4)) +
 
 library(tidyverse)
 library(ggsci)
+library(stringr)
 
 # list file names
 file_names <- list.files(path = "./",pattern = ".trimmed.100000_window.cov")
@@ -668,16 +668,23 @@ data <- purrr::map_df(file_names, function(x) {
      	cbind(sample_name = gsub(".trimmed.100000_window.cov","",x), data)
      	})
 colnames(data) <- c("sample_name", "NUM", "CHROM", "START", "END", "RAW_COVERAGE", "PROPORTION_COVERAGE")
+
+# remove mitochondrial genome and unplaced scaffolds
 data <- data[data$CHROM != "Trichuris_trichiura_MITO",]
+data <- data %>% filter(!str_detect(CHROM, "Trichuris_trichiura_00_"))
+
+# annotate sex linked scaffolds
+data$SEX <- str_detect(data$CHROM,"Trichuris_trichiura_1_")
 
 # plot boxplots and distributions of pairwise Fst analyses
-ggplot(data, aes(NUM, PROPORTION_COVERAGE/(median(PROPORTION_COVERAGE)), col = CHROM, group = sample_name)) +
-          geom_point(size=0.25) +
+ggplot(data, aes(NUM, PROPORTION_COVERAGE/(median(PROPORTION_COVERAGE)), col=SEX, group = sample_name)) +
+          geom_point(size=0.2) +
           labs( x = "Genome position" , y = "Relative coverage per 100kb window") +
           theme_bw() + theme(legend.position = "none", strip.text.x = element_text(size = 6)) +
-          facet_wrap(~sample_name, scales = "free_y")
+          facet_wrap(~sample_name, scales = "free_y")+scale_color_manual(values=rep(c("orange","blue"),2))+ theme_classic()
 
 ggsave("plot_relative_genomewide_coverage_allsamples.png")
+ggsave("plot_relative_genomewide_coverage_allsamples.pdf",height=10, width=20, useDingbats=FALSE)
 ```
 ![](../04_analysis/plot_relative_genomewide_coverage_allsamples.png)          
 
@@ -2642,21 +2649,21 @@ HND_data <- read.delim("SMCPP_HND.csv", header = T , sep = ",")
 HND_data$ID <- "HND"
 CHN_data <- read.delim("SMCPP_CHN.csv", header = T , sep = ",")
 CHN_data$ID <- "CHN"
-ANCIENT_data <- read.delim("SMCPP_ANCIENT.csv", header = T , sep = ",")
-ANCIENT_data$ID <- "ANCIENT"
+#ANCIENT_data <- read.delim("SMCPP_ANCIENT.csv", header = T , sep = ",")
+#ANCIENT_data$ID <- "ANCIENT"
 BABOON_data <- read.delim("SMCPP_BABOON.csv", header = T , sep = ",")
 BABOON_data$ID <- "BABOON"
 UGA_data <- read.delim("SMCPP_UGA.csv", header = T , sep = ",")
 UGA_data$ID <- "UGA"
 
-data <- bind_rows(ECU_data, HND_data, CHN_data, ANCIENT_data, BABOON_data, UGA_data)
+data <- bind_rows(ECU_data, HND_data, CHN_data, BABOON_data, UGA_data)
 
 
 ggplot(data,aes(x,y,col=ID)) +
-     geom_rect(aes(xmin=100000,ymin=0,xmax=200000,ymax=1.5E6), fill="grey95", col=NA) +
+     geom_rect(aes(xmin=50000,ymin=0,xmax=60000,ymax=1.0E6), fill="grey95", col=NA) +
      geom_line(size=1) +
      labs(x = "Years before present", y = "Effective population size (Ne)", col="Population") +
-     theme_bw() + scale_x_log10(labels = prettyNum) +
+     theme_bw() + scale_x_log10(labels = prettyNum) + ylim(0,1e6) +
      scale_colour_npg()
 
 ggsave("plot_smcpp_all_populations.png")
@@ -2878,6 +2885,17 @@ UGA_x_nuclear_3x_animalPhonly.list; do \
      vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --keep ${i} --bed chromosome_scaffolds.bed --TajimaD 50000 --out ${i%.list}_50k;
 done
 
+# summary stats for Pi
+for i in *_50k.windowed.pi;
+     do echo ${i}; cat ${i} | datamash --headers mean 5 sstdev 5;
+done
+
+# summary stats for TajD
+for i in *_50k.Tajima.D;
+     do echo ${i}; cat ${i} | datamash --headers mean 4 sstdev 4 --narm;
+done
+
+_50k.Tajima.D
 
 # other random vcftools analyses
 vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --indv-freq-burden --out nuclear_samples3x_missing0.8_animalPhonly
@@ -2965,6 +2983,7 @@ ggplot(data,aes(pop_id,TajimaD,col=pop_id)) +
      scale_color_npg()
 
 ggsave("plot_tajimaD_boxplot.png")
+ggsave("plot_tajimaD_boxplot.pdf", useDingbats=F, width=8, height=5)
 
 ggplot(data,aes(NUM*50000,TajimaD,col=CHROM, group=pop_id)) +
      geom_point() +
@@ -2975,7 +2994,7 @@ ggplot(data,aes(NUM*50000,TajimaD,col=CHROM, group=pop_id)) +
      scale_color_npg()
 
 ggsave("plot_tajimaD_genomewide.png")
-
+ggsave("plot_tajimaD_genomewide.pdf", useDingbats=F, width=7, height=7)
 
 plot_tajD <-     ggplot(data,aes(NUM*50000,TajimaD,col=pop_id, group=pop_id)) +
      geom_smooth(span = 0.1, se = FALSE) +
