@@ -682,6 +682,11 @@ ggsave("nuc_mito_cov_ratio.png")
 
 
 ### Genome-wide coverage to determine worm sex
+- using genome wide coverage data to iner the sex of the worms.
+- we know that "Trichuris_trichiura_1" lingage group is the X chromosome based on synteny with Trichuris muris
+- a ratio of this LG to other scaffolds should give the sex of the individual worms,
+- the pooled worms will be mixed sex, so should have an intermediate profile to that of either male or female individual worms.
+
 
 
 ```R
@@ -724,8 +729,7 @@ ggsave("plot_relative_genomewide_coverage_allsamples.pdf",height=10, width=20, u
 
 ![](../04_analysis/plot_relative_genomewide_coverage_allsamples.png)          
 
-- originally made these plots to determine re
-
+- originally made these plots to determine relative coverage of X to autosomes, but figured it'd be better simply to calculate the ratio and plot it, so I have dont that in the next section.
 
 
 ```bash
@@ -740,6 +744,7 @@ done > autosome_to_Xchromsome_cov.stat
 
 ```
 
+- and to plot the data
 ```R
 library(tidyverse)
 
@@ -784,7 +789,9 @@ ggsave("plot_x-to-autosome_ratio_sexdet.pdf",height=10, width=7, useDingbats=FAL
 
 ### Genome scope
 Using genomescope to estimate heterozygosity from a couple of samples which can be used as an input to GATK genotyping
+
 ```bash
+
 WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
 
 mkdir ${WORKING_DIR}/02_RAW/GENOMESCOPE
@@ -813,6 +820,7 @@ chmod a+x run_jellyfish2genomescope
 bsub.py --queue long --threads 10 20 jellyfish "./run_jellyfish2genomescope"
 
 ```
+
 - once completed, opened histo files in genomescope (http://qb.cshl.edu/genomescope/)
 - generally, the sequencing coverage was too low for this to work well. For most samples, the model failed to converge. However, some did work, shown below.
 - heterozygosities:
@@ -838,6 +846,7 @@ eg.
 ### GATK
 
 ```bash
+
 # working dir
 WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
 
@@ -917,12 +926,15 @@ while read BAM; do \
 
 	sleep 1
 done < ${BAM_LIST}
+
 ```
 
 
 
 ### Step 2. Gather the GVCFs to generate a merged GVCF
+
 ```bash
+
 # make a new directory for the merged GVCFS
 mkdir ${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED
 cd ${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED
@@ -948,27 +960,32 @@ chmod a+x *.run_merge_gvcfs.tmp.*
 
 # run
 for i in *.run_merge_gvcfs.tmp.*; do
-bsub.py --queue long --threads 4 10 merge_vcfs "./${i}"; done
-# threads make a big difference, even thoguh they are not a parameter in the tool
+     bsub.py --queue long --threads 4 10 merge_vcfs "./${i}";
+done
+
+# threads seem to make a big difference in run time, even though they are not a parameter in the tool
+
 ```
 
 
 
 
 ### Step 3. Split merged GVCF into individual sequences, and then genotype to generate a VCF
+
 ```bash
 # split each chromosome up into separate jobs, and run genotyping on each individually.   
 n=1
 while read SEQUENCE; do
-echo -e "gatk GenotypeGVCFs \
--R ${REFERENCE} \
--V ${SEQUENCE}.cohort.g.vcf.gz \
---intervals ${SEQUENCE} \
---heterozygosity 0.015 \
---indel-heterozygosity 0.01 \
---annotation DepthPerAlleleBySample --annotation Coverage --annotation ExcessHet --annotation FisherStrand --annotation MappingQualityRankSumTest --annotation StrandOddsRatio --annotation RMSMappingQuality --annotation ReadPosRankSumTest --annotation DepthPerSampleHC --annotation QualByDepth \
--O ${n}.${SEQUENCE}.cohort.vcf.gz" > run_hc_genotype.${SEQUENCE}.tmp.job_${n};
-let "n+=1"; done < ${WORKING_DIR}/04_VARIANTS/sequences.list
+     echo -e "gatk GenotypeGVCFs \
+     -R ${REFERENCE} \
+     -V ${SEQUENCE}.cohort.g.vcf.gz \
+     --intervals ${SEQUENCE} \
+     --heterozygosity 0.015 \
+     --indel-heterozygosity 0.01 \
+     --annotation DepthPerAlleleBySample --annotation Coverage --annotation ExcessHet --annotation FisherStrand --annotation MappingQualityRankSumTest --annotation StrandOddsRatio --annotation RMSMappingQuality --annotation ReadPosRankSumTest --annotation DepthPerSampleHC --annotation QualByDepth \
+     -O ${n}.${SEQUENCE}.cohort.vcf.gz" > run_hc_genotype.${SEQUENCE}.tmp.job_${n};
+     let "n+=1";
+done < ${WORKING_DIR}/04_VARIANTS/sequences.list
 
 chmod a+x run_hc_genotype*
 
@@ -991,8 +1008,8 @@ ls -1 *.cohort.vcf.gz | sort -n > vcf_files.list
 
 # merge them
 vcf-concat --files vcf_files.list > Trichuris_trichiura.cohort.vcf;
-bgzip Trichuris_trichiura.cohort.vcf;
-tabix -p vcf Trichuris_trichiura.cohort.vcf.gz
+     bgzip Trichuris_trichiura.cohort.vcf;
+     tabix -p vcf Trichuris_trichiura.cohort.vcf.gz
 
 # clean up
 rm run*
@@ -1073,7 +1090,7 @@ cd ${WORKING_DIR}/04_VARIANTS/SNP_FILTER
 ${WORKING_DIR}/00_SCRIPTS/run_variant-hardfilter.sh TT ${WORKING_DIR}/01_REF/trichuris_trichiura.fa ${WORKING_DIR}/04_VARIANTS/04_VARIANTS/Trichuris_trichiura.cohort.vcf.gz
 
 vcftools --vcf TT.filtered-2.vcf.recode.vcf
-#> After filtering, kept 73 out of 73 Individuals
+#> After filtering, kept 61 out of 61 Individuals
 #> After filtering, kept 9240001 out of a possible 9240001 Sites
 
 # apply the SNPable mask
@@ -1112,7 +1129,7 @@ data <- read.delim("map_metadata.txt", sep="\t", header=T)
 ggplot() +
   geom_polygon(data = world_map, aes(x = world_map$long, y = world_map$lat, group = world_map$group), fill="grey90") +
   geom_point(data = data, aes(x = LONGITUDE, y = LATITUDE, colour = REGION, shape = SAMPLE_AGE), size=3) +
-  geom_text_repel(data = data, aes(x = LONGITUDE, y = LATITUDE, label = paste0(COUNTRY," (",POPULATION_ID,"); n = ", SAMPLE_N)), size=3) +        
+  geom_text_repel(data = data, aes(x = LONGITUDE, y = LATITUDE, label = paste0(COUNTRY," (",POPULATION_ID,"); n = ", SAMPLE_N)), size=3, max.overlaps = Inf) +        
   theme_void() +
   ylim(-55,85) +
   labs(title="A", colour="", shape="") +
@@ -1121,8 +1138,10 @@ ggplot() +
 # save it
 ggsave("worldmap_samplingsites.png", height=5, width=12)
 ggsave("worldmap_samplingsites.pdf", height=5, width=12, useDingbats=FALSE)
+
 ```
-Figure: [map](../04_analysis/worldmap_samplingsites.pdf)
+
+
 - will use this as Figure 1A
 ![worldmap_samplingsites](../04_analysis/worldmap_samplingsites.png)
 
