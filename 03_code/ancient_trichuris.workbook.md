@@ -683,42 +683,6 @@ ggsave("nuc_mito_cov_ratio.png")
 
 ### Genome-wide coverage to determine worm sex
 
-```bash
-
-# extract mtDNA and nuclear (mean & stddev) data
-for i in *trimmed.chr.cov; do
-     name=${i%.trimmed.chr.cov};
-     autosome=$(grep -v "Trichuris_trichiura_1" ${i%.trimmed.chr.cov}.100000_window.cov | datamash mean 5 sstdev 5 );
-     xchromosome=$(grep "Trichuris_trichiura_1" ${i%.trimmed.chr.cov}.100000_window.cov | datamash mean 5 sstdev 5  );
-     echo -e "${name}\t${autosome}\t${xchromosome}";
-done > autosome_to_Xchromsome_cov.stat
-
-```
-
-```R
-library(tidyverse)
-
-cov_data <- read.table("autosome_to_Xchromsome_cov.stat")
-sample_type <- read.table("single_v_pooled_sampletype.txt")
-
-data <- left_join(cov_data,sample_type,by="V1")
-colnames(data) <- c("sample_name", "autosome_cov_mean", "autosome_cov_sd", "x_cov_mean", "x_cov_sd", "sample_type" )
-
-ggplot(data, aes(sample_name, x_cov_mean/autosome_cov_mean, col=sample_type)) +    
-     geom_point() +
-     labs(title="X-to-autosomal coverage ratio", x="Sample name", y="X-to-autosomal coverage ratio") +
-     theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-     ylim(0.35,1.2) +
-     coord_flip()
-
-ggsave("plot_x-to-autosome_ratio_sexdet.png")
-ggsave("plot_x-to-autosome_ratio_sexdet.pdf",height=10, width=5, useDingbats=FALSE)
-
-```
-
-![](../04_analysis/plot_x-to-autosome_ratio_sexdet.png)
-
-
 
 ```R
 
@@ -757,9 +721,51 @@ ggsave("plot_relative_genomewide_coverage_allsamples.png")
 ggsave("plot_relative_genomewide_coverage_allsamples.pdf",height=10, width=20, useDingbats=FALSE)
 
 ```
+
 ![](../04_analysis/plot_relative_genomewide_coverage_allsamples.png)          
 
+- originally made these plots to determine re
 
+
+
+```bash
+
+# extract mtDNA and nuclear (mean & stddev) data
+for i in *trimmed.chr.cov; do
+     name=${i%.trimmed.chr.cov};
+     autosome=$(grep "Trichuris_trichiura_2\|Trichuris_trichiura_3]" ${i%.trimmed.chr.cov}.100000_window.cov | datamash mean 5 sstdev 5 );
+     xchromosome=$(grep "Trichuris_trichiura_1" ${i%.trimmed.chr.cov}.100000_window.cov | datamash mean 5 sstdev 5  );
+     echo -e "${name}\t${autosome}\t${xchromosome}";
+done > autosome_to_Xchromsome_cov.stat
+
+```
+
+```R
+library(tidyverse)
+
+cov_data <- read.table("autosome_to_Xchromsome_cov.stat")
+sample_type <- read.table("single_v_pooled_sampletype.txt")
+
+data <- left_join(cov_data,sample_type,by="V1")
+colnames(data) <- c("sample_name", "autosome_cov_mean", "autosome_cov_sd", "x_cov_mean", "x_cov_sd", "sample_type" )
+
+ggplot(data, aes(sample_name, x_cov_mean/autosome_cov_mean, col=sample_type)) +    
+     geom_point() +
+     labs(title="X-to-autosomal coverage ratio", x="Sample name", y="X-to-autosomal coverage ratio") +
+     theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+     ylim(0.35,1.2) +
+     coord_flip()
+
+ggsave("plot_x-to-autosome_ratio_sexdet.png")
+ggsave("plot_x-to-autosome_ratio_sexdet.pdf",height=10, width=7, useDingbats=FALSE)
+
+```
+
+![](../04_analysis/plot_x-to-autosome_ratio_sexdet.png)
+
+- count 17 males based on ~0.5x coverage (XY)
+- count 17 females based on ~1X coverage
+     - note 2 with intermediate coverage, likely female by not clear
 
 ---
 
