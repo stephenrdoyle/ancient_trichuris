@@ -23,12 +23,12 @@
 
 ### Original sampling data
 - Modern genomes  from human hosts (49)
-     - Human worm isolates (35)
-          - Uganda (12), China (7), Ecuador (8), Honduras (8)
-     - Human egg isolates (14)
-          - Cameroon (5), Ethiopia (4), Tanzania (5)
+     - Human worm isolates (27)
+          - Uganda (12), China (7), Honduras (8)
+     - Human egg isolates (10)
+          - Cameroon (5), Tanzania (5)
 
-- Modern genomes  from non-human hosts (7)
+- Modern genomes from non-human hosts (7)
      - Worm isolates (7)
           - Baboon – Denmark (2), Colobus - Spain (2), Leaf-Monkey – China (3)
 
@@ -140,8 +140,8 @@ samtools dict trichuris_trichiura.fa > trichuris_trichiura.dict
 ---
 
 ## get the raw data
-- I received the raw sequnecing data from Peter on a hard drive, and copied all to the lustre environment as is into the directory 02_RAW
-- want to collect all of the fastq files into one place, and then begin processing them
+- I received the raw sequencing data from Peter on a hard drive, and copied all to the lustre environment as is into the directory 02_RAW
+- want to collect all of the FASTQ files into one place, and then begin processing them
 
 ```shell
 cd ${WORKING_DIR}/02_RAW
@@ -346,8 +346,13 @@ rm -r ${NEW_NAME}.*tmp*
 cd ${WORKING_DIR}/03_MAPPING
 
 # run the mapping jobs for modern and ancient samples
-while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_modern "${WORKING_DIR}/00_SCRIPTS/run_map_modern_PE.sh ${OLD_NAME} ${NEW_NAME}" ; done < ${WORKING_DIR}/modern.sample_list
-while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_otherPE "${WORKING_DIR}/00_SCRIPTS/run_map_modern_PE.sh ${OLD_NAME} ${NEW_NAME}" ; done < ${WORKING_DIR}/others_PE.sample_list
+while read OLD_NAME NEW_NAME; do
+     bsub.py --threads 4 20 mapping_modern "${WORKING_DIR}/00_SCRIPTS/run_map_modern_PE.sh ${OLD_NAME} ${NEW_NAME}" ;
+done < ${WORKING_DIR}/modern.sample_list
+
+while read OLD_NAME NEW_NAME; do
+     bsub.py --threads 4 20 mapping_otherPE "${WORKING_DIR}/00_SCRIPTS/run_map_modern_PE.sh ${OLD_NAME} ${NEW_NAME}" ;
+done < ${WORKING_DIR}/others_PE.sample_list
 
 # run the mapping jobs for the control and other samples
 #while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_ancient "${WORKING_DIR}/00_SCRIPTS/run_map_ancient_SE.sh ${OLD_NAME} ${NEW_NAME}" ; done < ${WORKING_DIR}/ancient.sample_list_v2
@@ -568,10 +573,15 @@ rm ${NAME}.tmp.bam
 ## Genome coverage
 
 ```bash
+cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/03_MAPPING/COV_STATS
+
 # run coverage stats
 bsub.py --queue long 5 cov "~sd21/bash_scripts/run_cov_stats 100000"
+
 ```
+
 where "run_cov_stats" is:
+
 ```bash
 ##########################################################################################
 # run_cov_stats
@@ -601,9 +611,11 @@ done
 for i in *.chr.cov; do printf "${i}\n" > ${i}.tmp | awk '{print $5}' OFS="\t" ${i} >> ${i}.tmp; done
 paste *.tmp > coverage_stats.summary
 rm *.tmp
+
 ```
 
 ### Generate quantitative stats on coverage for supplementary tables etc
+
 ```
 # extract mtDNA and nuclear (mean & stddev) data
 for i in *trimmed.chr.cov; do
@@ -612,6 +624,7 @@ for i in *trimmed.chr.cov; do
      mtDNA=$(grep "MITO" ${i} | cut -f5 );
      echo -e "${name}\t${nuc}\t${mtDNA}";
 done > nuc_mtDNA_coverage.stat
+
 ```
 
 - this data will go into a supplementary table
@@ -643,6 +656,13 @@ print(plot)
 # run function, reading in a specific sample, to plot coverage
  plot_cov("MN_UGA_KAB_HS_003.100000_window.cov","MN_UGA_KAB_HS_003.100000_window.cov")
 
+ ggsave("MN_UGA_KAB_HS_003.100000_window.cov.png")
+
+```
+
+![](../04_analysis/MN_UGA_KAB_HS_003.100000_window.cov.png)
+
+```bash
 
 # nuclear to mitochondrial DNA coverage ratio
 nucmito <- read.table("nuc_mtDNA_coverage.stats",header=F)
@@ -652,8 +672,58 @@ ggplot(nucmito,aes(V1,V4)) +
      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
      labs(title = "Nuclear to mitochondrial genome coverage ratio", y = "Coverage Ratio")
 
+ggsave("nuc_mito_cov_ratio.png")
+
+```
+
+![](../04_analysis/nuc_mito_cov_ratio.png)
 
 
+
+
+### Genome-wide coverage to determine worm sex
+
+```bash
+
+# extract mtDNA and nuclear (mean & stddev) data
+for i in *trimmed.chr.cov; do
+     name=${i%.trimmed.chr.cov};
+     autosome=$(grep -v "Trichuris_trichiura_1" ${i%.trimmed.chr.cov}.100000_window.cov | datamash mean 5 sstdev 5 );
+     xchromosome=$(grep "Trichuris_trichiura_1" ${i%.trimmed.chr.cov}.100000_window.cov | datamash mean 5 sstdev 5  );
+     echo -e "${name}\t${autosome}\t${xchromosome}";
+done > autosome_to_Xchromsome_cov.stat
+
+```
+
+```R
+library(tidyverse)
+
+cov_data <- read.table("autosome_to_Xchromsome_cov.stat")
+sample_type <- read.table("single_v_pooled_sampletype.txt")
+
+data <- left_join(cov_data,sample_type,by="V1")
+colnames(data) <- c("sample_name", "autosome_cov_mean", "autosome_cov_sd", "x_cov_mean", "x_cov_sd", "sample_type" )
+
+ggplot(data, aes(sample_name, x_cov_mean/autosome_cov_mean, col=sample_type)) +    
+     geom_point() +
+     labs(title="X-to-autosomal coverage ratio", x="Sample name", y="X-to-autosomal coverage ratio") +
+     theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+     ylim(0.35,1.2) +
+     coord_flip()
+
+ggsave("plot_x-to-autosome_ratio_sexdet.png")
+ggsave("plot_x-to-autosome_ratio_sexdet.pdf",height=10, width=5, useDingbats=FALSE)
+
+```
+
+![](../04_analysis/plot_x-to-autosome_ratio_sexdet.png)
+
+
+
+```R
+
+### Make some genome wide coverage plots
+# load libraries
 library(tidyverse)
 library(ggsci)
 library(stringr)
@@ -685,6 +755,7 @@ ggplot(data, aes(NUM, PROPORTION_COVERAGE/(median(PROPORTION_COVERAGE)), col=SEX
 
 ggsave("plot_relative_genomewide_coverage_allsamples.png")
 ggsave("plot_relative_genomewide_coverage_allsamples.pdf",height=10, width=20, useDingbats=FALSE)
+
 ```
 ![](../04_analysis/plot_relative_genomewide_coverage_allsamples.png)          
 
@@ -3602,6 +3673,41 @@ cut -f4 unmapped_proteins.diamond.out | sort | uniq -c | sort -k1nr
        1 8364
        1 85962
        1 9913
+
+
+
+
+## Running interproscan on liftoff annotation and making a list of Go terms per gene
+
+```bash
+# make a proteins file from annotation
+gffread -y PROTEINS.fa -g trichuris_trichiura.fa liftover_annotation.gff3
+
+# remove stop codons from protein sequences - IPS doesnt like it
+sed -e 's/\.//g' PROTEINS.fa > tmp; mv tmp PROTEINS.fa
+
+# load module
+module load interproscan/5.39-77.0-W01
+
+# run IPS
+farm_interproscan -a PROTEINS.fa -o IPS.output.gff
+
+# lift over GO terms from interproscan to GFF
+extract_interproscan_go_terms -i IPS.output.gff -e liftover_annotation.gff3
+
+
+
+# extract GO terms from mRNAs in GFF
+awk '$3=="mRNA" {print $0}' OFS="\t" liftover_annotation.gff3.go.gff | grep "Ontology_term" | cut -f 9 | cut -f3,4 -d ";" | sed -e 's/;/\t/g' -e 's/Name=//g' -e 's/"//g' -e 's/Ontology_term=//g' -e 's/-.*\t/\t/g' -e 's/,/\t/g' -e 's/\..*\t/\t/g' > annotation_GO_per_gene.txt
+
+# work through columns to split multiple go terms per gene into one term per gene, repeating the gene name if multiple GO terms present
+awk '{for(i=2; i<=NF; i++) {print $1,$i}}' OFS="\t" annotation_GO_per_gene.txt > annotation_GO_per_gene_split.txt
+```
+
+
+
+
+
 
 
 # busco
