@@ -86,9 +86,6 @@
 
 
 
-
-
-***
 ## working directory
 ```bash
 cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
@@ -98,12 +95,12 @@ WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
 
 ## Project setup
 ```shell
-mkdir 00_SCRIPTS 01_REF 02_RAW 03_MAPPING
+mkdir 00_SCRIPTS 01_REF 02_RAW 03_MAPPING 04_VARIANTS 05_ANALYSIS
 ```
 ---
 
 ## Reference
-- the reference is the unpublished Trichuris trichiura assembly
+- the reference is an unpublished Trichuris trichiura assembly generated 
 - this is a new assembly, rahter than an improvement from the original assembly published by Foth et al (2014)
      - this assembly is from worms extracted from Peter Nejsum that originated in Uganda, whereas the Foth assembly was from Ecuadorian worms.
 
@@ -1222,14 +1219,14 @@ bsub.py 1 select_mitoINDELs "gatk SelectVariants \
 
 
 # make a table of nuclear SNP data
-bsub.py --done "select_nuclearSNPs" 1 select_nuclearSNPs_table "gatk VariantsToTable \
+bsub.py 1 select_nuclearSNPs_table "gatk VariantsToTable \
 --reference ${REFERENCE} \
 --variant ${VCF%.vcf.gz}.nuclearSNPs.vcf \
 --fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
 --output GVCFall_nuclearSNPs.table"
 
 # make a table of nuclear INDEL data data
-bsub.py --done "select_nuclearINDELs"  1 select_nuclearINDELs_table "gatk VariantsToTable \
+bsub.py 1 select_nuclearINDELs_table "gatk VariantsToTable \
 --reference ${REFERENCE} \
 --variant ${VCF%.vcf.gz}.nuclearINDELs.vcf \
 --fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
@@ -1253,13 +1250,14 @@ bsub.py --done "select_mitoINDELs"  1 select_mitoINDELs_table "gatk VariantsToTa
 
 
 # make some density plots of the data
-bsub.py --done "select_mitoSNPs_table" --done "select_INDELs_table" 1 mito_variant_summaries "Rscript ${WORKING_DIR}/00_SCRIPTS/generate_variant_summaries.R"
+bsub.py 1 variant_summaries "Rscript ${WORKING_DIR}/00_SCRIPTS/plot_variant_summaries.R"
 ```
 
-where "generate_variant_summaries.R" is
+where "plot_variant_summaries.R" is:
+
 ```R
 
-library('ggplot2')
+
 library(patchwork)
 require(data.table)
 library(tidyverse)
@@ -1390,6 +1388,7 @@ fun_variant_summaries(VCF_mito,"mitochondrial")
 fun_variant_summaries(VCF_nuclear,"nuclear")
 
 ```
+
 - mitochondrial_variant_summaries
 ![plot_variant_summaries](../04_analysis/plot_mitochondrial_variant_summaries.png)
 - nuclear_variant_summaries
@@ -1419,6 +1418,28 @@ fun_variant_summaries(VCF_nuclear,"nuclear")
 - I think using the quantiles are the correct way to proceed.
 
 
+
+> fun_variant_summaries(VCF_nuclear,"nuclear")
+# A tibble: 16 x 6
+   Variant   `1%`    `5%`    `95%`    `99%` name
+   <fct>    <dbl>   <dbl>    <dbl>    <dbl> <chr>
+ 1 Indels  30.9    69.6   4237.    11458.   QUAL_Indels
+ 2 SNPs    46.9    72.0   8425.    17223.   QUAL_SNPs
+ 3 Indels  52     179      674       771    DP_indels
+ 4 SNPs    50     163      688       793    DP_SNPs
+ 5 Indels   3.11    8.70    34.4      36.4  QD_indels
+ 6 SNPs     3.28    8.98    34.2      36.1  QD_SNPs
+ 7 Indels   0       0        7.66     15.0  FS_indels
+ 8 SNPs     0       0        9.36     17.4  FS_SNPs
+ 9 Indels  38.4    43.4     60        60    MQ_indels
+10 SNPs    38.3    43.6     60        60    MQ_SNPs
+11 Indels  -3.00   -1.61     0.967     1.83 MQRankSum_indels
+12 SNPs    -2.77   -1.38     0.736     1.65 MQRankSum_SNPs
+13 Indels   0.142   0.368    2.83      3.91 SOR_indels
+14 SNPs     0.12    0.316    2.45      3.61 SOR_SNPs
+15 Indels  -2.17   -1.43     1.6       2.19 ReadPosRankSum_indels
+16 SNPs    -1.86   -1.19     1.53      2.17 ReadPosRankSum_SNPs
+
 ```bash
 # apply filtering to SNPs
 WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
@@ -1430,7 +1451,7 @@ VCF=${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED/Trichuris_trichiura.cohort.vcf.gz
 bsub.py 1 filter_nuclearSNPs "gatk VariantFiltration \
 --reference ${REFERENCE} \
 --variant ${VCF%.vcf.gz}.nuclearSNPs.vcf \
---filter-expression 'QUAL < 46 || DP < 187 || DP > 915 || MQ < 38.00 || SOR > 3.600 || QD < 3.00 || FS > 9.400 || MQRankSum < -2.800 || ReadPosRankSum < -1.800 || ReadPosRankSum > 2.200' \
+--filter-expression 'QUAL < 46 || DP < 50 || DP > 793 || MQ < 38.00 || SOR > 3.600 || QD < 3.00 || FS > 9.400 || MQRankSum < -2.800 || ReadPosRankSum < -1.800 || ReadPosRankSum > 2.200' \
 --filter-name "SNP_filtered" \
 --output ${VCF%.vcf.gz}.nuclearSNPs.filtered.vcf"
 
@@ -1443,18 +1464,39 @@ bsub.py 1 filter_nuclearINDELs "gatk VariantFiltration \
 
 
 
+> fun_variant_summaries(VCF_mito,"mitochondrial")
+
+# A tibble: 16 x 6
+   Variant     `1%`     `5%`      `95%`     `99%` name
+   <fct>      <dbl>    <dbl>      <dbl>     <dbl> <chr>
+ 1 Indels   107.     420.    184702.    420374.   QUAL_Indels
+ 2 SNPs      67.4    364.    363765.    631570.   QUAL_SNPs
+ 3 Indels  6357.    6990      26412.     33076.   DP_indels
+ 4 SNPs    5057.    6725.     25953.     30456.   DP_SNPs
+ 5 Indels     3.10     6.18      34.5       36.8  QD_indels
+ 6 SNPs       1.40     3.69      34.6       36.7  QD_SNPs
+ 7 Indels     0        0         21.2       75.7  FS_indels
+ 8 SNPs       0        0         33.8      127.   FS_SNPs
+ 9 Indels    40.0     43.2       59.9       60    MQ_indels
+10 SNPs      41.3     43.8       60         60    MQ_SNPs
+11 Indels    -3.83    -3.14       1.65       2.57 MQRankSum_indels
+12 SNPs      -6.31    -3.57       0.277      2.49 MQRankSum_SNPs
+13 Indels     0.108    0.284      8.12      10.6  SOR_indels
+14 SNPs       0.114    0.336      7.47      10.6  SOR_SNPs
+15 Indels    -4.50    -2.83       1.85       3.72 ReadPosRankSum_indels
+16 SNPs      -3.90    -1.97       2.05       4.12 ReadPosRankSum_SNPs
 
 bsub.py 1 filter_mitoSNPs "gatk VariantFiltration \
 --reference ${REFERENCE} \
 --variant ${VCF%.vcf.gz}.mitoSNPs.vcf \
---filter-expression ' QUAL < 66 || DP < 7069 || DP > 29011 || MQ < 41.00 || SOR > 10.000 || QD < 1.3 || FS > 38.00 || MQRankSum < -5.6 || ReadPosRankSum < -3.4 || ReadPosRankSum > 2.5000 ' \
+--filter-expression ' QUAL < 66 || DP < 5057 || DP > 30456 || MQ < 41.00 || SOR > 10.000 || QD < 1.4 || FS > 33.8 || MQRankSum < -6.3 || ReadPosRankSum < -3.9 || ReadPosRankSum > 4.1 ' \
 --filter-name "SNP_filtered" \
 --output ${VCF%.vcf.gz}.mitoSNPs.filtered.vcf"
 
 bsub.py 1 filter_mitoINDELs "gatk VariantFiltration \
 --reference ${REFERENCE} \
 --variant ${VCF%.vcf.gz}.mitoINDELs.vcf \
---filter-expression 'QUAL < 70 || DP < 6973 || DP > 27754 || MQ < 40.00 || SOR > 10.000 || QD < 2.90 || FS > 35.000 || ReadPosRankSum < -3.600 || ReadPosRankSum > 2.160' \
+--filter-expression 'QUAL < 107 || DP < 6357 || DP > 33076 || MQ < 40.00 || SOR > 10.000 || QD < 3.1 || FS > 21.2 || ReadPosRankSum < -4.5 || ReadPosRankSum > 3.7' \
 --filter-name "INDEL_filtered" \
 --output ${VCF%.vcf.gz}.mitoINDELs.filtered.vcf"
 
@@ -1471,10 +1513,10 @@ done
 
 | Filtered_VCF | Variants_PASS | Variants_FILTERED |
 | -- | -- | -- |
-| Trichuris_trichiura.cohort.mitoINDELs.filtered.vcf | 327 | 84 |
-| Trichuris_trichiura.cohort.mitoSNPs.filtered.vcf | 1988 | 482 |
-| Trichuris_trichiura.cohort.nuclearINDELs.filtered.vcf | 823352 | 169534 |
-| Trichuris_trichiura.cohort.nuclearSNPs.filtered.vcf | 8562739 | 1831430 |
+| Trichuris_trichiura.cohort.mitoINDELs.filtered.vcf | 339 | 53 |
+| Trichuris_trichiura.cohort.mitoSNPs.filtered.vcf | 2141 | 284 |
+| Trichuris_trichiura.cohort.nuclearINDELs.filtered.vcf | 847369 | 132345 |
+| Trichuris_trichiura.cohort.nuclearSNPs.filtered.vcf | 9052538 | 1097368 |
 
 ```
 
@@ -1493,56 +1535,56 @@ bsub.py 1 merge_nuclear_variants "gatk MergeVcfs \
 ```
 
 
-### Check depth per genotype per sample, and mask low coverage gts
-```
-bsub.py 1 select_mitoSNPs_GT \
-"gatk VariantsToTable \
- --reference ${REFERENCE} \
- --variant ${VCF%.vcf.gz}.mitoALL.filtered.vcf \
- --fields CHROM --fields POS --genotype-fields GT --genotype-fields DP \
- --output ${VCF%.vcf.gz}.mitoALL.filtered.DP.table"
-
- bsub.py 1 select_nuclearSNPs_GT \
- "gatk VariantsToTable \
-  --reference ${REFERENCE} \
-  --variant ${VCF%.vcf.gz}.nuclearALL.filtered.vcf \
-  --fields CHROM --fields POS --genotype-fields GT --genotype-fields DP \
-  --output ${VCF%.vcf.gz}.nuclearALL.filtered.DP.table"
-
-
-
-# make per sample depth datasets
-ncol=$(awk 'NR==1{print NF}' ${VCF%.vcf.gz}.mitoALL.filtered.DP.table)
-for ((i=3; i<=${ncol}; i +=2)); do cut -f $i,$((i+1)) ${VCF%.vcf.gz}.mitoALL.filtered.DP.table | awk '$1 != "./." {print $2}' > $i.mito.DP; done
-
-ncol=$(awk 'NR==1{print NF}' ${VCF%.vcf.gz}.nuclearALL.filtered.DP.table)
-for ((i=3; i<=${ncol}; i +=2)); do cut -f $i,$((i+1)) ${VCF%.vcf.gz}.nuclearALL.filtered.DP.table | awk '$1 != "./." {print $2}' > $i.nuclear.DP; done
-```
-
-```R
-nameList <- c()
-for (i in 3:147) { # 21 - odd number for 10 samples
-  if (i %% 2==1) nameList <- append(nameList,paste0(i,".mito.DP"))
-}
-
-qlist <- matrix(nrow = 73, ncol = 3) # define number of samples (10 samples here)
-qlist <- data.frame(qlist, row.names=nameList)
-colnames(qlist)<-c('5%', '10%', '99%')
-
-for (i in 1:73) {
-  DP <- read.table(nameList[i], header = T)
-  qlist[i,] <- quantile(DP[,1], c(.05, .1, .99), na.rm=T)
-  d <- density(DP[,1], from=0, to=100, bw=1, na.rm=T)
-  ggplot(DP,aes(x=DP[,1])) +
-       geom_density() +
-       geom_vline(xintercept=c(qlist[i,1],qlist[i,3]), col='red', lwd=1) +
-       theme_bw() +
-       labs(title = paste0("Sample: ",colnames(DP)), x= "Coverage")
-       ggsave(paste0(colnames(DP),"mitoALL.filtered.DP.png"))
-}
-```
-- example of depth plot - these plots have been made for all samples.
-![GVCFall.DP.png](../04_analysis/AN_DNK_COG_EN_0012.DPmitoALL.filtered.DP.png)
+# ### Check depth per genotype per sample, and mask low coverage gts
+# ```
+# bsub.py 1 select_mitoSNPs_GT \
+# "gatk VariantsToTable \
+#  --reference ${REFERENCE} \
+#  --variant ${VCF%.vcf.gz}.mitoALL.filtered.vcf \
+#  --fields CHROM --fields POS --genotype-fields GT --genotype-fields DP \
+#  --output ${VCF%.vcf.gz}.mitoALL.filtered.DP.table"
+#
+#  bsub.py 1 select_nuclearSNPs_GT \
+#  "gatk VariantsToTable \
+#   --reference ${REFERENCE} \
+#   --variant ${VCF%.vcf.gz}.nuclearALL.filtered.vcf \
+#   --fields CHROM --fields POS --genotype-fields GT --genotype-fields DP \
+#   --output ${VCF%.vcf.gz}.nuclearALL.filtered.DP.table"
+#
+#
+#
+# # make per sample depth datasets
+# ncol=$(awk 'NR==1{print NF}' ${VCF%.vcf.gz}.mitoALL.filtered.DP.table)
+# for ((i=3; i<=${ncol}; i +=2)); do cut -f $i,$((i+1)) ${VCF%.vcf.gz}.mitoALL.filtered.DP.table | awk '$1 != "./." {print $2}' > $i.mito.DP; done
+#
+# ncol=$(awk 'NR==1{print NF}' ${VCF%.vcf.gz}.nuclearALL.filtered.DP.table)
+# for ((i=3; i<=${ncol}; i +=2)); do cut -f $i,$((i+1)) ${VCF%.vcf.gz}.nuclearALL.filtered.DP.table | awk '$1 != "./." {print $2}' > $i.nuclear.DP; done
+# ```
+#
+# ```R
+# nameList <- c()
+# for (i in 3:147) { # 21 - odd number for 10 samples
+#   if (i %% 2==1) nameList <- append(nameList,paste0(i,".mito.DP"))
+# }
+#
+# qlist <- matrix(nrow = 73, ncol = 3) # define number of samples (10 samples here)
+# qlist <- data.frame(qlist, row.names=nameList)
+# colnames(qlist)<-c('5%', '10%', '99%')
+#
+# for (i in 1:73) {
+#   DP <- read.table(nameList[i], header = T)
+#   qlist[i,] <- quantile(DP[,1], c(.05, .1, .99), na.rm=T)
+#   d <- density(DP[,1], from=0, to=100, bw=1, na.rm=T)
+#   ggplot(DP,aes(x=DP[,1])) +
+#        geom_density() +
+#        geom_vline(xintercept=c(qlist[i,1],qlist[i,3]), col='red', lwd=1) +
+#        theme_bw() +
+#        labs(title = paste0("Sample: ",colnames(DP)), x= "Coverage")
+#        ggsave(paste0(colnames(DP),"mitoALL.filtered.DP.png"))
+# }
+# ```
+# - example of depth plot - these plots have been made for all samples.
+# ![GVCFall.DP.png](../04_analysis/AN_DNK_COG_EN_0012.DPmitoALL.filtered.DP.png)
 
 
 
@@ -1601,18 +1643,18 @@ vcftools \
 --recode-INFO-all \
 --out ${VCF%.vcf.gz}.nuclear_variants.final
 
-#> After filtering, kept 73 out of 73 Individuals
-#> After filtering, kept 6571976 out of a possible 11387043 Sites
+#> After filtering, kept 61 out of 61 Individuals
+#> After filtering, kept 6933531 out of a possible 11129608 Sites
 
 #--- nuclear SNPs
 vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --remove-indels
-#> After filtering, kept 73 out of 73 Individuals
-#> After filtering, kept 6007881 out of a possible 6571976 Sites
+#> After filtering, kept 61 out of 61 Individuals
+#> After filtering, kept 6341683 out of a possible 6933531 Sites
 
 #--- nuclear  INDELs
 vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --keep-only-indels
-#> After filtering, kept 73 out of 73 Individuals
-#> After filtering, kept 564095 out of a possible 6571976 Sites
+#> After filtering, kept 61 out of 61 Individuals
+#> After filtering, kept 591848 out of a possible 6933531 Sites
 
 
 # filter mitochondrial variants
@@ -1627,25 +1669,26 @@ vcftools \
 --recode-INFO-all \
 --out ${VCF%.vcf.gz}.mito_variants.final
 
-#> After filtering, kept 73 out of 73 Individuals
-#> After filtering, kept 1647 out of a possible 2869 Sites
+gzip -f ${VCF%.vcf.gz}.mito_variants.final.recode.vcf
+#> After filtering, kept 61 out of 61 Individuals
+#> After filtering, kept 1888 out of a possible 2805 Sites
 
 #--- mito SNPs
 vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --remove-indels
-#After filtering, kept 73 out of 73 Individuals
-#After filtering, kept 1480 out of a possible 1647 Sites
+#> After filtering, kept 61 out of 61 Individuals
+#> After filtering, kept 1691 out of a possible 1888 Sites
 
 #--- mito INDELs
 vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --keep-only-indels
-#> After filtering, kept 73 out of 73 Individuals
-#> After filtering, kept 167 out of a possible 1647 Sites
+#> After filtering, kept 61 out of 61 Individuals
+#> After filtering, kept 197 out of a possible 1888 Sites
 ```
 - final SNP numbers
 
 | dataset | total | SNPs | Indels |
 | ---     | --- | --- | --- |
-| Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf | 6571976 | 6007881 | 564095 |
-| Trichuris_trichiura.cohort.mito_variants.final.recode.vcf | 1647 | 1480 | 167 |
+| Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf | 6933531 | 6341683 | 591848 |
+| Trichuris_trichiura.cohort.mito_variants.final.recode.vcf | 1888 | 1691 | 197 |
 
 
 
@@ -1714,11 +1757,11 @@ vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --missi
 ```bash
 # mtDNA
 vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --TsTv-summary
-#> Ts/Tv ratio: 6.397
+#> Ts/Tv ratio: 6.417
 
 # nuclear
 vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --TsTv-summary
-#> Ts/Tv ratio: 2.266
+#> Ts/Tv ratio: 2.281
 ```
 - higher in the mtDNA but seems pretty "normal" in the nuclear datasets.
 
@@ -1735,28 +1778,28 @@ vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --Ts
 ### human + animals + 2 good ancients
 
 vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --max-missing 0.8 --keep hq_modern.list
-#> After filtering, kept 44 out of 73 Individuals
-#> After filtering, kept 6852326 out of a possible 8069926 Sites
+#> After filtering, kept 36 out of 61 Individuals
+#> After filtering, kept 5801129 out of a possible 6933531 Sites
 
 vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --max-missing 0.9 --keep hq_modern.list
-#> After filtering, kept 44 out of 73 Individuals
-#> After filtering, kept 3800952 out of a possible 8069926 Sites
+#> After filtering, kept 36 out of 61 Individuals
+#> After filtering, kept 2746370 out of a possible 6933531 Sites
 
 vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --max-missing 1 --keep hq_modern.list
-#> After filtering, kept 44 out of 73 Individuals
-#> After filtering, kept 338960 out of a possible 8069926 Sites
+#> After filtering, kept 36 out of 61 Individuals
+#> After filtering, kept 356541 out of a possible 6933531 Sites
 
 
 ### human + 2 good ancients (no animals)
 
 vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --max-missing 1 --keep hq_modern_humanonly.list
-#> After filtering, kept 37 out of 73 Individuals
-#> After filtering, kept 1065275 out of a possible 8069926 Sites
+#> After filtering, kept 29 out of 61 Individuals
+#> After filtering, kept 1023779 out of a possible 6933531 Sites
 
 
 vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --max-missing 0.8 --keep hq_modern_humanonly.list
-#> After filtering, kept 37 out of 73 Individuals
-#> After filtering, kept 7596177 out of a possible 8069926 Sites
+#> After filtering, kept 29 out of 61 Individuals
+#> After filtering, kept 6419884 out of a possible 6933531 Sites
 ```
 
 
@@ -1769,30 +1812,32 @@ for i in 0.7 0.8 0.9 1; do
 done
 
 # max-missing = 0.7
-After filtering, kept 59 out of 73 Individuals
-After filtering, kept 1201 out of a possible 1647 Sites
+#> After filtering, kept 51 out of 61 Individuals
+#> After filtering, kept 1541 out of a possible 1888 Sites
 
 # max-missing = 0.8
-After filtering, kept 59 out of 73 Individuals
-After filtering, kept 869 out of a possible 1647 Sites
+#> After filtering, kept 51 out of 61 Individuals
+#> After filtering, kept 1159 out of a possible 1888 Sites
 
 # max-missing = 0.9
-After filtering, kept 59 out of 73 Individuals
-After filtering, kept 403 out of a possible 1647 Sites
+#> After filtering, kept 51 out of 61 Individuals
+#> After filtering, kept 567 out of a possible 1888 Sites
 
 # max-missing = 1
-After filtering, kept 59 out of 73 Individuals
-After filtering, kept 11 out of a possible 1647 Sites
+#> After filtering, kept 51 out of 61 Individuals
+#> After filtering, kept 17 out of a possible 1888 Sites
 
 
-cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/PCA
 
-vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf \
+
+vcftools --gzvcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf.gz \
      --keep mtDNA_3x.list \
      --max-missing 0.8 \
      --recode --recode-INFO-all \
      --out mito_samples3x_missing0.8
-#> After filtering, kept 869 out of a possible 1647 Sites
+
+gzip -f mito_samples3x_missing0.8.recode.vcf
+#> After filtering, kept 1159 out of a possible 1888 Sites
 ```
 
 ```R
@@ -1847,14 +1892,16 @@ ggsave("plot_PCA_mito_samples3x_missing0.8.png")
 
 ```bash
 vcftools \
---vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf \
+--gzvcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf.gz \
 --keep mtDNA_3x_noLF.list \
 --max-missing 0.8 \
 --recode --recode-INFO-all \
 --out mito_samples3x_missing0.8_noLF
 
-#After filtering, kept 56 out of 73 Individuals
-#After filtering, kept 1022 out of a possible 1647 Sites
+gzip -f mito_samples3x_missing0.8_noLF*
+
+#> After filtering, kept 48 out of 61 Individuals
+#> After filtering, kept 1291 out of a possible 1888 Sites
 ```
 ```R
 library(tidyverse)
@@ -1889,9 +1936,10 @@ data <- data.frame(sample.id = pca$sample.id,
                   HOST = metadata$host,
                   stringsAsFactors = FALSE)
 
-country_colours <- c("CHN" = "#E64B35B2", "CMR" = "#4DBBD5B2", "DNK" = "#00A087B2", "ECU" = "#3C5488B2", "ESP" = "#F39B7FB2", "HND" = "#8491B4B2", "NLD" = "#91D1C2B2", "UGA" = "#DC0000B2")
+country_colours <- c("CHN" = "#E64B35B2", "CMR" = "#4DBBD5B2", "DNK" = "#00A087B2",
+ "ESP" = "#F39B7FB2", "HND" = "#8491B4B2", "NLD" = "#91D1C2B2", "UGA" = "#DC0000B2")
 
-plot <- ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY),alpha=1) +
+plot_pca_mito <- ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY),alpha=1) +
      geom_rect(aes(xmin=-0.14, ymin=-0.02, xmax=-0.06, ymax=0.04), fill=NA, col="black", linetype="dotted", size=0.3) +
      geom_point(size=4, alpha=1) +
      theme_bw() +
@@ -1900,15 +1948,16 @@ plot <- ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY),
           scale_colour_manual(values = country_colours)
 
 
-plot_zoom <- ggplot(data, aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COUNTRY,"_",POPULATION,"_",HOST))) +
+plot_pca_mito_zoom <- ggplot(data, aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COUNTRY,"_",POPULATION,"_",HOST))) +
      geom_point(size=4, alpha=1) +
      theme_bw() +
      labs(x = "PC1",
           y = "PC2") +
-     xlim(-0.14,-0.06) + ylim(-0.01, 0.03) +
+     xlim(-0.125,-0.05) + ylim(-0.01, 0.023) +
      scale_colour_manual(values = country_colours)
 
 
+plot_pca_mito + plot_pca_mito_zoom + plot_layout(ncol=2, guides = "collect")
 
 
 ggsave("plot_PCA_mito_samples3x_missing0.8_noLF.png")
@@ -1926,18 +1975,23 @@ Figure: [plot_PCA_mito_samples3x_missing0.8_noLF](plot_PCA_mito_samples3x_missin
 - "nuclear_3x_animal.list"
 
 ```bash
+# extract nuclear variants
+
 vcftools \
---vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf \
+--gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz \
 --keep nuclear_3x_animal.list \
 --max-missing 0.8 \
 --recode --recode-INFO-all \
 --out nuclear_samples3x_missing0.8
 
-#> After filtering, kept 44 out of 73 Individuals
-#> After filtering, kept 5618074 out of a possible 6571976 Sites
+gzip -f nuclear_samples3x_missing0.8.recode.vcf
+
+#> After filtering, kept 36 out of 61 Individuals
+#> After filtering, kept 5801129 out of a possible 6933531 Sites
 ```
 
 ```R
+# load libraries
 library(tidyverse)
 library(gdsfmt)
 library(SNPRelate)
@@ -1969,7 +2023,8 @@ data <- data.frame(sample.id = pca$sample.id,
                   stringsAsFactors = FALSE)
 
 
-ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = HOST)) +
+plot_pca_nuc <-
+     ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = HOST)) +
      geom_text(size=4) +
      theme_bw() +
      labs(title="nuclear_samples3x_missing0.8",
@@ -1977,25 +2032,27 @@ ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = HOST)) +
           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%"))+
           scale_colour_npg(guide = FALSE)
 
+plot_pca_nuc
+
 
 ggsave("plot_PCA_nuclear_samples3x_missing0.8.png")
 ggsave("plot_PCA_nuclear_samples3x_missing0.8.pdf")
 
 
-ggplot(data, aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COUNTRY,"_",POPULATION,"_",HOST))) +
-     geom_text(size=4) +
-     theme_bw() +
-     labs(title="nuclear_samples3x_missing0.8",
-          x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
-          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
-     xlim(-0.06,-0.01) + ylim(-0.035,-0.015) +
-     scale_colour_npg(guide = FALSE)
-
-ggsave("plot_PCA_nuclear_samples3x_missing0.8_zoomin.png")
-ggsave("plot_PCA_nuclear_samples3x_missing0.8_zoomin.pdf")
+# ggplot(data, aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COUNTRY,"_",POPULATION,"_",HOST))) +
+#      geom_text(size=4) +
+#      theme_bw() +
+#      labs(title="nuclear_samples3x_missing0.8",
+#           x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
+#           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
+#      xlim(-0.06,-0.01) + ylim(-0.035,-0.015) +
+#      scale_colour_npg(guide = FALSE)
+#
+# ggsave("plot_PCA_nuclear_samples3x_missing0.8_zoomin.png")
+# ggsave("plot_PCA_nuclear_samples3x_missing0.8_zoomin.pdf")
 ```
 ![](04_analysis/plot_PCA_nuclear_samples3x_missing0.8.png)
-![](04_analysis/plot_PCA_nuclear_samples3x_missing0.8_zoomin.png)
+# ![](04_analysis/plot_PCA_nuclear_samples3x_missing0.8_zoomin.png)
 - main outliers are colobus and leafmonkey, so will remove and rerun
 
 ```
@@ -2041,7 +2098,7 @@ data <- data.frame(sample.id = pca$sample.id,
                   HOST = metadata$host,
                   stringsAsFactors = FALSE)
 
-country_colours <- c("CHN" = "#E64B35B2", "CMR" = "#4DBBD5B2", "DNK" = "#00A087B2", "ECU" = "#3C5488B2", "ESP" = "#F39B7FB2", "HND" = "#8491B4B2", "NLD" = "#91D1C2B2", "UGA" = "#DC0000B2")
+country_colours <- c("CHN" = "#E64B35B2", "CMR" = "#4DBBD5B2", "DNK" = "#00A087B2", "ESP" = "#F39B7FB2", "HND" = "#8491B4B2", "NLD" = "#91D1C2B2", "UGA" = "#DC0000B2")
 
 
 nuc_plot <- ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
@@ -2051,26 +2108,37 @@ nuc_plot <- ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNT
           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
           scale_colour_manual(values = country_colours, guide=FALSE)
 
+nuc_plot
 
+# plot with animal outliers
 ggsave("plot_PCA_nuclear_samples3x_missing0.8_animalPhonly.pdf", height = 5, width = 5, useDingbats=FALSE)
 ggsave("plot_PCA_nuclear_samples3x_missing0.8_animalPhonly.png")
 
 
-ggplot(data,aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COUNTRY,"_",POPULATION,"_",HOST))) +
-     geom_text(size=4, alpha=1) +
-     theme_bw() +
-     labs(title="nuclear_samples3x_missing0.8",
-          x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
-          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
-          scale_colour_manual(values = country_colours, guide=FALSE)
+# ggplot(data,aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COUNTRY,"_",POPULATION,"_",HOST))) +
+#      geom_text(size=4, alpha=1) +
+#      theme_bw() +
+#      labs(title="nuclear_samples3x_missing0.8",
+#           x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
+#           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
+#           scale_colour_manual(values = country_colours, guide=FALSE)
+#
+# ggsave("plot_PCA_nuclear_samples3x_missing0.8_animalPhonly_2.png")
 
-ggsave("plot_PCA_nuclear_samples3x_missing0.8_animalPhonly_2.png")
+
+plot_pca_mito + plot_pca_mito_zoom + plot_pca_nuc + plot_layout(ncol=3, guides = "collect")
+
 ```
 Figure: [plot_PCA_nuclear_samples3x_missing0.8_animalPhonly](plot_PCA_nuclear_samples3x_missing0.8_animalPhonly.pdf)
 - to be used in Figure 1, panel D
 
 ![](../04_analysis/plot_PCA_nuclear_samples3x_missing0.8_animalPhonly.png)
 ![](../04_analysis/plot_PCA_nuclear_samples3x_missing0.8_animalPhonly_2.png)
+
+
+
+
+
 
 
 
