@@ -1899,9 +1899,11 @@ vcftools --gzvcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf.gz \
 
 gzip -f mito_samples3x_missing0.8.recode.vcf
 #> After filtering, kept 1159 out of a possible 1888 Sites
+
 ```
 
 ```R
+# load libraries
 library(tidyverse)
 library(gdsfmt)
 library(SNPRelate)
@@ -1909,13 +1911,15 @@ library(ggsci)
 
 snpgdsClose(genofile)
 vcf.in <- "mito_samples3x_missing0.8.recode.vcf.gz"
-gds<-snpgdsVCF2GDS(vcf.in, "mtDNA.gds", method="biallelic.only")
+gds <- snpgdsVCF2GDS(vcf.in, "mtDNA.gds", method="biallelic.only")
 
 genofile <- snpgdsOpen(gds)
-pca <-snpgdsPCA(genofile, num.thread=2,autosome.only = F)
+pca <- snpgdsPCA(genofile, num.thread=2, autosome.only = F)
 
 samples <- as.data.frame(pca$sample.id)
+
 colnames(samples) <- "name"
+
 metadata <- samples %>% separate(name,c("time", "country","population","host","sampleID"))
 
 
