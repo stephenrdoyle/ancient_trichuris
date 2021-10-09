@@ -1,25 +1,7 @@
 # Population genomics of modern and ancient *Trichuris trichiura*
 
-## Contents
 
-1. Background
-2. Reference
-3. Processing raw reads
-     - trimming
-4. mapping
-     - kraken check of raw reads post mapping
-     - deamination damage
-     - trim bams to correct for damage
-5. Variant calling
-     - Step 1
-     - Step 2
-     - Step 3
-
-
-
-***
 ## Background
-
 
 ### Original sampling data
 - Modern genomes  from human hosts (49)
@@ -99,12 +81,14 @@ mkdir 00_SCRIPTS 01_REF 02_RAW 03_MAPPING 04_VARIANTS 05_ANALYSIS
 ```
 ---
 
-## Reference
-- the reference is an unpublished Trichuris trichiura assembly generated 
+## Reference genome
+- the reference is an unpublished Trichuris trichiura assembly generated in the Parasite Genomics team at Sanger
 - this is a new assembly, rahter than an improvement from the original assembly published by Foth et al (2014)
      - this assembly is from worms extracted from Peter Nejsum that originated in Uganda, whereas the Foth assembly was from Ecuadorian worms.
+- this assembly didn't have an annotation when the project started
 
-- genome stats of the new assmebly
+### Genome stats
+- genome stats of the new assembly
      - sum = 80573711, n = 113, ave = 713041.69, largest = 29164577
      - N50 = 11299416, n = 2
      - N60 = 9167782, n = 3
@@ -115,6 +99,7 @@ mkdir 00_SCRIPTS 01_REF 02_RAW 03_MAPPING 04_VARIANTS 05_ANALYSIS
      - N_count = 250000
      - Gaps = 25
 
+### BUSCO stats
 - BUSCO stats of the assembly (see below for commands and comparison against old assembly)
      - C:81.4%[S:79.3%,D:2.1%],F:1.7%,M:16.9%,n:978
      - 797	Complete BUSCOs (C)
@@ -125,7 +110,7 @@ mkdir 00_SCRIPTS 01_REF 02_RAW 03_MAPPING 04_VARIANTS 05_ANALYSIS
      - 978	Total BUSCO groups searched
 
 
-```shell
+```bash
 cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_REF
 
 # make a generic bwa index for mapping later on
@@ -133,22 +118,29 @@ bwa index trichuris_trichiura.fa
 
 # make a generic dict file for SNP calling later on
 samtools dict trichuris_trichiura.fa > trichuris_trichiura.dict
-```
----
 
-## get the raw data
+```
+
+
+## Raw sequencing data
+- Sequencing was performed at the Centre for Geogenetics (CGG), University of Copenhagen
 - I received the raw sequencing data from Peter on a hard drive, and copied all to the lustre environment as is into the directory 02_RAW
 - want to collect all of the FASTQ files into one place, and then begin processing them
 
-```shell
+```bash
 cd ${WORKING_DIR}/02_RAW
 
-for i in *gz; do echo ${i%_???.fastq.gz}; done | sort | uniq  |  while read NAME; do cat ${NAME}* > ${NAME}.merged.fastq.gz; done &
+for i in *gz; do
+     echo ${i%_???.fastq.gz};
+done | sort | uniq | while read NAME; do
+          cat ${NAME}* > ${NAME}.merged.fastq.gz;
+     done &
 
 # sample used in the Foth 2014 genome paper
 pf data --type lane --id 6929_8 -l ./ --filetype fastq
 
 ```
+
 - this generated a total of 130 R1 files and 60 R2 files
 - the difference in number reflects the fact that the "modern" samples have been sequenced using PE reads whereas the "ancient" samples have been sequenced using SE reads. Will need to treat these a little differently later on.
 - there is also a difference in the number of samples with useable data (based on some sample informaiton spreadsheets from MS / PJ), and the total number
@@ -171,17 +163,29 @@ pf data --type lane --id 6929_8 -l ./ --filetype fastq
 cd ${WORKING_DIR}/02_RAW
 
 ### run the trimming
-```shell
+
 # main samples
-while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_modern "${WORKING_DIR}/00_SCRIPTS/run_adapter_remove_PE.sh ${OLD_NAME} ${NEW_NAME}"; done < ${WORKING_DIR}/modern.sample_list
-while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_ancient "${WORKING_DIR}/00_SCRIPTS/run_adapter_remove_SE.sh ${OLD_NAME} ${NEW_NAME}"; done < ${WORKING_DIR}/ancient.sample_list
+while read OLD_NAME NEW_NAME; do
+     bsub.py --threads 4 20 adapter_remove_modern "${WORKING_DIR}/00_SCRIPTS/run_adapter_remove_PE.sh ${OLD_NAME} ${NEW_NAME}";
+done < ${WORKING_DIR}/modern.sample_list
+
+while read OLD_NAME NEW_NAME; do
+     bsub.py --threads 4 20 adapter_remove_ancient "${WORKING_DIR}/00_SCRIPTS/run_adapter_remove_SE.sh ${OLD_NAME} ${NEW_NAME}";
+done < ${WORKING_DIR}/ancient.sample_list
 
 # other samples
-while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_others_PE "${WORKING_DIR}/00_SCRIPTS/run_adapter_remove_PE.sh ${OLD_NAME} ${NEW_NAME}"; done < ${WORKING_DIR}/others_PE.sample_list
-while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 adapter_remove_others_SE "${WORKING_DIR}/00_SCRIPTS/run_adapter_remove_SE.sh ${OLD_NAME} ${NEW_NAME}"; done < ${WORKING_DIR}/others_SE.sample_list
+while read OLD_NAME NEW_NAME; do
+     bsub.py --threads 4 20 adapter_remove_others_PE "${WORKING_DIR}/00_SCRIPTS/run_adapter_remove_PE.sh ${OLD_NAME} ${NEW_NAME}";
+done < ${WORKING_DIR}/others_PE.sample_list
+
+while read OLD_NAME NEW_NAME; do
+     bsub.py --threads 4 20 adapter_remove_others_SE "${WORKING_DIR}/00_SCRIPTS/run_adapter_remove_SE.sh ${OLD_NAME} ${NEW_NAME}";
+done < ${WORKING_DIR}/others_SE.sample_list
 
 ```
+
 where "run_adapter_remove_PE.sh" is:
+
 ```bash
 #!/bin/bash
 # adaptor remove PE - modern samples
@@ -197,6 +201,7 @@ NEW_NAME=${2}
 ```
 
 and where "run_adapter_remove_SE.sh" is:
+
 ```bash
 #!/bin/bash
 # single end - ancient samples
@@ -207,12 +212,14 @@ NEW_NAME=${2}
 --file1 ${OLD_NAME}_R1.merged.fastq.gz \
 --basename ${NEW_NAME}_SE \
 --trimns --trimqualities --threads 4
+
 ```
 
 
 
 ### FIX: merge duplicate ancient read sets
 These seem to have been a single sample, extracted twice (or in two ways, perhaps two washes of a column) and sequenced individually. Given the low coverage, these should be merged (I think).
+
 ```bash
 # merge the duplicated set, renaming with a unique name that refers to both the originals, and then remove the originals
 cat AN_DNK_COG_EN_001_SE.truncated AN_DNK_COG_EN_002_SE.truncated > AN_DNK_COG_EN_0012_SE.truncated; rm AN_DNK_COG_EN_001_SE.truncated AN_DNK_COG_EN_002_SE.truncated
@@ -233,11 +240,12 @@ cat AN_NLD_ZWO_EN_001_SE.truncated AN_NLD_ZWO_NA_002_SE.truncated > AN_NLD_ZWO_E
 
 # make a new sample list to work from using new names
 ls -1 AN* | cut -c-18 > ../ancient.sample_list_v2
+
 ```
 
 ### FIX: additional samples to include
-```bash
 
+```bash
 # found some additional samples I had not initially included - they were misclassified in the "other", so correcting them and add to the "ancient.sample_list_v2"
 mv OTHER_MSOE43_027_SE.truncated AN_DNK_VIB_EN_001_SE.truncated
 mv OTHER_MSOE44_028_SE.truncated AN_DNK_VIB_EN_002_SE.truncated
@@ -249,21 +257,12 @@ cat AN_DNK_VIB_EN_001_SE.truncated AN_DNK_VIB_EN_002_SE.truncated > AN_DNK_VIB_E
 cat AN_DNK_VIB_EN_003_SE.truncated AN_DNK_VIB_EN_004_SE.truncated AN_DNK_VIB_EN_005_SE.truncated > AN_DNK_VIB_EN_345_SE.truncated; rm AN_DNK_VIB_EN_003_SE.truncated AN_DNK_VIB_EN_004_SE.truncated AN_DNK_VIB_EN_005_SE.truncated
 
 ls -1 AN_DNK_VIB_EN_0012_SE.truncated AN_DNK_VIB_EN_345_SE.truncated | cut -c-18 > ../ancient.sample_list_v2
-```
 
 
-
-
-```bash
 # clean up
 rm *discarded *settings
 
 ```
-
-
-
-
----
 
 
 ## Mapping
@@ -271,7 +270,8 @@ rm *discarded *settings
 - Below are two mapping scripts for each approach.
 
 ### script for mapping the ancient samples - these are all single end (SE) reads
-```shell
+
+```bash
 #!/bin/bash
 # map SE reads
 OLD_NAME=${1}
@@ -296,11 +296,13 @@ samtools index -b ${NEW_NAME}.bam;
 
 # clean up unnecessary tmp files
 rm -r ${NEW_NAME}.*tmp*
+
 ```
 
 
 ### script for mapping modern samples - these are all paired-end (PE) reads
-```shell
+
+```bash
 #!/bin/bash
 # map PE reads
 OLD_NAME=${1}
@@ -336,10 +338,12 @@ samtools index -b ${NEW_NAME}.bam;
 
 # clean up unnecessary tmp files
 rm -r ${NEW_NAME}.*tmp*
+
 ```
 
 
-```shell
+```bash
+
 cd ${WORKING_DIR}/03_MAPPING
 
 # run the mapping jobs for modern and ancient samples
@@ -353,7 +357,9 @@ done < ${WORKING_DIR}/others_PE.sample_list
 
 # run the mapping jobs for the control and other samples
 #while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_ancient "${WORKING_DIR}/00_SCRIPTS/run_map_ancient_SE.sh ${OLD_NAME} ${NEW_NAME}" ; done < ${WORKING_DIR}/ancient.sample_list_v2
-while read OLD_NAME NEW_NAME; do bsub.py --threads 4 20 mapping_otherSE "${WORKING_DIR}/00_SCRIPTS/run_map_ancient_SE.sh ${OLD_NAME} ${NEW_NAME}" ; done < ${WORKING_DIR}/others_SE.sample_list
+while read OLD_NAME NEW_NAME; do
+     bsub.py --threads 4 20 mapping_otherSE "${WORKING_DIR}/00_SCRIPTS/run_map_ancient_SE.sh ${OLD_NAME} ${NEW_NAME}" ;
+done < ${WORKING_DIR}/others_SE.sample_list
 
 mkdir MAPPED_OTHER
 mv OTHER_M* MAPPED_OTHER
@@ -363,12 +369,16 @@ mv CONTROL_* MAPPED_CONTROL
 
 
 # rerun of ancient samples due to name change
-while read NEW_NAME; do bsub.py --threads 4 20 mapping_ancient "${WORKING_DIR}/00_SCRIPTS/run_map_ancient_SE.sh NULL ${NEW_NAME}" ; done < ${WORKING_DIR}/ancient.sample_list_v2
+while read NEW_NAME; do
+     bsub.py --threads 4 20 mapping_ancient "${WORKING_DIR}/00_SCRIPTS/run_map_ancient_SE.sh NULL ${NEW_NAME}" ;
+done < ${WORKING_DIR}/ancient.sample_list_v2
 
 
 
 multiqc *flagstat --title mapping
+
 ```
+
 [Mapping MultiQC report](../04_analysis/mapping_multiqc_report.html)
 
 
@@ -387,6 +397,8 @@ for i in *.bam; do
 - Kraken might give some insight into this, given they might be heavily contaminated with bacteria etc.
 
 ```bash
+
+# load kraken 2
 module load kraken2/2.0.8_beta=pl526h6bb024c_0-c1
 
 # run kraken on the modern PE trimmed reads
@@ -412,7 +424,9 @@ done < ${WORKING_DIR}/ancient.sample_list_v2
 
 # once the kraken runs have completed, run multiqc .
 multiqc *kraken2report --title kraken
+
 ```
+
 [Kraken MultiQC report](../04_analysis/kraken_multiqc_report.html)
 - the output shows most samples have a small degree of contamination based on hits in the kraken database
 - non have a lot of contamination, which is slightly surprising
@@ -439,24 +453,23 @@ mkdir ${WORKING_DIR}/03_MAPPING/DEAMINATION
 
 # modern samples
 while read -r OLD_NAME NEW_NAME; do
-# To compute deamination-derived damage patterns separating CpG and non-CpG sites
-samtools view ${NEW_NAME}.bam | pmdtools --platypus --requirebaseq 30 --number=10000 > PMD_temp.txt ;
-
-R CMD BATCH ${WORKING_DIR}/00_SCRIPTS/plotPMD.R ;
-
-mv deamination_plot.png ${WORKING_DIR}/03_MAPPING/DEAMINATION/${NEW_NAME}.deamination_plot.png ; done < ${WORKING_DIR}/modern.sample_list
+     # To compute deamination-derived damage patterns separating CpG and non-CpG sites
+     samtools view ${NEW_NAME}.bam | pmdtools --platypus --requirebaseq 30 --number=10000 > PMD_temp.txt ;
+     # make plots
+     R CMD BATCH ${WORKING_DIR}/00_SCRIPTS/plotPMD.R ;
+     # move and rename
+     mv deamination_plot.png ${WORKING_DIR}/03_MAPPING/DEAMINATION/${NEW_NAME}.deamination_plot.png ;
+done < ${WORKING_DIR}/modern.sample_list
 
 # ancient samples
 while read -r NEW_NAME; do
-# To compute deamination-derived damage patterns separating CpG and non-CpG sites
-samtools view ${NEW_NAME}.bam | pmdtools --platypus --requirebaseq 30 --number=10000 > PMD_temp.txt ;
-
-R CMD BATCH ${WORKING_DIR}/00_SCRIPTS/plotPMD.R ;
-
-mv deamination_plot.png ${WORKING_DIR}/03_MAPPING/DEAMINATION/${NEW_NAME}.deamination_plot.png ; done < ../ancient.sample_list_v2
-
-
-
+     # To compute deamination-derived damage patterns separating CpG and non-CpG sites
+     samtools view ${NEW_NAME}.bam | pmdtools --platypus --requirebaseq 30 --number=10000 > PMD_temp.txt ;
+     # make plots
+     R CMD BATCH ${WORKING_DIR}/00_SCRIPTS/plotPMD.R ;
+     # move and rename
+     mv deamination_plot.png ${WORKING_DIR}/03_MAPPING/DEAMINATION/${NEW_NAME}.deamination_plot.png ;
+done < ../ancient.sample_list_v2
 
 ```
 
@@ -527,12 +540,15 @@ ggsave("deamination_plot.png", height=5, width=10)
 
 ```bash
 # can calculate the proportion of deamination damage in the 1st position as a proxy for overall damage to the reads
-ls -1 *bam | grep -v "trimmed" | while read -r BAM ; do data=$(samtools view ${BAM} | pmdtools --first --requirebaseq 30 --number=10000); echo -e "${BAM}\t${data}"; done
+ls -1 *bam | grep -v "trimmed" | while read -r BAM ; do
+     data=$(samtools view ${BAM} | pmdtools --first --requirebaseq 30 --number=10000); echo -e "${BAM}\t${data}";
+done
 
 ```
 
 ### trim bases from reads in bam
 Using "bamUtils trimBam" to remove the 5' and 3' 2 bp from mapped reads
+
 ```bash
 # trim modern samples
 while read -r OLD_NAME NEW_NAME; do
@@ -544,13 +560,14 @@ while read -r NEW_NAME; do
      bsub.py 5 --threads 4 trim_bams "${WORKING_DIR}/00_SCRIPTS/run_trimreads_in_bam.sh ${NEW_NAME}";
 done < ${WORKING_DIR}/ancient.sample_list_v2
 
-
 # once done, clean up
 rm *[0-9].bam*
+
 ```
 
 where "run_trimreads_in_bam.sh" is:
-```
+
+```bash
 #!/bin/bash
 
 # trim left and right bases from reads in a bam.
@@ -605,15 +622,19 @@ rm ${i%.bam}.chr.bed ${i%.bam}.${WINDOW}_window.bed ${i%.bam}.chr.genome
 
 done
 
-for i in *.chr.cov; do printf "${i}\n" > ${i}.tmp | awk '{print $5}' OFS="\t" ${i} >> ${i}.tmp; done
+for i in *.chr.cov; do
+     printf "${i}\n" > ${i}.tmp | awk '{print $5}' OFS="\t" ${i} >> ${i}.tmp;
+done
+
 paste *.tmp > coverage_stats.summary
+
 rm *.tmp
 
 ```
 
 ### Generate quantitative stats on coverage for supplementary tables etc
 
-```
+```bash
 # extract mtDNA and nuclear (mean & stddev) data
 for i in *trimmed.chr.cov; do
      name=${i%.trimmed.chr.cov};
@@ -651,9 +672,9 @@ print(plot)
 }
 
 # run function, reading in a specific sample, to plot coverage
- plot_cov("MN_UGA_KAB_HS_003.100000_window.cov","MN_UGA_KAB_HS_003.100000_window.cov")
+plot_cov("MN_UGA_KAB_HS_003.100000_window.cov","MN_UGA_KAB_HS_003.100000_window.cov")
 
- ggsave("MN_UGA_KAB_HS_003.100000_window.cov.png")
+ggsave("MN_UGA_KAB_HS_003.100000_window.cov.png")
 
 ```
 
@@ -676,15 +697,11 @@ ggsave("nuc_mito_cov_ratio.png")
 ![](../04_analysis/nuc_mito_cov_ratio.png)
 
 
-
-
 ### Genome-wide coverage to determine worm sex
 - using genome wide coverage data to iner the sex of the worms.
 - we know that "Trichuris_trichiura_1" lingage group is the X chromosome based on synteny with Trichuris muris
 - a ratio of this LG to other scaffolds should give the sex of the individual worms,
 - the pooled worms will be mixed sex, so should have an intermediate profile to that of either male or female individual worms.
-
-
 
 ```R
 
@@ -742,6 +759,7 @@ done > autosome_to_Xchromsome_cov.stat
 ```
 
 - and to plot the data
+
 ```R
 library(tidyverse)
 
@@ -769,11 +787,6 @@ ggsave("plot_x-to-autosome_ratio_sexdet.pdf",height=10, width=7, useDingbats=FAL
 - count 17 females based on ~1X coverage
      - note 2 with intermediate coverage, likely female by not clear
 
----
-
-
-
-
 
 
 
@@ -783,16 +796,15 @@ ggsave("plot_x-to-autosome_ratio_sexdet.pdf",height=10, width=7, useDingbats=FAL
 - scripts below split jobs by sample and by sequence, generating GVCFs, and then once done, merging them back together again. It does this by generating small jobs submitted in arrays to perform tasks in parallel, greatly speeding up the overall job time.
 
 
-
 ### Genome scope
-Using genomescope to estimate heterozygosity from a couple of samples which can be used as an input to GATK genotyping
+- Using genomescope to estimate heterozygosity from a couple of samples which can be used as an input to GATK genotyping
 
 ```bash
 
 WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
 
 mkdir ${WORKING_DIR}/02_RAW/GENOMESCOPE
-cd  ${WORKING_DIR}/02_RAW/GENOMESCOPE
+cd ${WORKING_DIR}/02_RAW/GENOMESCOPE
 
 
 jellyfish=/nfs/users/nfs_s/sd21/lustre118_link/software/COMPARATIVE_GENOMICS/jellyfish-2.2.6/bin/jellyfish
@@ -853,7 +865,9 @@ module load gatk/4.1.4.1
 # also need htslib for tabix
 module load common-apps/htslib/1.9.229
 ```
+
 ### Step 1. make GVCFs per sample
+
 ```bash
 
 mkdir ${WORKING_DIR}/04_VARIANTS/GVCFS
@@ -940,18 +954,20 @@ cd ${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED
 ls -1 ${WORKING_DIR}/04_VARIANTS/GVCFS/*complete/*gz > ${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED/gvcf.list
 
 GVCF_LIST=${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED/gvcf.list
+
 REFERENCE=${WORKING_DIR}/01_REF/trichuris_trichiura.fa
 
 
 # setup the run files
 n=1
 while read SEQUENCE; do
-echo -e "gatk CombineGVCFs -R ${REFERENCE} --intervals ${SEQUENCE} \\" > ${n}.run_merge_gvcfs.tmp.${SEQUENCE}
-while read SAMPLE; do
-echo -e "--variant ${SAMPLE} \\" >> ${n}.run_merge_gvcfs.tmp.${SEQUENCE};
-   done < ${GVCF_LIST}
-   echo -e "--output ${SEQUENCE}.cohort.g.vcf.gz" >> ${n}.run_merge_gvcfs.tmp.${SEQUENCE};
-   let "n+=1"; done < ${WORKING_DIR}/04_VARIANTS/sequences.list
+     echo -e "gatk CombineGVCFs -R ${REFERENCE} --intervals ${SEQUENCE} \\" > ${n}.run_merge_gvcfs.tmp.${SEQUENCE}
+     while read SAMPLE; do
+          echo -e "--variant ${SAMPLE} \\" >> ${n}.run_merge_gvcfs.tmp.${SEQUENCE};
+     done < ${GVCF_LIST}
+     echo -e "--output ${SEQUENCE}.cohort.g.vcf.gz" >> ${n}.run_merge_gvcfs.tmp.${SEQUENCE};
+     let "n+=1";
+done < ${WORKING_DIR}/04_VARIANTS/sequences.list
 
 chmod a+x *.run_merge_gvcfs.tmp.*
 
@@ -970,8 +986,10 @@ done
 ### Step 3. Split merged GVCF into individual sequences, and then genotype to generate a VCF
 
 ```bash
+
 # split each chromosome up into separate jobs, and run genotyping on each individually.   
 n=1
+
 while read SEQUENCE; do
      echo -e "gatk GenotypeGVCFs \
      -R ${REFERENCE} \
@@ -999,7 +1017,9 @@ bsub -q long -R'span[hosts=1] select[mem>10000] rusage[mem=10000]' -n 4 -M10000 
 
 
 ### Step 4. Bring the files together
+
 ```bash
+
 # make list of vcfs
 ls -1 *.cohort.vcf.gz | sort -n > vcf_files.list
 
@@ -1021,7 +1041,9 @@ rm *.g.vcf.gz*
 Using Heng Li's "SNPable regions" to identify unique regions fo the genome in which mapping tends to be more reliable. Martin did this, so thought i'd give it a go to be consistent
 
 http://lh3lh3.users.sourceforge.net/snpable.shtml
+
 ```bash
+
 cd ~/lustre118_link/trichuris_trichiura/01_REF/SNPABLE
 
 cp ../trichuris_trichiura.fa .
@@ -1034,7 +1056,9 @@ bwa index trichuris_trichiura.fa
 
 # map the reads generated from the reference back to the reference
 echo -e 'for i in x*; do bwa aln -R 1000000 -O 3 -E 3 trichuris_trichiura.fa ${i} > ${i}.sai; done' > run_bwa
+
 chmod a+x run_bwa
+
 bsub.py 10 bwaaln ./run_bwa
 
 # once mapping is completed, compress to save space
@@ -1057,8 +1081,8 @@ python makeMappabilityMask.py
 
 # count how many positions for each position in the genome
 for i in 0 1 2 3; do
-echo -e "SNPtype: ${i}";  
-cat mask_35_50.fa | grep -v ">" | grep -o "${i}" | wc -l;
+     echo -e "SNPtype: ${i}";  
+     cat mask_35_50.fa | grep -v ">" | grep -o "${i}" | wc -l;
 done
 
 #SNPtype: 0
@@ -1074,11 +1098,13 @@ done
 #60449735
 
 ```
+
 - given the genome is 80573711 bp, the proportion of type 3 postions (n = 60449735) is 75.02%
 - this is an interesting strategy - perhaps worth exploring for other projects, esp when just popgen SNPs are being used (not every position for, eg, SNPeff).
 
 
 #### Hard filters
+
 ```bash
 mkdir ${WORKING_DIR}/04_VARIANTS/SNP_FILTER
 cd ${WORKING_DIR}/04_VARIANTS/SNP_FILTER
@@ -1098,13 +1124,11 @@ vcftools --vcf TT.filtered-2.vcf.recode.vcf --bed ${WORKING_DIR}/01_REF/SNPABLE/
 
 
 
----
-
-
 
 ## Sampling sites
 ### World map
 Given it is a "global diversity" study, worth having a world map with sampling sites, distinction between ancient and modern samples, and the fact that some some from humans, animals, and the environment (ancient).
+
 ```R
 setwd("/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/MAP")
 
@@ -1124,13 +1148,13 @@ data <- read.delim("map_metadata.txt", sep="\t", header=T)
 
 # make a map
 ggplot() +
-  geom_polygon(data = world_map, aes(x = world_map$long, y = world_map$lat, group = world_map$group), fill="grey90") +
-  geom_point(data = data, aes(x = LONGITUDE, y = LATITUDE, colour = REGION, shape = SAMPLE_AGE), size=3) +
-  geom_text_repel(data = data, aes(x = LONGITUDE, y = LATITUDE, label = paste0(COUNTRY," (",POPULATION_ID,"); n = ", SAMPLE_N)), size=3, max.overlaps = Inf) +        
-  theme_void() +
-  ylim(-55,85) +
-  labs(title="A", colour="", shape="") +
-  scale_colour_npg()
+     geom_polygon(data = world_map, aes(x = world_map$long, y = world_map$lat, group = world_map$group), fill="grey90") +
+     geom_point(data = data, aes(x = LONGITUDE, y = LATITUDE, colour = REGION, shape = SAMPLE_AGE), size=3) +
+     geom_text_repel(data = data, aes(x = LONGITUDE, y = LATITUDE, label = paste0(COUNTRY," (",POPULATION_ID,"); n = ", SAMPLE_N)), size=3, max.overlaps = Inf) +        
+     theme_void() +
+     ylim(-55,85) +
+     labs(title="A", colour="", shape="") +
+     scale_colour_npg()
 
 # save it
 ggsave("worldmap_samplingsites.png", height=5, width=12)
@@ -1138,11 +1162,12 @@ ggsave("worldmap_samplingsites.pdf", height=5, width=12, useDingbats=FALSE)
 
 ```
 
-
 - will use this as Figure 1A
 ![worldmap_samplingsites](../04_analysis/worldmap_samplingsites.png)
 
+
 ### Sampling timepoints
+
 ```R
 library(ggplot2)
 
@@ -1157,20 +1182,22 @@ ggplot(data, aes(x=V11,xend=V12,y=reorder(paste0(V1," (",V4,")"),V11,FUN=mean),y
 
 ggsave("samplingsites_time.png", height=5, width=7)
 ggsave("samplingsites_time.pdf", height=5, width=7, useDingbats=FALSE)
+
 ```
+
 Figure: [map](../04_analysis/samplingsites_time.pdf)
 - will use this in the supplementary data
 
 ![samplingsites_time](../04_analysis/samplingsites_time.png)
 
 
----
 
 
 ### Querying SNP and INDEL QC profiles to determine thresholds for filters
 Adapted from https://evodify.com/gatk-in-non-model-organism/
 
 ```bash
+
 # load gatk
 module load gatk/4.1.4.1
 
@@ -1216,8 +1243,6 @@ bsub.py 1 select_mitoINDELs "gatk SelectVariants \
 --output ${VCF%.vcf.gz}.mitoINDELs.vcf"
 
 
-
-
 # make a table of nuclear SNP data
 bsub.py 1 select_nuclearSNPs_table "gatk VariantsToTable \
 --reference ${REFERENCE} \
@@ -1247,17 +1272,16 @@ bsub.py --done "select_mitoINDELs"  1 select_mitoINDELs_table "gatk VariantsToTa
 --output GVCFall_mitoINDELs.table"
 
 
-
-
 # make some density plots of the data
 bsub.py 1 variant_summaries "Rscript ${WORKING_DIR}/00_SCRIPTS/plot_variant_summaries.R"
+
 ```
 
 where "plot_variant_summaries.R" is:
 
 ```R
 
-
+# load libraries
 library(patchwork)
 require(data.table)
 library(tidyverse)
@@ -1280,75 +1304,105 @@ VCF_mito <- rbind(VCF_mito_snps, VCF_mito_indels)
 VCF_mito$Variant <- factor(c(rep("SNPs", dim(VCF_mito_snps)[1]), rep("Indels", dim(VCF_mito_indels)[1])))
 
 
-
-
-
 snps <- '#A9E2E4'
 indels <- '#F4CCCA'
 
 fun_variant_summaries <- function(data, title){
 # gatk hardfilter: SNP & INDEL QUAL < 0
 QUAL_quant <- quantile(data$QUAL, c(.01,.99), na.rm=T)
-QUAL <- ggplot(data, aes(x=log10(QUAL), fill=Variant)) + geom_density(alpha=.3) +
-          geom_vline(xintercept=0, size=0.7, col="red") +
-           geom_vline(xintercept=c(log10(QUAL_quant[2]), log10(QUAL_quant[3])), size=0.7, col="blue") +
-           #xlim(0,10000) +
-           theme_bw() + labs(title=paste0(title,": QUAL"))
+
+QUAL <-
+     ggplot(data, aes(x=log10(QUAL), fill=Variant)) +
+     geom_density(alpha=.3) +
+     geom_vline(xintercept=0, size=0.7, col="red") +
+     geom_vline(xintercept=c(log10(QUAL_quant[2]), log10(QUAL_quant[3])), size=0.7, col="blue") +
+     #xlim(0,10000) +
+     theme_bw() +
+     labs(title=paste0(title,": QUAL"))
 
 
 # DP doesnt have a hardfilter
 DP_quant <- quantile(data$DP, c(.01,.99), na.rm=T)
-DP <- ggplot(data, aes(x=log10(DP), fill=Variant)) + geom_density(alpha=0.3) +
-          geom_vline(xintercept=log10(DP_quant), col="blue") +
-          theme_bw() + labs(title=paste0(title,": DP"))
+
+DP <-
+     ggplot(data, aes(x=log10(DP), fill=Variant)) +
+     geom_density(alpha=0.3) +
+     geom_vline(xintercept=log10(DP_quant), col="blue") +
+     theme_bw() +
+     labs(title=paste0(title,": DP"))
 
 # gatk hardfilter: SNP & INDEL QD < 2
 QD_quant <- quantile(data$QD, c(.01,.99), na.rm=T)
-QD <- ggplot(data, aes(x=QD, fill=Variant)) + geom_density(alpha=.3) +
-          geom_vline(xintercept=2, size=0.7, col="red") +
-           geom_vline(xintercept=QD_quant, size=0.7, col="blue") +
-           theme_bw() + labs(title=paste0(title,": QD"))
+
+QD <-
+     ggplot(data, aes(x=QD, fill=Variant)) +
+     geom_density(alpha=.3) +
+     geom_vline(xintercept=2, size=0.7, col="red") +
+     geom_vline(xintercept=QD_quant, size=0.7, col="blue") +
+     theme_bw() +
+     labs(title=paste0(title,": QD"))
 
 # gatk hardfilter: SNP FS > 60, INDEL FS > 200
 FS_quant <- quantile(data$FS, c(.01,.99), na.rm=T)
-FS <- ggplot(data, aes(x=log10(FS), fill=Variant)) + geom_density(alpha=.3) +
-          geom_vline(xintercept=c(log10(60), log10(200)), size=0.7, col="red") +
-          geom_vline(xintercept=log10(FS_quant), size=0.7, col="blue") +
-          #xlim(0,250) +
-          theme_bw() + labs(title=paste0(title,": FS"))
+
+FS <-
+     ggplot(data, aes(x=log10(FS), fill=Variant)) +
+     geom_density(alpha=.3) +
+     geom_vline(xintercept=c(log10(60), log10(200)), size=0.7, col="red") +
+     geom_vline(xintercept=log10(FS_quant), size=0.7, col="blue") +
+     #xlim(0,250) +
+     theme_bw() +
+     labs(title=paste0(title,": FS"))
 
 # gatk hardfilter: SNP & INDEL MQ < 30
 MQ_quant <- quantile(data$MQ, c(.01,.99), na.rm=T)
-MQ <- ggplot(data, aes(x=MQ, fill=Variant)) + geom_density(alpha=.3) +
-          geom_vline(xintercept=40, size=0.7, col="red") +
-          geom_vline(xintercept=MQ_quant, size=0.7, col="blue") +
-          theme_bw() + labs(title=paste0(title,": MQ"))
+
+MQ <-
+     ggplot(data, aes(x=MQ, fill=Variant)) + geom_density(alpha=.3) +
+     geom_vline(xintercept=40, size=0.7, col="red") +
+     geom_vline(xintercept=MQ_quant, size=0.7, col="blue") +
+     theme_bw() +
+     labs(title=paste0(title,": MQ"))
 
 # gatk hardfilter: SNP MQRankSum < -20
 MQRankSum_quant <- quantile(data$MQRankSum, c(.01,.99), na.rm=T)
-MQRankSum <- ggplot(data, aes(x=log10(MQRankSum), fill=Variant)) + geom_density(alpha=.3) +
-                    geom_vline(xintercept=log10(-20), size=0.7, col="red") +
-                    geom_vline(xintercept=log10(MQRankSum_quant), size=0.7, col="blue") +
-                    theme_bw() + labs(title=paste0(title,": MQRankSum"))
+
+MQRankSum <-
+     ggplot(data, aes(x=log10(MQRankSum), fill=Variant)) + geom_density(alpha=.3) +
+     geom_vline(xintercept=log10(-20), size=0.7, col="red") +
+     geom_vline(xintercept=log10(MQRankSum_quant), size=0.7, col="blue") +
+     theme_bw() +
+     labs(title=paste0(title,": MQRankSum"))
 
 
 # gatk hardfilter: SNP SOR < 4 , INDEL SOR > 10
 SOR_quant <- quantile(data$SOR, c(.01, .99), na.rm=T)
-SOR <- ggplot(data, aes(x=SOR, fill=Variant)) + geom_density(alpha=.3) +
-          geom_vline(xintercept=c(4, 10), size=1, colour = c(snps,indels)) +
-          geom_vline(xintercept=SOR_quant, size=0.7, col="blue") +
-          theme_bw() + labs(title=paste0(title,": SOR"))
+
+SOR <-
+     ggplot(data, aes(x=SOR, fill=Variant)) +
+     geom_density(alpha=.3) +
+     geom_vline(xintercept=c(4, 10), size=1, colour = c(snps,indels)) +
+     geom_vline(xintercept=SOR_quant, size=0.7, col="blue") +
+     theme_bw() +
+     labs(title=paste0(title,": SOR"))
 
 # gatk hardfilter: SNP ReadPosRankSum <-10 , INDEL ReadPosRankSum < -20
 ReadPosRankSum_quant <- quantile(data$ReadPosRankSum, c(.01,.99), na.rm=T)
-ReadPosRankSum <- ggplot(data, aes(x=ReadPosRankSum, fill=Variant)) + geom_density(alpha=.3) +
-                         geom_vline(xintercept=c(-10,10,-20,20), size=1, colour = c(snps,snps,indels,indels)) + xlim(-10, 10) +
-                         geom_vline(xintercept=ReadPosRankSum_quant, size=0.7, col="blue") +
-                         theme_bw() + labs(title=paste0(title,": ReadPosRankSum"))
+
+ReadPosRankSum <-
+     ggplot(data, aes(x=ReadPosRankSum, fill=Variant)) +
+     geom_density(alpha=.3) +
+     geom_vline(xintercept=c(-10,10,-20,20), size=1, colour = c(snps,snps,indels,indels)) +
+     xlim(-10, 10) +
+     geom_vline(xintercept=ReadPosRankSum_quant, size=0.7, col="blue") +
+     theme_bw() +
+     labs(title=paste0(title,": ReadPosRankSum"))
 
 
 plot <- QUAL + DP + QD + FS + MQ + MQRankSum + SOR + ReadPosRankSum + plot_layout(ncol=2)
+
 print(plot)
+
 ggsave(paste0("plot_",title,"_variant_summaries.png"), height=20, width=15, type="cairo")
 
 
@@ -1377,7 +1431,6 @@ png(paste0("table_",title,"_variant_quantiles.png"), width=1000,height=500,bg = 
 print(quantiles)
 grid.table(quantiles)
 dev.off()
-
 
 }
 
@@ -1447,7 +1500,6 @@ REFERENCE=${WORKING_DIR}/01_REF/trichuris_trichiura.fa
 VCF=${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED/Trichuris_trichiura.cohort.vcf.gz
 
 
-
 bsub.py 1 filter_nuclearSNPs "gatk VariantFiltration \
 --reference ${REFERENCE} \
 --variant ${VCF%.vcf.gz}.nuclearSNPs.vcf \
@@ -1503,12 +1555,14 @@ bsub.py 1 filter_mitoINDELs "gatk VariantFiltration \
 
 # once done, count the filtered sites - funny use of "|" allows direct markdown table format
 echo -e "| Filtered_VCF | Variants_PASS | Variants_FILTERED |\n| -- | -- | -- | " > filter.stats
+
 for i in *filtered.vcf; do
      name=${i}; pass=$( grep -E 'PASS' ${i} | wc -l ); filter=$( grep -E 'filter' ${i} | wc -l );
      echo -e "| ${name} | ${pass} | ${filter} |" >> filter.stats
 done
 
 ```
+
 - Table: "filter.stats"
 
 | Filtered_VCF | Variants_PASS | Variants_FILTERED |
@@ -1518,9 +1572,10 @@ done
 | Trichuris_trichiura.cohort.nuclearINDELs.filtered.vcf | 847369 | 132345 |
 | Trichuris_trichiura.cohort.nuclearSNPs.filtered.vcf | 9052538 | 1097368 |
 
-```
+
 
 ### Merge VCFs
+
 ```bash
 
 bsub.py 1 merge_mito_variants "gatk MergeVcfs \
@@ -1532,6 +1587,7 @@ bsub.py 1 merge_nuclear_variants "gatk MergeVcfs \
 --INPUT ${VCF%.vcf.gz}.nuclearSNPs.filtered.vcf \
 --INPUT ${VCF%.vcf.gz}.nuclearINDELs.filtered.vcf \
 --OUTPUT ${VCF%.vcf.gz}.nuclearALL.filtered.vcf"
+
 ```
 
 
@@ -1594,6 +1650,7 @@ bsub.py 1 merge_nuclear_variants "gatk MergeVcfs \
      - eg. https://science.sciencemag.org/content/sci/suppl/2018/07/03/361.6397.81.DC1/aao4776-Leathlobhair-SM.pdf
 
 ```bash
+
 bsub.py 1 filter_mito_GT \
 "gatk VariantFiltration \
 --reference ${REFERENCE} \
@@ -1623,6 +1680,7 @@ bsub.py --done "filter_nuclear_GT" 1 filter_nuclear_GT2 \
 --variant ${VCF%.vcf.gz}.nuclearALL.DPfiltered.vcf \
 --set-filtered-gt-to-nocall \
 --output ${VCF%.vcf.gz}.nuclearALL.DPfilterNoCall.vcf"
+
 ```
 
 ### final filters
@@ -1682,7 +1740,9 @@ vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --remov
 vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --keep-only-indels
 #> After filtering, kept 61 out of 61 Individuals
 #> After filtering, kept 197 out of a possible 1888 Sites
+
 ```
+
 - final SNP numbers
 
 | dataset | total | SNPs | Indels |
@@ -1705,6 +1765,7 @@ vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --keep-
 
 
 ```bash
+
 # determine missingness per individual
 vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --out mito --missing-indv
 vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --out nuclear --missing-indv
@@ -1712,6 +1773,8 @@ vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --ou
 ```
 
 ```R
+
+# load libraries
 library(tidyverse)
 
 data_mito <- read.delim("mito.imiss", header=T)
@@ -1723,15 +1786,19 @@ fun_plot_missingness <- function(data,title) {
 data <- data %>% separate(INDV, c("time", "country","population","host","sampleID"))
 count <- data[1,6]
 
-plot <- ggplot(data,aes(country,1-F_MISS,col=time)) +
+plot <-
+     ggplot(data,aes(country,1-F_MISS,col=time)) +
      geom_boxplot() +
      geom_point() +
      theme_bw() +
      labs(x="Country", y="Proportion of total variants present (1-missingness)", title=paste0("Variants per sample: ",title, " (n = ", count,")"))
+
 print(plot)
+
 ggsave(paste0("plot_missingness_",title,".png"))
+
 }
-# nuclear
+
 
 fun_plot_missingness(data_mito,"mitochondrial_variants")
 fun_plot_missingness(data_nuclear, "nuclear_variants")
@@ -1743,12 +1810,10 @@ fun_plot_missingness(data_nuclear, "nuclear_variants")
 
 ### Per site missingness
 
-```
+```bash
 vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --missing-site --out mito
 
 ```
-
-
 
 
 ### TsTv ratio
@@ -1762,14 +1827,10 @@ vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --TsTv-
 # nuclear
 vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --TsTv-summary
 #> Ts/Tv ratio: 2.281
+
 ```
+
 - higher in the mtDNA but seems pretty "normal" in the nuclear datasets.
-
-
-
-
-
-
 
 
 
@@ -1806,7 +1867,9 @@ vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --ma
 
 
 ### Max-missing
+
 ```bash
+
 for i in 0.7 0.8 0.9 1; do
      vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --keep mtDNA_3x.list --max-missing ${i} ;
 done
@@ -1826,8 +1889,6 @@ done
 # max-missing = 1
 #> After filtering, kept 51 out of 61 Individuals
 #> After filtering, kept 17 out of a possible 1888 Sites
-
-
 
 
 vcftools --gzvcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf.gz \
