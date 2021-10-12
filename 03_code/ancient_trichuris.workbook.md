@@ -1910,10 +1910,13 @@ library(SNPRelate)
 library(ggsci)
 
 snpgdsClose(genofile)
+
 vcf.in <- "mito_samples3x_missing0.8.recode.vcf.gz"
+
 gds <- snpgdsVCF2GDS(vcf.in, "mtDNA.gds", method="biallelic.only")
 
 genofile <- snpgdsOpen(gds)
+
 pca <- snpgdsPCA(genofile, num.thread=2, autosome.only = F)
 
 samples <- as.data.frame(pca$sample.id)
@@ -1922,28 +1925,30 @@ colnames(samples) <- "name"
 
 metadata <- samples %>% separate(name,c("time", "country","population","host","sampleID"))
 
+data <-
+     data.frame(sample.id = pca$sample.id,
+          EV1 = pca$eigenvect[,1],  
+          EV2 = pca$eigenvect[,2],
+          EV3 = pca$eigenvect[,3],
+          EV4 = pca$eigenvect[,4],
+          EV5 = pca$eigenvect[,5],
+          EV6 = pca$eigenvect[,6],    
+          TIME = metadata$time,
+          COUNTRY = metadata$country,
+          POPULATION = metadata$population,
+          HOST = metadata$host,
+          stringsAsFactors = FALSE)
 
-data <- data.frame(sample.id = pca$sample.id,
-                  EV1 = pca$eigenvect[,1],  
-                  EV2 = pca$eigenvect[,2],
-                  EV3 = pca$eigenvect[,3],
-                  EV4 = pca$eigenvect[,4],
-                  EV5 = pca$eigenvect[,5],
-                  EV6 = pca$eigenvect[,6],    
-                  TIME = metadata$time,
-                  COUNTRY = metadata$country,
-                  POPULATION = metadata$population,
-                  HOST = metadata$host,
-                  stringsAsFactors = FALSE)
-
-
-ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
+plot_pca <-
+     ggplot(data, aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
      geom_text(size=4) +
      theme_bw() +
      labs(title="mito_samples3x_missing0.8",
           x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
-          scale_colour_npg(guide = FALSE)
+     scale_colour_npg(guide = FALSE)
+
+plot_pca
 
 ggsave("plot_PCA_mito_samples3x_missing0.8.png")
 
@@ -1951,6 +1956,7 @@ ggsave("plot_PCA_mito_samples3x_missing0.8.png")
 #ggplot(tab,aes(EV1,EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) + geom_point(size=4)
 
 ```
+
 ![](../04_analysis/plot_PCA_mito_samples3x_missing0.8.png)
 
 - the CHN LF samples are the outliers in the above plot, so rerunning to remove these
@@ -1967,8 +1973,11 @@ gzip -f mito_samples3x_missing0.8_noLF*
 
 #> After filtering, kept 48 out of 61 Individuals
 #> After filtering, kept 1291 out of a possible 1888 Sites
+
 ```
+
 ```R
+# load libraries
 library(tidyverse)
 library(gdsfmt)
 library(SNPRelate)
@@ -1977,10 +1986,11 @@ library(patchwork)
 
 snpgdsClose(genofile)
 vcf.in <- "mito_samples3x_missing0.8_noLF.recode.vcf.gz"
-gds<-snpgdsVCF2GDS(vcf.in, "mtDNA.gds", method="biallelic.only")
+gds <- snpgdsVCF2GDS(vcf.in, "mtDNA.gds", method="biallelic.only")
 
 genofile <- snpgdsOpen(gds)
-pca <-snpgdsPCA(genofile, num.thread=2,autosome.only = F)
+
+pca <- snpgdsPCA(genofile, num.thread=2, autosome.only = F)
 # Working space: 56 samples, 802 SNPs
 
 samples <- as.data.frame(pca$sample.id)
@@ -1988,32 +1998,34 @@ colnames(samples) <- "name"
 metadata <- samples %>% separate(name,c("time", "country","population","host","sampleID"))
 
 
-data <- data.frame(sample.id = pca$sample.id,
-                  EV1 = pca$eigenvect[,1],  
-                  EV2 = pca$eigenvect[,2],
-                  EV3 = pca$eigenvect[,3],
-                  EV4 = pca$eigenvect[,4],
-                  EV5 = pca$eigenvect[,5],
-                  EV6 = pca$eigenvect[,6],    
-                  TIME = metadata$time,
-                  COUNTRY = metadata$country,
-                  POPULATION = metadata$population,
-                  HOST = metadata$host,
-                  stringsAsFactors = FALSE)
+data <-
+     data.frame(sample.id = pca$sample.id,
+          EV1 = pca$eigenvect[,1],  
+          EV2 = pca$eigenvect[,2],
+          EV3 = pca$eigenvect[,3],
+          EV4 = pca$eigenvect[,4],
+          EV5 = pca$eigenvect[,5],
+          EV6 = pca$eigenvect[,6],    
+          TIME = metadata$time,
+          COUNTRY = metadata$country,
+          POPULATION = metadata$population,
+          HOST = metadata$host,
+          stringsAsFactors = FALSE)
 
-country_colours <- c("CHN" = "#E64B35B2", "CMR" = "#4DBBD5B2", "DNK" = "#00A087B2",
- "ESP" = "#F39B7FB2", "HND" = "#8491B4B2", "NLD" = "#91D1C2B2", "UGA" = "#DC0000B2")
+country_colours <-
+     c("CHN" = "#E64B35B2", "CMR" = "#4DBBD5B2", "DNK" = "#00A087B2", "ESP" = "#F39B7FB2", "HND" = "#8491B4B2", "NLD" = "#91D1C2B2", "UGA" = "#DC0000B2")
 
-plot_pca_mito <- ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY),alpha=1) +
-     geom_rect(aes(xmin=-0.14, ymin=-0.02, xmax=-0.06, ymax=0.04), fill=NA, col="black", linetype="dotted", size=0.3) +
+plot_pca_mito <-
+     ggplot(data, aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY),alpha=1) +
+     geom_rect(aes(xmin=-0.125, ymin=-0.01, xmax=-0.05, ymax=0.023), fill=NA, col="black", linetype="dotted", size=0.3) +
      geom_point(size=4, alpha=1) +
      theme_bw() +
      labs(x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
-          scale_colour_manual(values = country_colours)
+     scale_colour_manual(values = country_colours)
 
-
-plot_pca_mito_zoom <- ggplot(data, aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COUNTRY,"_",POPULATION,"_",HOST))) +
+plot_pca_mito_zoom <-
+     ggplot(data, aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COUNTRY,"_",POPULATION,"_",HOST))) +
      geom_point(size=4, alpha=1) +
      theme_bw() +
      labs(x = "PC1",
@@ -2021,13 +2033,16 @@ plot_pca_mito_zoom <- ggplot(data, aes(EV1,EV2, col = COUNTRY, shape = TIME, lab
      xlim(-0.125,-0.05) + ylim(-0.01, 0.023) +
      scale_colour_manual(values = country_colours)
 
+# note: geom_rect in first plot and zoom coordinates were adjusted manually to show the cluster clearly.
+
 
 plot_pca_mito + plot_pca_mito_zoom + plot_layout(ncol=2, guides = "collect")
 
-
 ggsave("plot_PCA_mito_samples3x_missing0.8_noLF.png")
 ggsave("plot_PCA_mito_samples3x_missing0.8_noLF.pdf", height = 5, width = 11, useDingbats=FALSE)
+
 ```
+
 Figure: [plot_PCA_mito_samples3x_missing0.8_noLF](plot_PCA_mito_samples3x_missing0.8_noLF.pdf)
 
 - will uses this in Figure 1 panels A and B
@@ -2053,6 +2068,7 @@ gzip -f nuclear_samples3x_missing0.8.recode.vcf
 
 #> After filtering, kept 36 out of 61 Individuals
 #> After filtering, kept 5801129 out of a possible 6933531 Sites
+
 ```
 
 ```R
@@ -2060,32 +2076,38 @@ gzip -f nuclear_samples3x_missing0.8.recode.vcf
 library(tidyverse)
 library(gdsfmt)
 library(SNPRelate)
+library(patchwork)
 
 snpgdsClose(genofile)
+
 vcf.in <- "nuclear_samples3x_missing0.8.recode.vcf.gz"
+
 gds<-snpgdsVCF2GDS(vcf.in, "nuclear.gds", method="biallelic.only")
 
 genofile <- snpgdsOpen(gds)
-pca <-snpgdsPCA(genofile, num.thread=2,autosome.only = F)
+
+pca <- snpgdsPCA(genofile, num.thread=2, autosome.only = F)
 # Working space: 44 samples, 5,133,662 SNPs
 
 samples <- as.data.frame(pca$sample.id)
+
 colnames(samples) <- "name"
+
 metadata <- samples %>% separate(name,c("time", "country","population","host","sampleID"))
 
-
-data <- data.frame(sample.id = pca$sample.id,
-                  EV1 = pca$eigenvect[,1],  
-                  EV2 = pca$eigenvect[,2],
-                  EV3 = pca$eigenvect[,3],
-                  EV4 = pca$eigenvect[,4],
-                  EV5 = pca$eigenvect[,5],
-                  EV6 = pca$eigenvect[,6],    
-                  TIME = metadata$time,
-                  COUNTRY = metadata$country,
-                  POPULATION = metadata$population,
-                  HOST = metadata$host,
-                  stringsAsFactors = FALSE)
+data <-
+     data.frame(sample.id = pca$sample.id,
+          EV1 = pca$eigenvect[,1],  
+          EV2 = pca$eigenvect[,2],
+          EV3 = pca$eigenvect[,3],
+          EV4 = pca$eigenvect[,4],
+          EV5 = pca$eigenvect[,5],
+          EV6 = pca$eigenvect[,6],    
+          TIME = metadata$time,
+          COUNTRY = metadata$country,
+          POPULATION = metadata$population,
+          HOST = metadata$host,
+          stringsAsFactors = FALSE)
 
 
 plot_pca_nuc <-
@@ -2095,10 +2117,9 @@ plot_pca_nuc <-
      labs(title="nuclear_samples3x_missing0.8",
           x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%"))+
-          scale_colour_npg(guide = FALSE)
+     scale_colour_npg(guide = FALSE)
 
 plot_pca_nuc
-
 
 ggsave("plot_PCA_nuclear_samples3x_missing0.8.png")
 ggsave("plot_PCA_nuclear_samples3x_missing0.8.pdf")
@@ -2115,67 +2136,80 @@ ggsave("plot_PCA_nuclear_samples3x_missing0.8.pdf")
 #
 # ggsave("plot_PCA_nuclear_samples3x_missing0.8_zoomin.png")
 # ggsave("plot_PCA_nuclear_samples3x_missing0.8_zoomin.pdf")
+
 ```
+
 ![](04_analysis/plot_PCA_nuclear_samples3x_missing0.8.png)
 # ![](04_analysis/plot_PCA_nuclear_samples3x_missing0.8_zoomin.png)
 - main outliers are colobus and leafmonkey, so will remove and rerun
 
-```
+```bash
 vcftools \
---vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf \
+--gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz \
 --keep nuclear_3x_animalPhonly.list \
 --max-missing 0.8 \
 --recode --recode-INFO-all \
 --out nuclear_samples3x_missing0.8_animalPhonly
 
-#> After filtering, kept 39 out of 73 Individuals
-#> After filtering, kept 6146376 out of a possible 6571976 Sites
+gzip -f nuclear_samples3x_missing0.8_animalPhonly.recode.vcf
+
+#> After filtering, kept 31 out of 61 Individuals
+#> After filtering, kept 6528981 out of a possible 6933531 Sites
+
 ```
+
 ```R
+# load libraries
 library(tidyverse)
 library(gdsfmt)
 library(SNPRelate)
 library(ggsci)
 
 snpgdsClose(genofile)
+
 vcf.in <- "nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz"
-gds<-snpgdsVCF2GDS(vcf.in, "nuclear.gds", method="biallelic.only")
+
+gds <- snpgdsVCF2GDS(vcf.in, "nuclear.gds", method="biallelic.only")
 
 genofile <- snpgdsOpen(gds)
-pca <-snpgdsPCA(genofile, num.thread=2,autosome.only = F)
+
+pca <- snpgdsPCA(genofile, num.thread=2, autosome.only = F)
 # Working space: 39 samples, 2,544,110 SNPs
 
 samples <- as.data.frame(pca$sample.id)
+
 colnames(samples) <- "name"
+
 metadata <- samples %>% separate(name,c("time", "country","population","host","sampleID"))
 
+data <-
+     data.frame(sample.id = pca$sample.id,
+          EV1 = pca$eigenvect[,1],  
+          EV2 = pca$eigenvect[,2],
+          EV3 = pca$eigenvect[,3],
+          EV4 = pca$eigenvect[,4],
+          EV5 = pca$eigenvect[,5],
+          EV6 = pca$eigenvect[,6],    
+          TIME = metadata$time,
+          COUNTRY = metadata$country,
+          POPULATION = metadata$population,
+          HOST = metadata$host,
+          stringsAsFactors = FALSE)
 
-data <- data.frame(sample.id = pca$sample.id,
-                  EV1 = pca$eigenvect[,1],  
-                  EV2 = pca$eigenvect[,2],
-                  EV3 = pca$eigenvect[,3],
-                  EV4 = pca$eigenvect[,4],
-                  EV5 = pca$eigenvect[,5],
-                  EV6 = pca$eigenvect[,6],    
-                  TIME = metadata$time,
-                  COUNTRY = metadata$country,
-                  POPULATION = metadata$population,
-                  HOST = metadata$host,
-                  stringsAsFactors = FALSE)
+country_colours <-
+     c("CHN" = "#E64B35B2", "CMR" = "#4DBBD5B2", "DNK" = "#00A087B2", "ESP" = "#F39B7FB2", "HND" = "#8491B4B2", "NLD" = "#91D1C2B2", "UGA" = "#DC0000B2")
 
-country_colours <- c("CHN" = "#E64B35B2", "CMR" = "#4DBBD5B2", "DNK" = "#00A087B2", "ESP" = "#F39B7FB2", "HND" = "#8491B4B2", "NLD" = "#91D1C2B2", "UGA" = "#DC0000B2")
-
-
-nuc_plot <- ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
+plot_pca_nuc <-
+     ggplot(data,aes(EV1, EV2, col = COUNTRY, shape = TIME, label = COUNTRY)) +
      geom_point(size=4, alpha=1) +
      theme_bw() +
      labs(x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
-          scale_colour_manual(values = country_colours, guide=FALSE)
+     scale_colour_manual(values = country_colours, guide=FALSE)
 
-nuc_plot
+plot_pca_nuc
 
-# plot with animal outliers
+# plot
 ggsave("plot_PCA_nuclear_samples3x_missing0.8_animalPhonly.pdf", height = 5, width = 5, useDingbats=FALSE)
 ggsave("plot_PCA_nuclear_samples3x_missing0.8_animalPhonly.png")
 
@@ -2193,12 +2227,61 @@ ggsave("plot_PCA_nuclear_samples3x_missing0.8_animalPhonly.png")
 
 plot_pca_mito + plot_pca_mito_zoom + plot_pca_nuc + plot_layout(ncol=3, guides = "collect")
 
+ggsave("plot_PCA_mito_mitozoom_nuc.pdf", height = 4, width = 14, useDingbats=FALSE)
+ggsave("plot_PCA_plot_PCA_mito_mitozoom_nuc.png")
 ```
+
 Figure: [plot_PCA_nuclear_samples3x_missing0.8_animalPhonly](plot_PCA_nuclear_samples3x_missing0.8_animalPhonly.pdf)
 - to be used in Figure 1, panel D
 
 ![](../04_analysis/plot_PCA_nuclear_samples3x_missing0.8_animalPhonly.png)
 ![](../04_analysis/plot_PCA_nuclear_samples3x_missing0.8_animalPhonly_2.png)
+
+
+
+## ANGSD
+- exploring the use of ANGSD, whcih can use genotype likelihoods for a number of analyses. Probably good for the low coverage datasets
+- started off calculating "identity by state" (IBS), which is another way of showing genetic similarity between samples
+
+```bash
+
+cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/ANGSD
+
+/nfs/users/nfs_s/sd21/lustre118_link/software/ANCIENT/angsd/angsd -bam bam.list -minMapQ 30 -minQ 20 -GL 2 -doMajorMinor 1 -doMaf 1 -SNP_pval 2e-6 -doIBS 1 -doCounts 1 -doCov 1 -makeMatrix 1 -minMaf 0.05 -P 5
+
+```
+
+```R
+# load libraries
+library(gplots)
+
+# load data
+cov_data <- as.matrix(read.table("angsdput.covMat",header=F))
+ibs_data <- as.matrix(read.table("angsdput.ibsMat",header=F))
+
+names <- as.matrix(read.table("sample.names"))
+rownames(ibs_data) <- names
+colnames(ibs_data) <- names
+rownames(cov_data) <- names
+colnames(cov_data) <- names
+
+
+pdf("nuclear_ibs_heatmap.pdf",width=15, height=15)
+heatmap.2(ibs_data, trace="none", margins=c(12,12))
+dev.off()
+
+pdf("nuclear_covariance_heatmap.pdf",width=15, height=15)
+cov_data[cov_data > 1] <- 1
+heatmap.2(cov_data, trace="none", margins=c(12,12))
+dev.off()
+
+```
+
+Figure: [IBS for nuclear markers](../04_analysis/nuclear_ibs_heatmap.pdf)
+
+Figure: [covariance of IBS for nuclear markers](../04_analysis/nuclear_covariance_heatmap.pdf)
+
+
 
 
 
@@ -2211,29 +2294,45 @@ Figure: [plot_PCA_nuclear_samples3x_missing0.8_animalPhonly](plot_PCA_nuclear_sa
 
 
 ## NGSadmix
+
 ```bash
+
 mkdir /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTURE
+
 cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTURE
+
 mkdir CHROMOSOMES_PL
 
-ln -s /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf
+ln -s /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz
 
 cat ../../01_REF/trichuris_trichiura.fa.fai | cut -f1 | grep -v "MITO" | while read -r CHR; do
-vcftools --gzvcf ../../04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz  --max-missing 1 --out CHROMOSOMES_PL/${CHR} --BEAGLE-PL --chr ${CHR};
+     vcftools --gzvcf ../../04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz  --max-missing 1 --out CHROMOSOMES_PL/${CHR} --BEAGLE-PL --chr ${CHR};
 done
 
 # merge the data from individual chromosomes into a single dataset
 cd CHROMOSOMES_PL
+
 cat $(ls -1 *PL | head -n1 ) | head -n1 > merged.PL
-for i in *PL; do cat ${i} | grep -v "marker" >> merged.PL; done
+
+for i in *BEAGLE.PL; do
+     cat ${i} | grep -v "marker" >> merged.PL;
+done
 
 # chromosomes=$(cat ../../01_REF/trichuris_trichiura.fa.fai | cut -f1 | grep -v "MITO" | while read -r CHROMOSOME; do printf "$CHROMOSOME,"; done | sed 's/,$//g')
 # vcftools --gzvcf ../../04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz  --out CHROMOSOMES_PL/all_chromosomes --BEAGLE-PL --chr ${chromosomes}
 
+head -n1 Trichuris_trichiura_3_009.BEAGLE.PL > chromosome.PL
+
+cat Trichuris_trichiura_1_001.BEAGLE.PL Trichuris_trichiura_1_002.BEAGLE.PL Trichuris_trichiura_1_003.BEAGLE.PL Trichuris_trichiura_1_004.BEAGLE.PL Trichuris_trichiura_1_005.BEAGLE.PL Trichuris_trichiura_1_006.BEAGLE.PL Trichuris_trichiura_1_007.BEAGLE.PL Trichuris_trichiura_2_001.BEAGLE.PL Trichuris_trichiura_3_001.BEAGLE.PL Trichuris_trichiura_3_002.BEAGLE.PL Trichuris_trichiura_3_003.BEAGLE.PL Trichuris_trichiura_3_004.BEAGLE.PL Trichuris_trichiura_3_005.BEAGLE.PL Trichuris_trichiura_3_006.BEAGLE.PL Trichuris_trichiura_3_007.BEAGLE.PL Trichuris_trichiura_3_008.BEAGLE.PL Trichuris_trichiura_3_009.BEAGLE.PL Trichuris_trichiura_3_010.BEAGLE.PL | grep -v "marker" | sort -t ":" -k1,1 -k2,2n >> chromosome.PL
+
+
+cd ../
+
+
 # run admixture for multiple values of K
 for j in 1 2 3 4 5; do
      for i in 2 3 4 5 6 7 8 9 10; do
-     bsub.py --queue long --threads 10 3 NGS_admix_multiK_rerun "NGSadmix -likes CHROMOSOMES_PL/merged.PL -K ${i} -P 10 -seed ${j} -minMaf 0.05 -misTol 0.9 -o k_${i}_s_${j}_out" ;
+          bsub.py --queue long --threads 10 3 NGS_admix_multiK_rerun "NGSadmix -likes CHROMOSOMES_PL/chromosome.PL -K ${i} -P 10 -seed ${j} -minMaf 0.05 -misTol 0.9 -o k_${i}_s_${j}_out" ;
      done;
 done
 
@@ -2241,6 +2340,7 @@ done
 ```
 
 ### make some admixture plots
+
 ```R
 # load libraries
 library(ggsci)
@@ -2261,7 +2361,7 @@ data <- read.delim(data, sep=" ", header=F)
 names(data) <- paste("ancestral", 1:ncol(data), sep="")
 
 # bring metadata and data together
-data <- cbind(samples,metadata,data)
+data <- cbind(samples, metadata,data)
 data <- melt(data, id.vars=c("sample_ID","time", "country","population","host","sampleID"))
 
 # make plot
@@ -2300,9 +2400,8 @@ ggsave("admixture_plots_k2-10.pdf", height=15, width=10)
 k_3_plot
 ggsave("admixture_plots_k3.pdf", height=1.5, width=10)
 
-
-
 ```
+
 ![](../04_analysis/admixture_plots_k2-10.png)
 
 - need to determine the optimal K, at least from what the data suggests.
@@ -2311,6 +2410,7 @@ ggsave("admixture_plots_k3.pdf", height=1.5, width=10)
 - Will try this, using scaffolds longer than 1 Mb to make it manageable.
 
 - NOTE: I did not end up using the following code, hence hashed out, but I am keeping it for future reference
+
 ```bash
 # mkdir ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTURE/VALIDATION
 #
@@ -2395,21 +2495,30 @@ ggsave("admixture_plots_k3.pdf", height=1.5, width=10)
 
 ### Clumpak
 - rather that the above code, I ended up using Clumpak as suggested here: https://github.com/alexkrohn/AmargosaVoleTutorials/blob/master/ngsAdmix_tutorial.md
+
 ```bash
-(for log in `ls *.log`; do grep -Po 'like=\K[^ ]+' $log; done) > logfile
+(for log in `ls *.log`; do
+     grep -Po 'like=\K[^ ]+' $log;
+done) > logfile
+
 ```
 
 - to collate the data, and generate a clumpak compatible input file
+
 ```R
+
 logs <- as.data.frame(read.table("logfile"))
+
 logs$K <- c(rep("10", 5), rep("2", 5), rep("3", 5), rep("4", 5), rep("5", 5), rep("6", 5), rep("7", 5), rep("8", 5), rep("9", 5))
+
 write.table(logs[, c(2, 1)], "logfile_formatted", row.names = F,
     col.names = F, quote = F)
+
 ```
+
 - open clumpak and upload the data
 - the output suggests k=3 is the optimal ancestral number, which I guess is consistent with the PCA which produces three main clusters.
 
----
 
 
 ## Treemix
@@ -2417,26 +2526,29 @@ write.table(logs[, c(2, 1)], "logfile_formatted", row.names = F,
 - https://speciationgenomics.github.io/Treemix/
 
 ```bash
+
 conda activate py-popgen
+
 export LD_LIBRARY_PATH=/lustre/scratch118/infgen/team133/sd21/software/anaconda2/envs/py-popgen/lib/
 
 mkdir /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/TREEMIX
 cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/TREEMIX
 
-vcftools --gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz --max-missing 1 --keep ../../04_VARIANTS/GATK_HC_MERGED/nuclear_3x_animal.list --recode --stdout | gzip > treemix.vcf.gz
+vcftools \
+--gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz \
+--max-missing 1 \
+--keep ../../04_VARIANTS/GATK_HC_MERGED/nuclear_3x_animal.list \
+--recode --stdout | gzip > treemix.vcf.gz
 
 ./ldPruning.sh treemix.vcf.gz
 
 # before pruning
 vcftools --gzvcf treemix.vcf.gz
-#> After filtering, kept 280424 out of a possible 280424 Sites
+#> After filtering, kept 356541 out of a possible 356541 Sites
 
 # after pruning
 vcftools --gzvcf treemix.LDpruned.vcf.gz
-#> After filtering, kept 23630 out of a possible 23630 Sites
-
-
-
+#> After filtering, kept 27314 out of a possible 27314 Sites
 
 bcftools query -l treemix.vcf.gz | awk '{split($1,pop,"."); print $1"\t"$1"\t"pop[2]}' > data.clust
 
@@ -2449,9 +2561,6 @@ MN_CHN_GUA_HS_001	MN_CHN_GUA_HS_001	CHN
 MN_CHN_GUA_HS_002	MN_CHN_GUA_HS_002	CHN
 MN_CHN_GUA_HS_003	MN_CHN_GUA_HS_003	CHN
 "
-
-
-
 
 
 cat data.clust | cut -f3 | sort | uniq > populations.list
@@ -2467,10 +2576,14 @@ for i in {0..5}; do
           treemix -i treemix.LDpruned.treemix.frq.gz -seed $j -m $i -o treemix.m_$i.s_$j -root COLOBUS -bootstrap -k 500  > treemix_${i}_log &
      done;
 done
+
 ```
 
 - make some plots
+
 ```R
+
+# load libraries
 library(RColorBrewer)
 library(R.utils)
 
@@ -2482,34 +2595,35 @@ par(mfrow=c(2,6))
 
 pdf("treemix_edges_2-6.pdf")
 for(edge in 0:5){
-  plot_tree(cex=0.8,paste0(prefix,".m_",edge,".s_2"))
-  title(paste(edge,"edges"))
+     plot_tree(cex=0.8,paste0(prefix,".m_",edge,".s_2"))
+     title(paste(edge,"edges"))
 }
 
 # plot residuals across range of migration edges - positive values suggest admixture
 for(edge in 0:5){
- plot_resid(stem=paste0(prefix,".m_",edge,".s_2"),pop_order="populations.list")
- title(paste(edge,"edges"))
+     plot_resid(stem=paste0(prefix,".m_",edge,".s_2"),pop_order="populations.list")
+     title(paste(edge,"edges"))
 }
+
 dev.off()
 
 # Estimating the optimal number of migration edges : https://rdrr.io/cran/OptM/#vignettes
 # run in the folder with the treemix output files
 #install.packages("OptM")
+
 library(OptM)
 
 optM(folder="./")
 
-#> The maximum value for delta m was 17.3577 at m = 2 edges.
-
+#> The maximum value for delta m was 10.6469 at m = 1 edges.
 
 # remake the plots, using 2 migration edges
 prefix="treemix"
 
 par(mfrow=c(1,1))
 
-plot_tree(cex=0.8,paste0(prefix,".m_2.s_2"))
-title(paste(2,"edges"))
+plot_tree(cex=0.8,paste0(prefix,".m_2.s_1"))
+title(paste(1,"edges"))
 
 plot_resid(stem=paste0(prefix,".",2),pop_order="populations.list")
 title(paste(1,"edges"))
@@ -2518,16 +2632,19 @@ title(paste(1,"edges"))
 
 ### calculate the variance explained by the data
 - https://github.com/darencard/RADpipe/blob/master/treemixVarianceExplained.R
-```bash
-Rscript treemixVarianceExplained.R treemix.m_2.s_2
 
-#> Standard error for all entries in the covariance matrix estimated from the data	0.00053440209375
-#> Variance of relatedness between populations explained by the model	0.998712455493422
+```bash
+
+Rscript treemixVarianceExplained.R treemix.m_1.s_2
+
+#> Standard error for all entries in the covariance matrix estimated from the data	0.000566063693877551
+#> Variance of relatedness between populations explained by the model	0.997250751108934
+
 ```
 
 
 
-```bash
+#```bash
 # threepop -i treemix.LDpruned.treemix.frq.gz -k 500 > threepop.out
 # fourpop -i treemix.LDpruned.treemix.frq.gz -k 500 > fourpop.out
 #
@@ -2577,8 +2694,6 @@ Rscript treemixVarianceExplained.R treemix.m_2.s_2
 
 
 
----
-
 
 
 ## ADMIXTOOLS
@@ -2599,10 +2714,11 @@ Rscript treemixVarianceExplained.R treemix.m_2.s_2
 
 
 ### Prepared data and run admixtools
+
 ```bash
 
-mkdir ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTOOLS
-cd ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTOOLS
+mkdir ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/FSTATS
+cd ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/FSTATS
 
 ln -s ../../04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz
 
@@ -2612,12 +2728,12 @@ bcftools view -H nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz | cut -
 # run the conversion script.
 #--- note have to drop the "vcf.gz" suffix
 
-./convertVCFtoEigenstrat_sd.sh nuclear_samples3x_missing0.8_animalPhonly.recode
+zcat nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz > nuclear_samples3x_missing0.8_animalPhonly.recode.vcf
 
+./convertVCFtoEigenstrat_sd.sh nuclear_samples3x_missing0.8_animalPhonly.recode
 
 # need to manually modify the ".ind" file - the thrid column shows "control" where they should show population IDs
 # simply cat the file, copy into a text editor, change it, then move it back
-
 
 
 # make a new populations file
@@ -2627,8 +2743,8 @@ bcftools view -H nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz | cut -
 OUTGROUP=BABOON
 
 # loop throguh the populations to generate the pop file as input to admixtools
-for i in BABOON CHN ECU HND UGA ANCIENT; do
-     for j in  BABOON CHN ECU HND UGA ANCIENT; do
+for i in BABOON CHN HND UGA ANCIENT; do
+     for j in  BABOON CHN HND UGA ANCIENT; do
           if [[ "$i" == "$j" ]] || [[ "$i" == "$OUTGROUP" ]] || [[ "$j" == "$OUTGROUP" ]]; then
                :
                else
@@ -2639,57 +2755,67 @@ done
 
 # I manually removed duplicates here
 
+# after looking at the data from the first analysis in R, also decided to set HND as an outgroup.
+OUTGROUP=HND
+
+for i in BABOON CHN HND UGA ANCIENT; do
+     for j in  BABOON CHN HND UGA ANCIENT; do
+          if [[ "$i" == "$j" ]] || [[ "$i" == "$OUTGROUP" ]] || [[ "$j" == "$OUTGROUP" ]]; then
+               :
+               else
+               echo -e "${i}\t${j}\t${OUTGROUP}" >> admixtools_pops.txt;
+          fi;
+     done;
+done
+
+
 # run admixtools to generate f3 stats
 qp3Pop -p PARAMETER_FILE > qp3Pop.out
 
 # parse the output so it is user friendly to plot
 grep "result" qp3Pop.out | awk '{print $2,$3,$4,$5,$6,$7,$8}' OFS="\t" > qp3Pop.clean.out
 
-
 ```
 
 - where "PARAMETER_FILE":
 
 ```bash
+
 genotypename:   nuclear_samples3x_missing0.8_animalPhonly.recode.eigenstratgeno (in eigenstrat format)
 snpname:        nuclear_samples3x_missing0.8_animalPhonly.recode.snp      (in eigenstrat format)
 indivname:      nuclear_samples3x_missing0.8_animalPhonly.recode.ind    (in eigenstrat format)
 popfilename:    admixtools_pops.txt
 inbreed: YES
+
 ```
 
 - make a plot
 
 ```R
+# load libraries
 library(tidyverse)
 
+# read data
 data <- read.delim("qp3Pop.clean.out", header=F, sep="\t")
-colnames(data) <- c("Source_1", "Source_2", "Target", "f_3", "std_err", "Z_score", "SNPs")
 
-ggplot(data,aes(f_3, reorder(paste0(Source_1,",",Source_2), -f_3), col=Z_score)) +
+# fix headings
+colnames(data) <- c("Source_1", "Source_2", "Outgroup", "f_3", "std_err", "Z_score", "SNPs")
+
+# make a plot
+ggplot(data,aes(f_3, reorder(paste0(Source_1,",",Source_2), -f_3))) +
      geom_point(size = 2) +
      geom_segment(aes(x = f_3-std_err, y = paste0(Source_1,",",Source_2), xend = f_3+std_err, yend = paste0(Source_1,",",Source_2))) +
      theme_bw() + xlim(0,1) +
      labs(x = "f3(Source1,Source2;Outgroup)" , y = "") +
-     facet_grid(Target~., scale="free_y", space = "free_y")
+     facet_grid(Outgroup~., scale="free_y", space = "free_y")
 
+# save it
 ggsave("plot_admixtools_f3_statistics.png")
-ggsave("plot_admixtools_f3_statistics.pdf", height = 4, width = 6, useDingbats = FALSE)
+ggsave("plot_admixtools_f3_statistics.pdf", height = 4, width = 5, useDingbats = FALSE)
 
 ```
+
 ![](../04_analysis/plot_admixtools_f3_statistics.png)
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2700,15 +2826,20 @@ ggsave("plot_admixtools_f3_statistics.pdf", height = 4, width = 6, useDingbats =
 - want to calculate historical population sizes
 - also want to follow up on question posed in Soe's draft on the relationship between UGA and DNK samples
 
-```
+```bash
+
 mkdir /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/SMC
+
 cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/SMC
+
 mkdir SMC_DATA
 
 ln -s /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf
 
 conda activate smcpp
+
 export LD_LIBRARY_PATH=/lustre/scratch118/infgen/team133/sd21/software/anaconda2/envs/smcpp/lib/
+
 module load common-apps/htslib/1.9.229
 
 cat ../../01_REF/trichuris_trichiura.fa.fai | cut -f1 | grep -v "MITO" > chromosomes.list
@@ -2739,33 +2870,6 @@ smc++ estimate -o HND/ 2.7e-9 SMC_DATA/HND.*.smc.gz
 # plot
 smc++ plot -g 0.33 -c SMCPP_HND.pdf HND/model.final.json
 
-
-
-
-# ECU
-vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz \
---indv MN_ECU_QUI_HS_001 \
---indv MN_ECU_QUI_HS_002 \
---indv MN_ECU_QUI_HS_004 \
---indv MN_ECU_QUI_HS_005 \
---indv MN_ECU_QUI_HS_006 \
---indv MN_ECU_QUI_HS_007 \
---indv MN_ECU_TEL_HS_001 \
---indv MN_ECU_TEL_HS_002 \
---max-missing 1 --recode --out ECU
-bgzip -f ECU.recode.vcf
-tabix ECU.recode.vcf.gz
-
-# first estimate each population marginally using estimate:
-while read CHROMOSOME; do
-     smc++ vcf2smc ECU.recode.vcf.gz SMC_DATA/ECU.${CHROMOSOME}.smc.gz ${CHROMOSOME} ECU:MN_ECU_QUI_HS_001,MN_ECU_QUI_HS_002,MN_ECU_QUI_HS_004,MN_ECU_QUI_HS_005,MN_ECU_QUI_HS_006,MN_ECU_QUI_HS_007,MN_ECU_TEL_HS_001,MN_ECU_TEL_HS_002;
-done < chromosomes.list
-
-# mutation rate (C.elegans) = 2.7e-9 (https://www.pnas.org/content/106/38/163100)
-smc++ estimate -o ECU/ 2.7e-9 SMC_DATA/ECU.*.smc.gz
-
-# plot
-smc++ plot -g 0.33 -c SMCPP_ECU.pdf ECU/model.final.json
 
 
 
@@ -2820,6 +2924,7 @@ vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz \
 --indv MN_DNK_COZ_PH_001 \
 --indv MN_DNK_COZ_PH_002 \
 --max-missing 1 --recode --out BABOON
+
 bgzip -f BABOON.recode.vcf
 tabix BABOON.recode.vcf.gz
 
@@ -2851,6 +2956,7 @@ vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz \
 --indv MN_UGA_KAB_HS_008 \
 --indv MN_UGA_KAB_HS_009 \
 --max-missing 1 --recode --out UGA
+
 bgzip -f UGA.recode.vcf
 tabix UGA.recode.vcf.gz
 
@@ -2868,12 +2974,12 @@ smc++ plot -g 0.33 -c SMCPP_UGA.pdf UGA/model.final.json
 
 - plot all smcpp plots together
 ```R
+# load libraries
 library(tidyverse)
 library(patchwork)
 library(ggsci)
 
-ECU_data <- read.delim("SMCPP_ECU.csv", header = T , sep = ",")
-ECU_data$ID <- "ECU"
+# load data
 HND_data <- read.delim("SMCPP_HND.csv", header = T , sep = ",")
 HND_data$ID <- "HND"
 CHN_data <- read.delim("SMCPP_CHN.csv", header = T , sep = ",")
@@ -2892,18 +2998,20 @@ ggplot(data,aes(x,y,col=ID)) +
      geom_rect(aes(xmin=50000,ymin=0,xmax=60000,ymax=1.0E6), fill="grey95", col=NA) +
      geom_line(size=1) +
      labs(x = "Years before present", y = "Effective population size (Ne)", col="Population") +
-     theme_bw() + scale_x_log10(labels = prettyNum) + ylim(0,1e6) +
+     theme_bw() +
+     scale_x_log10(labels = prettyNum) +
+     ylim(0,1e6) +
      scale_colour_npg()
 
 ggsave("plot_smcpp_all_populations.png")
 ggsave("plot_smcpp_all_populations.pdf", height = 4, width = 5, useDingbats = FALSE)
 
 ```
+
 Figure: [plot_smcpp_all_populations](plot_smcpp_all_populations.pdf)
 - use this in Figure 2 panel D
 
 ![](../04_analysis/plot_smcpp_all_populations.png)
-
 
 
 ```bash
@@ -2951,63 +3059,7 @@ Figure: [plot_smcpp_all_populations](plot_smcpp_all_populations.pdf)
 # # library(ggplot2)
 # # data <- read.delim("joint.csv",header=T,sep=",")
 # # ggplot(data,aes(x,y,col=label))+geom_line()
-```
 
-```bash
-vcftools  --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz \
---indv MN_ECU_QUI_HS_001 \
---indv MN_ECU_QUI_HS_002 \
---indv MN_ECU_QUI_HS_004 \
---indv MN_ECU_QUI_HS_005 \
---indv MN_ECU_QUI_HS_006 \
---indv MN_ECU_QUI_HS_007 \
---indv MN_ECU_TEL_HS_001 \
---indv MN_ECU_TEL_HS_002 \
---indv MN_CHN_GUA_HS_001 \
---indv MN_CHN_GUA_HS_002 \
---indv MN_CHN_GUA_HS_003 \
---indv MN_CHN_GUA_HS_004 \
---indv MN_CHN_GUA_HS_005 \
---indv MN_CHN_GUA_HS_006 \
---indv MN_CHN_GUA_HS_007 \
---max-missing 1 --recode --out ECU_v_CHN
-bgzip ECU_v_CHN.recode.vcf
-tabix ECU_v_CHN.recode.vcf.gz
-
-mkdir ECU_v_CHN.SMC_DATA
-
-while read CHROMOSOME; do
-     smc++ vcf2smc ECU_v_CHN.recode.vcf.gz ECU_v_CHN.SMC_DATA/ECU.${CHROMOSOME}.smc.gz ${CHROMOSOME} ECU:MN_ECU_QUI_HS_001,MN_ECU_QUI_HS_002,MN_ECU_QUI_HS_004,MN_ECU_QUI_HS_005,MN_ECU_QUI_HS_006,MN_ECU_QUI_HS_007,MN_ECU_TEL_HS_001,MN_ECU_TEL_HS_002;
-done < chromosomes.list
-
-while read CHROMOSOME; do
-     smc++ vcf2smc ECU_v_CHN.recode.vcf.gz ECU_v_CHN.SMC_DATA/CHN.${CHROMOSOME}.smc.gz ${CHROMOSOME} CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007;
-done < chromosomes.list
-
-# mutation rate (C.elegans) = 2.7e-9 (https://www.pnas.org/content/106/38/163100)
-smc++ estimate -o ECU/ 2.7e-9 ECU_v_CHN.SMC_DATA/ECU.*.smc.gz
-smc++ estimate -o CHN/ 2.7e-9 ECU_v_CHN.SMC_DATA/CHN.*.smc.gz
-
-
-# # Next, create datasets containing the joint frequency spectrum for both populations:
-while read CHROMOSOME; do
-     smc++ vcf2smc ECU_v_CHN.recode.vcf.gz ECU_v_CHN.SMC_DATA/pop12.smc.gz ${CHROMOSOME} ECU:MN_ECU_QUI_HS_001,MN_ECU_QUI_HS_002,MN_ECU_QUI_HS_004,MN_ECU_QUI_HS_005,MN_ECU_QUI_HS_006,MN_ECU_QUI_HS_007,MN_ECU_TEL_HS_001,MN_ECU_TEL_HS_002 CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007;
-done < chromosomes.list
-
-while read CHROMOSOME; do
-     smc++ vcf2smc ECU_v_CHN.recode.vcf.gz ECU_v_CHN.SMC_DATA/pop21.smc.gz ${CHROMOSOME} CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007 ECU:MN_ECU_QUI_HS_001,MN_ECU_QUI_HS_002,MN_ECU_QUI_HS_004,MN_ECU_QUI_HS_005,MN_ECU_QUI_HS_006,MN_ECU_QUI_HS_007,MN_ECU_TEL_HS_001,MN_ECU_TEL_HS_002;
-done < chromosomes.list
-
-
-smc++ split -o ECU_v_CHN.split/ ECU/model.final.json CHN/model.final.json ECU_v_CHN.SMC_DATA/*.smc.gz
-smc++ plot -g 0.33 -c ECU_v_CHN.joint.pdf ECU_v_CHN.split/model.final.json
-```
-
-
-```R
-library(ggplot2)
-data <- read.delim("ECU_v_CHN.joint.csv",header=T,sep=",")
-ggplot(data,aes(log10(x),y,col=label))+geom_line()
 ```
 
 
@@ -3064,33 +3116,8 @@ done < chromosomes.list
 
 smc++ split -o UGA_v_CHN.split/ UGA/model.final.json CHN/model.final.json UGA_v_CHN.SMC_DATA/*.smc.gz
 smc++ plot -g 0.33 -c UGA_v_CHN.joint.pdf UGA_v_CHN.split/model.final.json
+
 ```
-
-```R
-library(ggplot2)
-data <- read.delim("ECU_v_CHN.joint.csv",header=T,sep=",")
-ggplot(data,aes(log10(x),y,col=label))+geom_line()
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -3105,14 +3132,13 @@ cat ../../01_REF/trichuris_trichiura.fa.fai | grep -v "Trichuris_trichiura_00_*"
 
 # extract nucleotide diversity for each group
 for i in ancient_x_nuclear_3x_animalPhonly.list \
-CHN_x_nuclear_3x_animalPhonly.list \
-BABOON_x_nuclear_3x_animalPhonly.list \
-ECU_x_nuclear_3x_animalPhonly.list \
-HND_x_nuclear_3x_animalPhonly.list \
-UGA_x_nuclear_3x_animalPhonly.list; do \
-     vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --keep ${i} --bed chromosome_scaffolds.bed --window-pi 50000 --out ${i%.list}_50k;
-     vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --keep ${i} --bed chromosome_scaffolds.bed --TajimaD 50000 --out ${i%.list}_50k;
-done
+     CHN_x_nuclear_3x_animalPhonly.list \
+     BABOON_x_nuclear_3x_animalPhonly.list \
+     HND_x_nuclear_3x_animalPhonly.list \
+     UGA_x_nuclear_3x_animalPhonly.list; do \
+          vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --keep ${i} --bed chromosome_scaffolds.bed --window-pi 50000 --out ${i%.list}_50k;
+          vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --keep ${i} --bed chromosome_scaffolds.bed --TajimaD 50000 --out ${i%.list}_50k;
+     done
 
 # summary stats for Pi
 for i in *_50k.windowed.pi;
@@ -3128,16 +3154,20 @@ _50k.Tajima.D
 
 # other random vcftools analyses
 vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --indv-freq-burden --out nuclear_samples3x_missing0.8_animalPhonly
+
 vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --het --out nuclear_samples3x_missing0.8_animalPhonly
+
 vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --relatedness --out nuclear_samples3x_missing0.8_animalPhonly
+
 vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --FILTER-summary --out nuclear_samples3x_missing0.8_animalPhonly
+
 ```
 
 
 
 ### plot nucleotide diversities
 ```R
-
+# load libraries
 library(tidyverse)
 library(ggsci)
 
@@ -3145,7 +3175,8 @@ library(ggsci)
 file_names <- list.files(path = "./",pattern = "_x_nuclear_3x_animalPhonly_50k.windowed.pi")
 
 # load data using file names, and make a formatted data frame
-data <- purrr::map_df(file_names, function(x) {
+data <-
+     purrr::map_df(file_names, function(x) {
 	data <- read.delim(x, header = T, sep="\t")
      data <- tibble::rowid_to_column(data, "NUM")
 	cbind(pop_id = gsub("_x_nuclear_3x_animalPhonly_50k.windowed.pi","",x), data)
@@ -3170,18 +3201,18 @@ ggplot(data,aes(NUM*50000,PI,col=CHROM, group=pop_id)) +
      theme(legend.position = "none")
 
 
-
 ggplot(data,aes(NUM*50000,PI,col=CHROM, group=pop_id)) +
-          geom_point() +
-          labs(x = "Population" , y = "Tajima's D", col=NA) +
-          theme_bw() +
-          facet_grid(pop_id~.) +
-          theme(legend.position = "none") +
-          scale_color_npg()
-
+     geom_point() +
+     labs(x = "Population" , y = "Tajima's D", col=NA) +
+     theme_bw() +
+     facet_grid(pop_id~.) +
+     theme(legend.position = "none") +
+     scale_color_npg()
 
 ggsave("plot_nucleotide_diversity_genomewide.png")
+
 ```
+
 ![](../04_analysis/plot_nucleotide_diversity_boxplot.png)
 ![](../04_analysis/plot_nucleotide_diversity_genomewide.png)
 
@@ -3196,7 +3227,8 @@ library(ggsci)
 file_names <- list.files(path = "./",pattern = "_x_nuclear_3x_animalPhonly_50k.Tajima.D")
 
 # load data using file names, and make a formatted data frame
-data <- purrr::map_df(file_names, function(x) {
+data <-
+     purrr::map_df(file_names, function(x) {
 	data <- read.delim(x, header = T, sep="\t")
      data <- tibble::rowid_to_column(data, "NUM")
 	cbind(pop_id = gsub("_x_nuclear_3x_animalPhonly_50k.Tajima.D","",x), data)
@@ -3214,6 +3246,7 @@ ggplot(data,aes(pop_id,TajimaD,col=pop_id)) +
 ggsave("plot_tajimaD_boxplot.png")
 ggsave("plot_tajimaD_boxplot.pdf", useDingbats=F, width=8, height=5)
 
+
 ggplot(data,aes(NUM*50000,TajimaD,col=CHROM, group=pop_id)) +
      geom_point() +
      labs(x = "Population" , y = "Tajima's D", col=NA) +
@@ -3225,7 +3258,8 @@ ggplot(data,aes(NUM*50000,TajimaD,col=CHROM, group=pop_id)) +
 ggsave("plot_tajimaD_genomewide.png")
 ggsave("plot_tajimaD_genomewide.pdf", useDingbats=F, width=7, height=7)
 
-plot_tajD <-     ggplot(data,aes(NUM*50000,TajimaD,col=pop_id, group=pop_id)) +
+plot_tajD <-
+     ggplot(data,aes(NUM*50000,TajimaD,col=pop_id, group=pop_id)) +
      geom_smooth(span = 0.1, se = FALSE) +
      labs(x = "Population" , y = "Tajima's D", col= "Population") +
      theme_bw() +
@@ -3233,31 +3267,31 @@ plot_tajD <-     ggplot(data,aes(NUM*50000,TajimaD,col=pop_id, group=pop_id)) +
      scale_color_npg()
 
 plot_Pi + plot_tajD + plot_layout(ncol = 1, guides = "collect")
+
 ```
+
 ![](../04_analysis/plot_tajimaD_boxplot.png)
 ![](../04_analysis/plot_tajimaD_genomewide.png)
 
 
 
 ## Genome wide genetic differentiation
-```
+
+```bash
+
 # run vcftools weir-fst-pop for all pairwise combinations of populatiions
 for i in ancient_x_nuclear_3x_animalPhonly.list \
 BABOON_x_nuclear_3x_animalPhonly.list \
 CHN_x_nuclear_3x_animalPhonly.list \
-ECU_x_nuclear_3x_animalPhonly.list \
 HND_x_nuclear_3x_animalPhonly.list \
 UGA_x_nuclear_3x_animalPhonly.list \
 AMERICAS_x_nuclear_3x_animalPhonly.list; do \
-
      for j in ancient_x_nuclear_3x_animalPhonly.list \
      BABOON_x_nuclear_3x_animalPhonly.list \
      CHN_x_nuclear_3x_animalPhonly.list \
-     ECU_x_nuclear_3x_animalPhonly.list \
      HND_x_nuclear_3x_animalPhonly.list \
      UGA_x_nuclear_3x_animalPhonly.list \
      AMERICAS_x_nuclear_3x_animalPhonly.list; do \
-
           if [[ "$i" == "$j" ]] || [[ -f ${i%_x_nuclear_3x_animalPhonly.list}_v_${j%_x_nuclear_3x_animalPhonly.list}_50k.windowed.weir.fst ]] || [[ -f ${j%_x_nuclear_3x_animalPhonly.list}_v_${i%_x_nuclear_3x_animalPhonly.list}_50k.windowed.weir.fst ]]; then
                echo "Same, same, move on"
                else
@@ -3269,15 +3303,21 @@ done
 leafmonkey_colobus.list
 hq_modern_humanonly.list
 
-vcftools --gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz --bed chromosome_scaffolds.bed --weir-fst-pop leafmonkey_colobus.list  --weir-fst-pop hq_modern_humanonly.list --fst-window-size 50000 --out human_vs_LMCG_50k
+vcftools \
+--gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz \
+--bed chromosome_scaffolds.bed \
+--weir-fst-pop leafmonkey_colobus.list \
+--weir-fst-pop hq_modern_humanonly.list \
+--fst-window-size 50000 \
+--out human_vs_LMCG_50k
 
 
 ```
 
-
 - make some plots
 
 ```R
+# load libraries
 library(tidyverse)
 library(ggsci)
 library(patchwork)
@@ -3286,7 +3326,8 @@ library(patchwork)
 file_names <- list.files(path = "./",pattern = "_50k.windowed.weir.fst")
 
 # load data using file names, and make a formatted data frame
-data <- purrr::map_df(file_names, function(x) {
+data <-
+     purrr::map_df(file_names, function(x) {
 	data <- read.delim(x, header = T, sep="\t")
      data <- tibble::rowid_to_column(data, "NUM")
 	cbind(sample_pair = gsub("_50k.windowed.weir.fst","",x), data)
@@ -3295,11 +3336,11 @@ data <- purrr::map_df(file_names, function(x) {
 
 # plot boxplots and distributions of pairwise Fst analyses
 ggplot(data,aes(sample_pair,WEIGHTED_FST,col=sample_pair)) +
-          geom_jitter() +
-          geom_boxplot(fill=NA, col="black") +
-          labs(x = "Population" , y = "WEIGHTED_FST") +
-          theme_bw() +
-          theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+     geom_jitter() +
+     geom_boxplot(fill=NA, col="black") +
+     labs(x = "Population" , y = "WEIGHTED_FST") +
+     theme_bw() +
+     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 # save it
 ggsave("plot_human_pop_pairwise_FST_boxplot.png")
@@ -3350,16 +3391,13 @@ ggsave("plot_pairwise_FST_genomewide.pdf", width=170, height=150, units="mm")
 #
 # # for supplementary data
 # CHN_v_UGA_fst <- plot_pairwise_fst("CHN_v_UGA_50k.windowed.weir.fst")
-# CHN_v_ECU_fst <- plot_pairwise_fst("CHN_v_ECU_50k.windowed.weir.fst")
-# ECU_v_UGA_fst <- plot_pairwise_fst("ECU_v_UGA_50k.windowed.weir.fst")
 #
 # CHN_v_UGA_fst + CHN_v_ECU_fst + ECU_v_UGA_fst + plot_layout(ncol=1)
 # ggsave("plot_human_pop_pairwise_FST_genomewide.png")
 #
-# ECU_V_HND <- plot_pairwise_fst("ECU_v_HND_50k.windowed.weir.fst")
-
 
 ```
+
 - boxplot summaries
 ![](../04_analysis/plot_human_pop_pairwise_FST_boxplot.png)
 
@@ -3374,7 +3412,9 @@ ggsave("plot_pairwise_FST_genomewide.pdf", width=170, height=150, units="mm")
 
 
 ### extracting top 1% of Fst values for each comparison
+
 ```R
+
 extract_top_1 <- function(file){
      require(tidyverse)
      data <- read.table(file, header=T)
@@ -3394,12 +3434,14 @@ extract_top_1("BABOON_v_UGA_50k.windowed.weir.fst")
 for i in *top1.coords; do
      bedtools intersect -b ${i} -a liftover_annotation.gff3 -wb |\
      awk '$3=="gene" {print $9}' | cut -f1 -d ";" | cut -f2 -d ":" \
-     > ${i%.coords}.genes; done
+     > ${i%.coords}.genes;
+done
 
 for i in *top1.coords; do
      bedtools intersect -b ${i} -a liftover_annotation.gff3 -wb |\
      awk -F '[\t]' '$3=="gene" {print $10,$11,$12,$13,$4,$5,$9}' OFS="\t" | cut -f1 -d ";" | sed 's/ID=gene://g' \
-     > ${i%.coords}.intersect; done
+     > ${i%.coords}.intersect;
+done
 
 # extract all gene IDs
 cat liftover_annotation.gff3 |\
@@ -3409,14 +3451,15 @@ cat liftover_annotation.gff3 |\
 
 # use gProfiler to determine intersection
 #>> no enriched genes found for any comparison
+
 ```
 
-
 - testing correlation of Fst between UGA-CHN and UGA-Americas to see if there is variation shared by UGA-Americas that is not shared by UGA-China. If true, this might support independent migration into the Americas
+
 ```R
+# load libraries
 library(tidyverse)
 library(patchwork)
-
 
 uga_chn <- read.table("CHN_v_UGA_50k.windowed.weir.fst", header=T)
 uga_chn$pair <- "UGAvCHN"
@@ -3428,7 +3471,6 @@ uga_americas <- "UGAvAMERICAS"
 data <- dplyr::bind_rows(uga_chn,chn_americas)
 data <- dplyr::bind_rows(data,chn_americas)
 
-
 uga_chn <- read.table("CHN_v_UGA_50k.windowed.weir.fst", header=T)
 chn_americas <-read.table("CHN_v_AMERICAS_50k.windowed.weir.fst", header=T)
 uga_americas <-read.table("UGA_v_AMERICAS_50k.windowed.weir.fst", header=T)
@@ -3439,22 +3481,24 @@ data <- data %>% select(CHROM,BIN_START,WEIGHTED_FST.x,WEIGHTED_FST.y,WEIGHTED_F
 colnames(data) <- c("CHROM", "BIN_START", "FST_UGAvCHN", "FST_CHNvAMERICAS", "FST_UGAvAMERICAS")
 
 
-
-plot_1 <- ggplot(data, aes(FST_UGAvCHN, FST_UGAvAMERICAS)) +
+plot_1 <-
+     ggplot(data, aes(FST_UGAvCHN, FST_UGAvAMERICAS)) +
      geom_smooth(method = "lm", se = FALSE) +
      geom_point(size=0.5) +
      xlim(0,1) +
      ylim(0,1) +
      theme_bw()
 
-plot_2 <- ggplot(data, aes(FST_UGAvCHN, FST_CHNvAMERICAS)) +
+plot_2 <-
+     ggplot(data, aes(FST_UGAvCHN, FST_CHNvAMERICAS)) +
      geom_smooth(method = "lm", se = FALSE) +
      geom_point(size=0.5) +
      xlim(0,1) +
      ylim(0,1)+
      theme_bw()
 
-plot_3 <- ggplot(data, aes(FST_UGAvAMERICAS, FST_CHNvAMERICAS)) +
+plot_3 <-
+     ggplot(data, aes(FST_UGAvAMERICAS, FST_CHNvAMERICAS)) +
      geom_smooth(method = "lm", se = FALSE) +
      geom_point(size=0.5) +
      xlim(0,1) +
@@ -3462,10 +3506,20 @@ plot_3 <- ggplot(data, aes(FST_UGAvAMERICAS, FST_CHNvAMERICAS)) +
      theme_bw()
 
 plot_1 + plot_2 + plot_3 + plot_layout(ncol=3)
+
 ```
+
 ```bash
 # extract data from UGA_CHN_AMERICAS samples, no missing data, to calculate per site allele freq, whcih will be used to calculate private and shared site frequencies
-vcftools --gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz --max-missing 1 --keep UGA_x_nuclear_3x_animalPhonly.list --keep CHN_x_nuclear_3x_animalPhonly.list --keep AMERICAS_x_nuclear_3x_animalPhonly.list --recode --out UGA_CHN_AMERICAS
+vcftools \
+--gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz \
+--max-missing 1 \
+--keep UGA_x_nuclear_3x_animalPhonly.list \
+--keep CHN_x_nuclear_3x_animalPhonly.list \
+--keep AMERICAS_x_nuclear_3x_animalPhonly.list \
+--recode \
+--out UGA_CHN_AMERICAS
+
 #> After filtering, kept 2430928 out of a possible 6571976 Sites
 
 
@@ -3481,10 +3535,13 @@ paste UGA.frq CHN.frq AMERICAS.frq > UGA_CHN_AMERICAS.freq
 #AMERICAS_ALT = 24
 
 sed 's/:/\t/g' UGA_CHN_AMERICAS.freq | grep -v "CHROM" | cut -f8,16,24 > tmp; mv tmp UGA_CHN_AMERICAS.freq
+
 ```
 
 - make some plots, and summary data
+
 ```R
+# load libraries
 library(tidyverse)
 library(UpSetR)
 
@@ -3500,11 +3557,10 @@ png(file="UGA_CHN_AMERICAS_shared_v_private_variants.png")
 upset(data,sets.bar.color = "#56B4E9", point.size = 3.5, mainbar.y.label = "Shared variants above freq(alt) = 0.05", sets.x.label = "Variants")
 dev.off()
 
-
 data %>% group_by_all() %>% summarise(COUNT = n())
 
-
 ```
+
 | UGA | CHN | AMERICAS | COUNT |
 | --- | --- | ---   | --- |
 |    0    |    0    |    0    |    1525320   |
@@ -3532,63 +3588,29 @@ data %>% group_by_all() %>% summarise(COUNT = n())
 
 
 
-## ANGSD
-- exploring the use of ANGSD, whcih can use genotype likelihoods for a number of analyses. Probably good for the low coverage datasets
-- started off calculating "identity by state" (IBS), which is another way of showing genetic similarity between samples
-
-```bash
-cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/ANGSD
-
-/nfs/users/nfs_s/sd21/lustre118_link/software/ANCIENT/angsd/angsd -bam bam.list -minMapQ 30 -minQ 20 -GL 2 -doMajorMinor 1 -doMaf 1 -SNP_pval 2e-6 -doIBS 1 -doCounts 1 -doCov 1 -makeMatrix 1 -minMaf 0.05 -P 5
-
-```
-```R
-library(gplots)
-
-cov_data <- as.matrix(read.table("angsdput.covMat",header=F))
-ibs_data <- as.matrix(read.table("angsdput.ibsMat",header=F))
-
-names <- as.matrix(read.table("sample.names"))
-rownames(ibs_data) <- names
-colnames(ibs_data) <- names
-rownames(cov_data) <- names
-colnames(cov_data) <- names
-
-
-pdf("nuclear_ibs_heatmap.pdf",width=15, height=15)
-heatmap.2(ibs_data, trace="none", margins=c(12,12))
-dev.off()
-
-pdf("nuclear_covariance_heatmap.pdf",width=15, height=15)
-cov_data[cov_data > 1] <- 1
-heatmap.2(cov_data, trace="none", margins=c(12,12))
-dev.off()
-```
-Figure: [IBS for nuclear markers](../04_analysis/nuclear_ibs_heatmap.pdf)
-
-Figure: [covariance of IBS for nuclear markers](../04_analysis/nuclear_covariance_heatmap.pdf)
-
-
-
-
-
-
 
 
 ## Analysis of variation within beta tubulin
 ```bash
-vcftools --gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz --bed btubulin.exons.bed --site-pi --keep mod_human_samples.list --maf 0.01
+vcftools \
+     --gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz \
+     --bed btubulin.exons.bed \
+     --site-pi \
+     --keep mod_human_samples.list \
+     --maf 0.01
 
 #> After filtering, kept 42 out of 73 Individuals
 #> After filtering, kept 9 out of a possible 6571976 Sites
+
 ```
 
 ```R
-R
+# load library
 library(tidyverse)
 library(ggsci)
 library(patchwork)
 
+# load data
 exons <- read.table("btubulin.exons.bed", header=T)
 nuc <- read.table("out.sites.pi", header=T)
 resistant_snps <- read.table("btubulin.canonicalresistantSNPs.bed",header=T)
@@ -3596,43 +3618,47 @@ resistant_snps <- read.table("btubulin.canonicalresistantSNPs.bed",header=T)
 ggplot() +
      geom_segment(data=exons, aes(x=min(start),xend=max(end),y=0.5,yend=0.5),col="black", size=2) +
      geom_rect(data=exons,aes(xmin=start,ymin=0,xmax=end,ymax=1),fill="grey80") +
-     theme_bw() + ylim(-0.5,1.5) + labs(title="Beta-tubulin (TTRE_0000877201)",x="Genomic position (bp)", y="") +
+     ylim(-0.5,1.5) +
+     labs(title="Beta-tubulin (TTRE_0000877201)",x="Genomic position (bp)", y="") +
      geom_segment(data=resistant_snps, aes(x=start,xend=end,y=0,yend=1),col="orange", size=1) +
      geom_segment(data=nuc, aes(x=POS,xend=POS,y=0,yend=1,col=PI), size=2) +
-     theme(axis.title.y=element_blank(),
-      axis.text.y=element_blank(),
-      axis.ticks.y=element_blank())
+     theme_bw() + theme(axis.title.y=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.y=element_blank())
 
 ggsave("btubulin_variation_gene.png")
 ggsave("btubulin_variation_gene.pdf")
 
 
-file_names <- list.files(path = "./",pattern = "_x_nuclear_3x_animalPhonly_50k.windowed.pi")
+file_names <-
+     list.files(path = "./",pattern = "_x_nuclear_3x_animalPhonly_50k.windowed.pi")
 
       # load data using file names, and make a formatted data frame
-nucdiv <- purrr::map_df(file_names, function(x) {
+nucdiv <-
+     purrr::map_df(file_names, function(x) {
  	data <- read.delim(x, header = T, sep="\t")
      data <- tibble::rowid_to_column(data, "NUM")
  	cbind(pop_id = gsub("_x_nuclear_3x_animalPhonly_50k.windowed.pi","",x), data)
  	})
 
-nucdiv <- dplyr::filter(nucdiv, grepl('Trichuris_trichiura_1_001', CHROM))
+nucdiv <-
+     dplyr::filter(nucdiv, grepl('Trichuris_trichiura_1_001', CHROM))
 
 
-plot_btub_pi <- ggplot(nucdiv,aes(NUM*50000,PI,col=CHROM, group=pop_id)) +
+plot_btub_pi <-
+     ggplot(nucdiv,aes(NUM*50000,PI,col=CHROM, group=pop_id)) +
      geom_point() +
      labs(x = "Genomic position (bp)" , y = "Nucleotide diversity (Pi)", col=NA) +
-     theme_bw() +
      facet_grid(pop_id~.) +
-     theme(legend.position = "none") +
+     theme_bw() + theme(legend.position = "none") +
      geom_vline(xintercept=c(10684531,10686350))
-
 
 
 file_names <- list.files(path = "./",pattern = "_x_nuclear_3x_animalPhonly_50k.Tajima.D")
 
-tajD <- purrr::map_df(file_names, function(x) {
-      	data <- read.delim(x, header = T, sep="\t")
+tajD <-
+     purrr::map_df(file_names, function(x) {
+          data <- read.delim(x, header = T, sep="\t")
           data <- tibble::rowid_to_column(data, "NUM")
       	cbind(pop_id = gsub("_x_nuclear_3x_animalPhonly_50k.Tajima.D","",x), data)
       	})
@@ -3640,19 +3666,19 @@ tajD <- purrr::map_df(file_names, function(x) {
 tajD <- dplyr::filter(tajD, grepl('Trichuris_trichiura_1_001', CHROM))
 
 
-plot_btub_taj <- ggplot(tajD,aes(NUM*50000,TajimaD,col=CHROM, group=pop_id)) +
-          geom_point() +
-          labs(x = "Genomic position (bp)" , y = "Tajimas D", col=NA) +
-          theme_bw() +
-          facet_grid(pop_id~.) +
-          theme(legend.position = "none") +
-          geom_vline(xintercept=c(10684531,10686350))
-
+plot_btub_taj <-
+     ggplot(tajD,aes(NUM*50000,TajimaD,col=CHROM, group=pop_id)) +
+     geom_point() +
+     labs(x = "Genomic position (bp)" , y = "Tajimas D", col=NA) +
+     facet_grid(pop_id~.) +
+     theme_bw() + theme(legend.position = "none") +
+     geom_vline(xintercept=c(10684531,10686350))
 
 plot_btub_pi + plot_btub_taj + plot_layout(ncol=2)
 
 ggsave("btubulin_variation_scaffold.png")
 ggsave("btubulin_variation_scaffold.pdf")
+
 ```
 
 
@@ -3666,10 +3692,12 @@ ggsave("btubulin_variation_scaffold.pdf")
 
 
 ```bash
-conda activate py37
-pip3 install liftoff --user
-conda install -c bioconda minimap2
 
+conda activate py37
+
+pip3 install liftoff --user
+
+conda install -c bioconda minimap2
 
 
 wget ftp://ftp.ebi.ac.uk/pub/databases/wormbase/parasite/releases/WBPS15/species/trichuris_trichiura/PRJEB535/trichuris_trichiura.PRJEB535.WBPS15.annotations.gff3.gz
@@ -3710,16 +3738,28 @@ while (<>){
 
 # found that, becasue the original version has been annotated interpro descriptions etc, the liftover has misformatted some of the lines (in the same way that apollo dumps of the Haemonchus annotations were misformatted). To fix, ran the following:
 
-cat newversion.renamed.gff | while read LINE; do if [[ $LINE =~ (^TTRE*|\#) ]]; then echo -ne "\n${LINE} "; else echo -n "${LINE} ";fi; done > newversion.renamed.v2.gff3
+cat newversion.renamed.gff | while read LINE; do
+     if [[ $LINE =~ (^TTRE*|\#) ]]; then
+          echo -ne "\n${LINE} ";
+          else
+          echo -n "${LINE} ";
+     fi;
+done > newversion.renamed.v2.gff3
 
 
-cat newversion.gff | while read LINE; do if [[ $LINE =~ (^Trichuris*|\#) ]]; then echo -ne "\n${LINE} "; else echo -n "${LINE} ";fi; done > newversion.v2.gff3
+cat newversion.gff | while read LINE; do
+     if [[ $LINE =~ (^Trichuris*|\#) ]]; then
+          echo -ne "\n${LINE} ";
+          else
+          echo -n "${LINE} ";
+     fi;
+done > newversion.v2.gff3
 
 echo -e "##gff-version 3" > UPDATED_annotation.gff3
 cat newversion.renamed.v2.gff3 | sort -k1,1 -k4,4n | sed '/^$/d' >> UPDATED_annotation.gff3
 
-
 ```
+
 - ran really quickly, maybe a few minutes at most
 - shows 1199 features in the "unmapped_features.txt" - have not idea how "bad" this is, but possible ok(?) coming from a draft assembly to something that is more complete. Very likely some at least are errors, but possibly not a big deal for my use.
 - 8451 genes
@@ -3736,9 +3776,13 @@ fastaq to_fasta -l0 old_proteins.fa tmp; mv tmp old_proteins.fa
 fastaq to_fasta -l0 old_cds.fa tmp; mv tmp old_cds.fa
 
 # extract protein sequences for the unmapped genes
-cat unmapped_features.txt | sed 's/'gene:'//g' | while read -r GENE; do grep -A1 ${GENE} old_proteins.fa >> unmapped_proteins.fa; done
+cat unmapped_features.txt | sed 's/'gene:'//g' | while read -r GENE; do
+     grep -A1 ${GENE} old_proteins.fa >> unmapped_proteins.fa;
+done
 
-cat unmapped_features.txt | sed 's/'gene:'//g' | while read -r GENE; do grep -A1 ${GENE} old_cds.fa >> unmapped_cds.fa; done
+cat unmapped_features.txt | sed 's/'gene:'//g' | while read -r GENE; do
+     grep -A1 ${GENE} old_cds.fa >> unmapped_cds.fa;
+done
 
 ~sd21/bash_scripts/run_exonerate_splitter trichuris_trichiura.fa unmapped_proteins.fa
 
@@ -3747,12 +3791,14 @@ cat split_exonerate*out | Exonerate_to_evm_gff3.pl - > merged_exonerate.output
 rm split_exonerate*out
 rm x*
 rm run_split*
+
 ```
 
 
 
 # run diamond to query species
 ```bash
+# load diamond
 module load diamond/0.9.24--ha888412_1
 
 diamond blastp \
@@ -3772,8 +3818,10 @@ diamond blastx \
 --tmpdir /dev/shm \
 --taxonmap /nfs/users/nfs_s/sd21/lustre118_link/databases/diamond/prot.accession2taxid \
 --max-target-seqs 1 > unmapped_cds.diamond.out
-```
+
+
 cut -f4 unmapped_proteins.diamond.out | sort | uniq -c | sort -k1nr
+
 ```
 
 796 of 1000 hits classified as contaminants
@@ -3860,12 +3908,8 @@ awk '$3=="mRNA" {print $0}' OFS="\t" liftover_annotation.gff3.go.gff | grep "Ont
 
 # work through columns to split multiple go terms per gene into one term per gene, repeating the gene name if multiple GO terms present
 awk '{for(i=2; i<=NF; i++) {print $1,$i}}' OFS="\t" annotation_GO_per_gene.txt > annotation_GO_per_gene_split.txt
+
 ```
-
-
-
-
-
 
 
 # busco
@@ -3880,8 +3924,8 @@ export AUGUSTUS_CONFIG_PATH="/nfs/users/nfs_s/sd21/lustre118_link/software/anaco
 bsub.py --threads 20 --queue long 20 busco_tt_new "busco -i trichuris_trichiura.fa -l /nfs/users/nfs_s/sd21/lustre118_link/databases/busco/metazoa_odb9 -o new_assembly_metazoa --mode genome --long -sp caenorhabditis -f --cpu 20"
 
 bsub.py --threads 20 --queue long 20 busco_tt_old "busco -i trichuris_trichiura.PRJEB535.WBPS12.genomic.fa -l /nfs/users/nfs_s/sd21/lustre118_link/databases/busco/metazoa_odb9 -o old_assembly_metazoa --mode genome --long -sp caenorhabditis -f --cpu 20"
-```
 
+```
 
 - Summarized benchmarking in BUSCO notation for file trichuris_trichiura.PRJEB535.WBPS12.genomic.fa
 - BUSCO was run in mode: genome
@@ -3908,22 +3952,7 @@ bsub.py --threads 20 --queue long 20 busco_tt_old "busco -i trichuris_trichiura.
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## mitochondrial Genome annotation
-
-
 - first, want to map get protein coding gene annotations onto reference assembly, which doesnt have any annotations
 - using liftoff () to transfer from
 - didnt realise this, but the mito genome in the assembly is quite different to Foth et al.
@@ -3939,16 +3968,18 @@ conda activate liftoff
 
 liftoff -g KT449826.1.gff3 Trichuris_trichiura_MITO.fasta KT449826.1.fa -o Trichuris_trichiura_MITO.gff3
 
-
 ```
 
 # make a mask of non-protein-coding regions
+```bash
 cat Trichuris_trichiura_MITO.fasta.fai | cut -f1,2 > mito.genome
+
 bedtools complement -i Trichuris_trichiura_MITO.gff3 -g mito.genome > mito.mask.bed
 
-
-
 ```
+
+
+```bash
 cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/PHYLOGENY
 
 # downloaded reference fastas from ENA/ncbi
@@ -4000,18 +4031,109 @@ module load mafft/7.407=1-c1
 bsub.py --threads 20 10 mafft "mafft --thread 20 --maxiterate 1000 --globalpair all_pseudoreferences.fa \> AN_MN_pseudomtDNA.aln"
 
 bsub.py --threads 20 10 mafft_refs "mafft --thread 20 --maxiterate 1000 --globalpair refs.fa \> refs.aln"
+
+```
+
+```bash
+for i in *trimmed.bam; do
+     bcftools mpileup -C 50 --min-MQ 20 --min-BQ 30 --skip-indels ${i} --fasta-ref ../01_REF/trichuris_trichiura.fa --regions Trichuris_trichiura_MITO | bcftools call --ploidy 1 -c -Oz -o ${i%.trimmed.bam}.vcf.gz
+
+     tabix ${i%.trimmed.bam}.vcf.gz
+
+     bedtools complement -i ${i%.trimmed.bam}.vcf.gz -g mito.genome > mask.bed
+
+     bcftools consensus --mask mask.bed --missing N -f ../01_REF/Trichuris_trichiura_MITO.fasta ${i%.trimmed.bam}.vcf.gz -o ${i%.trimmed.bam}.fa
+
+     sed -i "s/Trichuris_trichiura_MITO/${i%.trimmed.bam}/g" ${i%.trimmed.bam}.fa;
+done
+
 ```
 
 
-for i in *trimmed.bam; do
+### Relatedness and kinship between samples in a population
+- Want to know to what degree individual worms from a population are related to each other.
+- can do this via calculating kinship coefficients, to determine 1st, 2nd, 3rd degree relatives  
 
-bcftools mpileup -C 50 --min-MQ 20 --min-BQ 30 --skip-indels ${i} --fasta-ref ../01_REF/trichuris_trichiura.fa --regions Trichuris_trichiura_MITO | bcftools call --ploidy 1 -c -Oz -o ${i%.trimmed.bam}.vcf.gz
 
-tabix ${i%.trimmed.bam}.vcf.gz
+```bash
+# run vcftools to calculated relatedness
+vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --relatedness2 --max-missing 1
 
-bedtools complement -i ${i%.trimmed.bam}.vcf.gz -g mito.genome > mask.bed
-
-bcftools consensus --mask mask.bed --missing N -f ../01_REF/Trichuris_trichiura_MITO.fasta ${i%.trimmed.bam}.vcf.gz -o ${i%.trimmed.bam}.fa
-
-sed -i "s/Trichuris_trichiura_MITO/${i%.trimmed.bam}/g" ${i%.trimmed.bam}.fa;
+# extract relevant pairwise comparisons for making the network.
+#--- note only want within population comparisons, rather than between populations
+#--- also want to remove self v self.
+>allpops.relatedness2
+for i in CHN DNK_COZ_PH HND UGA_DK UGA_KAB ; do
+     awk -v name=$i '$1~name && $2~name {print $0,name}' OFS="\t" out.relatedness2 |\
+     awk '{if($1!=$2) print $8,$1,$2,$7}' OFS="\t" >> allpops.relatedness2;
 done
+
+# make a file with population groups for colouring the network in
+cut -f 1,2 allpops.relatedness2 | sort | uniq > metadata.txt
+```
+
+
+```R
+# load libraries
+# https://briatte.github.io/ggnet/
+library(tidyverse)
+library(GGally)
+library(network)
+library(sna)
+library(ggplot2)
+
+
+# read data
+data <- read.table("allpops.relatedness2")
+metadata <- read.table("metadata.txt")
+
+
+# convert kinship coefficients into a coded 1st, 2nd, 3rd degree relatives
+data_1 <-
+     data %>%
+     mutate(V4 = if_else(V4 >= 0.05 & V4 < 0.10125, 0.5,
+               if_else(V4 >= 0.10125 & V4 < 0.1925, 1,
+               if_else(V4 >= 0.1925 & V4 < 0.375, 2, 0))))
+
+# coding:
+#0 degree = 0.5
+#1st degree = 0.25 (0.1925-0.375)
+#2nd degree = 0.125 (0.10125-0.1925)
+#3rd degree = 0.0675 (0.05-0.10125)
+#4th degree = 0.03375
+
+# convert data from paired observations to a matrix of observations
+data_2 <-
+     data_1 %>%
+     unique() %>%
+     pivot_wider(., id_cols=V2, names_from=V3, values_from=V4, values_fill=0)
+
+data_3 <- as.data.frame(data_2, row.names=F)            
+
+# clean up matrix
+data_4 <-
+     data_3 %>%
+     remove_rownames %>%
+     column_to_rownames(var="V2")
+
+# make the network
+data_5 = network(data_4, ignore.eval = FALSE, names.eval = "kinship")
+
+# add the population metaddata
+data_5 %v% "Population" = metadata$V1
+
+# set colours for populations
+col =  c("CHN" = "#E64B35B2", "DNK_COZ_PH" = "#00A087B2", "HND" = "#8491B4B2", "NLD" = "#91D1C2B2", "UGA_KAB" = "#DC0000B2", "UGA_DK" = "#DC0000B8")
+
+#set.edge.attribute(data_5, "lty", ifelse(data_5 %e% "kinship" = 3, 1, ifelse(data_5 %e% "kinship" = 2, 2, 3)))
+
+# plot the network
+ggnet2(data_5, edge.size = "kinship", color = "Population", palette = "Set1", size=4)
+
+# save it
+ggsave("kinship_network.pdf", useDingbats=F, height=8, width=8)
+ggsave("kinship_network.png")
+
+```
+
+![](../04_analysis/kinship_network.png)
