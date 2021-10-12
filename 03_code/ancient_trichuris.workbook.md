@@ -1913,7 +1913,7 @@ snpgdsClose(genofile)
 
 vcf.in <- "mito_samples3x_missing0.8.recode.vcf.gz"
 
-gds <- snpgdsVCF2GDS(vcf.in, "mtDNA.gds", method="biallelic.only")
+gds <- snpgdsVCF2GDS(vcf.in, "mtDNA_1.gds", method="biallelic.only")
 
 genofile <- snpgdsOpen(gds)
 
@@ -1945,8 +1945,7 @@ plot_pca <-
      theme_bw() +
      labs(title="mito_samples3x_missing0.8",
           x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
-          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
-     scale_colour_npg(guide = FALSE)
+          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%"))
 
 plot_pca
 
@@ -2082,7 +2081,7 @@ snpgdsClose(genofile)
 
 vcf.in <- "nuclear_samples3x_missing0.8.recode.vcf.gz"
 
-gds<-snpgdsVCF2GDS(vcf.in, "nuclear.gds", method="biallelic.only")
+gds<-snpgdsVCF2GDS(vcf.in, "nuclear_1.gds", method="biallelic.only")
 
 genofile <- snpgdsOpen(gds)
 
@@ -2122,25 +2121,12 @@ plot_pca_nuc <-
 plot_pca_nuc
 
 ggsave("plot_PCA_nuclear_samples3x_missing0.8.png")
-ggsave("plot_PCA_nuclear_samples3x_missing0.8.pdf")
-
-
-# ggplot(data, aes(EV1,EV2, col = COUNTRY, shape = TIME, label = paste0(TIME,"_",COUNTRY,"_",POPULATION,"_",HOST))) +
-#      geom_text(size=4) +
-#      theme_bw() +
-#      labs(title="nuclear_samples3x_missing0.8",
-#           x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
-#           y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
-#      xlim(-0.06,-0.01) + ylim(-0.035,-0.015) +
-#      scale_colour_npg(guide = FALSE)
-#
-# ggsave("plot_PCA_nuclear_samples3x_missing0.8_zoomin.png")
-# ggsave("plot_PCA_nuclear_samples3x_missing0.8_zoomin.pdf")
+ggsave("plot_PCA_nuclear_samples3x_missing0.8.pdf", height=5, width=5)
 
 ```
 
 ![](04_analysis/plot_PCA_nuclear_samples3x_missing0.8.png)
-# ![](04_analysis/plot_PCA_nuclear_samples3x_missing0.8_zoomin.png)
+
 - main outliers are colobus and leafmonkey, so will remove and rerun
 
 ```bash
@@ -2247,7 +2233,7 @@ Figure: [plot_PCA_nuclear_samples3x_missing0.8_animalPhonly](plot_PCA_nuclear_sa
 
 cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/ANGSD
 
-/nfs/users/nfs_s/sd21/lustre118_link/software/ANCIENT/angsd/angsd -bam bam.list -minMapQ 30 -minQ 20 -GL 2 -doMajorMinor 1 -doMaf 1 -SNP_pval 2e-6 -doIBS 1 -doCounts 1 -doCov 1 -makeMatrix 1 -minMaf 0.05 -P 5
+bsub.py --threads 5 10 angsd "/nfs/users/nfs_s/sd21/lustre118_link/software/ANCIENT/angsd/angsd -bam bam.list -minMapQ 30 -minQ 20 -GL 2 -doMajorMinor 1 -doMaf 1 -SNP_pval 2e-6 -doIBS 1 -doCounts 1 -doCov 1 -makeMatrix 1 -minMaf 0.05 -P 5"
 
 ```
 
@@ -2548,7 +2534,7 @@ vcftools --gzvcf treemix.vcf.gz
 
 # after pruning
 vcftools --gzvcf treemix.LDpruned.vcf.gz
-#> After filtering, kept 27314 out of a possible 27314 Sites
+#> After filtering, kept 109195 out of a possible 109195 Sites
 
 bcftools query -l treemix.vcf.gz | awk '{split($1,pop,"."); print $1"\t"$1"\t"pop[2]}' > data.clust
 
@@ -2591,18 +2577,30 @@ source("plotting_funcs.R")
 prefix="treemix"
 
 # plot trees across range of migration edges
-par(mfrow=c(2,6))
+par(mfrow=c(1,2))
 
 pdf("treemix_edges_2-6.pdf")
 for(edge in 0:5){
-     plot_tree(cex=0.8,paste0(prefix,".m_",edge,".s_2"))
+     plot_tree(cex=0.8,paste0(prefix,".m_",edge,".s_4"))
      title(paste(edge,"edges"))
 }
 
+
+for(edge in 0:5){
+     pdf(paste0("plot_treemix_tree_m-",edge,".pdf"))
+     plot_tree(cex=0.8,paste0(prefix,".m_",edge,".s_4"))
+     plot_resid(stem=paste0(prefix,".m_",edge,".s_4"),pop_order="populations.list")
+     title(paste(edge,"edges"))
+     dev.off()
+}
+
+
 # plot residuals across range of migration edges - positive values suggest admixture
 for(edge in 0:5){
-     plot_resid(stem=paste0(prefix,".m_",edge,".s_2"),pop_order="populations.list")
-     title(paste(edge,"edges"))
+     pdf(paste0("plot_treemix_residuals_m-",edge,".pdf"))
+     plot_resid(stem=paste0(prefix,".m_",edge,".s_4"),pop_order="populations.list")
+     title(paste(edge,"edges")
+     dev.off()
 }
 
 dev.off()
@@ -2615,14 +2613,14 @@ library(OptM)
 
 optM(folder="./")
 
-#> The maximum value for delta m was 10.6469 at m = 1 edges.
+#> The maximum value for delta m was 10.7624 at m = 3 edges.
 
 # remake the plots, using 2 migration edges
 prefix="treemix"
 
 par(mfrow=c(1,1))
 
-plot_tree(cex=0.8,paste0(prefix,".m_2.s_1"))
+plot_tree(cex=0.8,paste0(prefix,".m_3.s_4"))
 title(paste(1,"edges"))
 
 plot_resid(stem=paste0(prefix,".",2),pop_order="populations.list")
@@ -2644,53 +2642,7 @@ Rscript treemixVarianceExplained.R treemix.m_1.s_2
 
 
 
-#```bash
-# threepop -i treemix.LDpruned.treemix.frq.gz -k 500 > threepop.out
-# fourpop -i treemix.LDpruned.treemix.frq.gz -k 500 > fourpop.out
-#
-# cat threepop.out | grep ";" | grep -v "COLOBUS" | grep -v "LEAF" > threepop.out_2
-# cat fourpop.out | grep ";" | grep -v "COLOBUS" | grep -v "LEAF" > fourpop.out_2
-# ```
-# - plots
-# ```R
-# # load libraries
-# library(tidyverse)
-#
-# # load data
-# data <- read.table("threepop.out_2",header=F)
-# colnames(data) <- c("three_populations", "f_3", "std_error", "z_score")
-#
-# # plot f_3 (sorted) for each three population test
-# #-
-# ggplot(data, aes(f_3, reorder(three_populations, -f_3), col = z_score)) +
-#      geom_point(size = 2) +
-#      geom_segment(aes(x = f_3-std_error, y = three_populations, xend = f_3+std_error, yend = three_populations)) +
-#      theme_bw() +
-#      labs(x = "f3 statistic" , y = "")
-#
-# ggsave("plot_treemix_f3_statistics.png")
-#
-#
-# # load data
-# data <- read.table("fourpop.out_2",header=F)
-# colnames(data) <- c("four_populations", "f_4", "std_error", "z_score")
-#
-# # plot f_4 (sorted) for each three population test
-# #-
-# ggplot(data, aes(f_4, reorder(four_populations, -f_4), col = z_score)) +
-#      geom_point(size = 2) +
-#      geom_segment(aes(x = f_4-std_error, y = four_populations, xend = f_4+std_error, yend = four_populations)) +
-#      theme_bw() +
-#      labs(x = "f4 statistic" , y = "")
-#
-# ggsave("plot_treemix_f4_statistics.png")
-#
-# ```
-# - f3 stats
-# ![](../04_analysis/plot_treemix_f3_statistics.png)
-#
-# - f4 stats
-# ![](../04_analysis/plot_treemix_f4_statistics.png)
+
 
 
 
@@ -2991,7 +2943,7 @@ BABOON_data$ID <- "BABOON"
 UGA_data <- read.delim("SMCPP_UGA.csv", header = T , sep = ",")
 UGA_data$ID <- "UGA"
 
-data <- bind_rows(ECU_data, HND_data, CHN_data, BABOON_data, UGA_data)
+data <- bind_rows(HND_data, CHN_data, BABOON_data, UGA_data)
 
 
 ggplot(data,aes(x,y,col=ID)) +
@@ -3014,110 +2966,7 @@ Figure: [plot_smcpp_all_populations](plot_smcpp_all_populations.pdf)
 ![](../04_analysis/plot_smcpp_all_populations.png)
 
 
-```bash
-# # joint
-#
-# vcftools  --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz \
-# --indv AN_DNK_COG_EN_0012 \
-# --indv AN_NLD_KAM_EN_0034 \
-# --indv MN_UGA_DK_HS_001 \
-# --indv MN_UGA_DK_HS_002 \
-# --indv MN_UGA_DK_HS_003 \
-# --indv MN_UGA_KAB_HS_001 \
-# --indv MN_UGA_KAB_HS_002 \
-# --indv MN_UGA_KAB_HS_003 \
-# --indv MN_UGA_KAB_HS_004 \
-# --indv MN_UGA_KAB_HS_005 \
-# --indv MN_UGA_KAB_HS_006 \
-# --indv MN_UGA_KAB_HS_007 \
-# --indv MN_UGA_KAB_HS_008 \
-# --indv MN_UGA_KAB_HS_009 \
-# --max-missing 1 --recode
-# bgzip out.recode.vcf
-# tabix out.recode.vcf.gz
-#
-#
-#
-# # first estimate each population marginally using estimate:
-# smc++ vcf2smc out.recode.vcf.gz SMC_DATA/EURO.smc.gz Trichuris_trichiura_2_001 EURO:AN_DNK_COG_EN_0012,AN_NLD_KAM_EN_0034
-# smc++ vcf2smc out.recode.vcf.gz SMC_DATA/UGA.smc.gz Trichuris_trichiura_2_001 UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009
-#
-# # mutation rate (C.elegans) = 2.7e-9 (https://www.pnas.org/content/106/38/163100)
-# smc++ estimate -o EURO/ 2.7e-9 SMC_DATA/EURO.smc.gz
-# smc++ estimate -o UGA/ 2.7e-9 SMC_DATA/UGA.smc.gz
-#
-# # Next, create datasets containing the joint frequency spectrum for both populations:
-# smc++ vcf2smc out.recode.vcf.gz SMC_DATA/pop12.smc.gz Trichuris_trichiura_2_001 EURO:AN_DNK_COG_EN_0012,AN_NLD_KAM_EN_0034 UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009
-# smc++ vcf2smc out.recode.vcf.gz SMC_DATA/pop21.smc.gz Trichuris_trichiura_2_001 UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009 EURO:AN_DNK_COG_EN_0012,AN_NLD_KAM_EN_0034
-#
-# # Finally, run split to refine the marginal estimates into an estimate of the joint demography:
-#
-# smc++ split -o split/ EURO/model.final.json UGA/model.final.json SMC_DATA/*.smc.gz
-# smc++ plot -g 0.33 -c joint.pdf split/model.final.json
-#
-# #---------
-# # library(ggplot2)
-# # data <- read.delim("joint.csv",header=T,sep=",")
-# # ggplot(data,aes(x,y,col=label))+geom_line()
 
-```
-
-
-```bash
-vcftools  --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz \
---indv MN_UGA_DK_HS_001 \
---indv MN_UGA_DK_HS_002 \
---indv MN_UGA_DK_HS_003 \
---indv MN_UGA_KAB_HS_001 \
---indv MN_UGA_KAB_HS_002 \
---indv MN_UGA_KAB_HS_003 \
---indv MN_UGA_KAB_HS_004 \
---indv MN_UGA_KAB_HS_005 \
---indv MN_UGA_KAB_HS_006 \
---indv MN_UGA_KAB_HS_007 \
---indv MN_UGA_KAB_HS_008 \
---indv MN_UGA_KAB_HS_009 \
---indv MN_CHN_GUA_HS_001 \
---indv MN_CHN_GUA_HS_002 \
---indv MN_CHN_GUA_HS_003 \
---indv MN_CHN_GUA_HS_004 \
---indv MN_CHN_GUA_HS_005 \
---indv MN_CHN_GUA_HS_006 \
---indv MN_CHN_GUA_HS_007 \
---max-missing 1 --recode --out UGA_v_CHN
-bgzip UGA_v_CHN.recode.vcf
-tabix UGA_v_CHN.recode.vcf.gz
-
-mkdir UGA_v_CHN.SMC_DATA
-
-while read CHROMOSOME; do
-     smc++ vcf2smc UGA_v_CHN.recode.vcf.gz UGA_v_CHN.SMC_DATA/UGA.${CHROMOSOME}.smc.gz ${CHROMOSOME} UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009;
-done < chromosomes.list
-
-while read CHROMOSOME; do
-     smc++ vcf2smc UGA_v_CHN.recode.vcf.gz UGA_v_CHN.SMC_DATA/CHN.${CHROMOSOME}.smc.gz ${CHROMOSOME} CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007;
-done < chromosomes.list
-
-
-# mutation rate (C.elegans) = 2.7e-9 (https://www.pnas.org/content/106/38/163100)
-smc++ estimate -o UGA/ 2.7e-9 UGA_v_CHN.SMC_DATA/UGA.*.smc.gz
-smc++ estimate -o CHN/ 2.7e-9 UGA_v_CHN.SMC_DATA/CHN.*.smc.gz
-
-
-# # Next, create datasets containing the joint frequency spectrum for both populations:
-while read CHROMOSOME; do
-     smc++ vcf2smc UGA_v_CHN.recode.vcf.gz UGA_v_CHN.SMC_DATA/pop12.${CHROMOSOME}.smc.gz ${CHROMOSOME} UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009 CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007;
-done < chromosomes.list
-
-while read CHROMOSOME; do
-     smc++ vcf2smc UGA_v_CHN.recode.vcf.gz UGA_v_CHN.SMC_DATA/pop21.${CHROMOSOME}.smc.gz ${CHROMOSOME} CHN:MN_CHN_GUA_HS_001,MN_CHN_GUA_HS_002,MN_CHN_GUA_HS_003,MN_CHN_GUA_HS_004,MN_CHN_GUA_HS_005,MN_CHN_GUA_HS_006,MN_CHN_GUA_HS_007 UGA:MN_UGA_DK_HS_001,MN_UGA_DK_HS_002,MN_UGA_DK_HS_003,MN_UGA_KAB_HS_001,MN_UGA_KAB_HS_002,MN_UGA_KAB_HS_003,MN_UGA_KAB_HS_004,MN_UGA_KAB_HS_005,MN_UGA_KAB_HS_006,MN_UGA_KAB_HS_007,MN_UGA_KAB_HS_008,MN_UGA_KAB_HS_009;
-done < chromosomes.list
-
-
-smc++ split -o UGA_v_CHN.split/ UGA/model.final.json CHN/model.final.json UGA_v_CHN.SMC_DATA/*.smc.gz
-smc++ plot -g 0.33 -c UGA_v_CHN.joint.pdf UGA_v_CHN.split/model.final.json
-
-```
 
 
 
@@ -3192,6 +3041,7 @@ ggplot(data,aes(pop_id,PI,col=pop_id)) +
      scale_color_npg()
 
 ggsave("plot_nucleotide_diversity_boxplot.png")
+ggsave("plot_nucleotide_diversity_boxplot.pdf", useDingbats=F, height=5, width=5)
 
 ggplot(data,aes(NUM*50000,PI,col=CHROM, group=pop_id)) +
      geom_point() +
@@ -3510,6 +3360,8 @@ plot_1 + plot_2 + plot_3 + plot_layout(ncol=3)
 ```
 
 ```bash
+cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/04_VARIANTS/GATK_HC_MERGED
+
 # extract data from UGA_CHN_AMERICAS samples, no missing data, to calculate per site allele freq, whcih will be used to calculate private and shared site frequencies
 vcftools \
 --gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz \
@@ -3557,31 +3409,41 @@ png(file="UGA_CHN_AMERICAS_shared_v_private_variants.png")
 upset(data,sets.bar.color = "#56B4E9", point.size = 3.5, mainbar.y.label = "Shared variants above freq(alt) = 0.05", sets.x.label = "Variants")
 dev.off()
 
-data %>% group_by_all() %>% summarise(COUNT = n())
+data %>% group_by_all() %>% summarise(COUNT = n()) %>% mutate(freq = COUNT / sum(COUNT))
 
 ```
 
-| UGA | CHN | AMERICAS | COUNT |
+| UGA | CHN | AMERICAS | COUNT | FREQ |
 | --- | --- | ---   | --- |
-|    0    |    0    |    0    |    1525320   |
-|    0    |    0    |    1    |    148959 |
-|    0    |    1   |    0    |     104363     |
-|    0    |    1    |    1    |    61574     |
-|    1    |    0   |    0    |  192793     |
-|    1    |    0    |    1    |    24115 |
-|    1    |    1    |    0    |    140304 |
-|    1    |    1    |    1    |    233500    |
+|    0    |    0    |    0    |    1811631   |
+|    0    |    0    |    1    |    148234 |
+|    0    |    1   |    0    |     116536     |
+|    0    |    1    |    1    |    83018     |
+|    1    |    0   |    0    |  226805     |
+|    1    |    0    |    1    |    33990 |
+|    1    |    1    |    0    |    164206 |
+|    1    |    1    |    1    |    282751    |
 
-- private = 34.77177763%
-- shared by all three = 25.78378283%
-- shared by UGA and Americas, not China = 5.248175707%
+- note: 0,0,0 are positions in whihc the freq is very low in all populaitons. These variants are not used in calculating totals.
+
+- private = (148234+116536+226805) / total = 46.57094947%
+- shared by all three = 282751 / total = 26.7873316%
+- shared by UGA and Americas, not China = 33990 / total = 3.220152718%
 
 ![](../04_analysis/UGA_CHN_AMERICAS_shared_v_private_variants.png)
 ![](../04_analysis/UGA_CHN_AMERICAS_shared_v_private_variants.pdf)
 
 
-
-
+UGA   CHN AMERICAS       n
+<dbl> <dbl>    <dbl>   <int>
+1     0     0        0 1811631
+2     0     0        1  148234
+3     0     1        0  116536
+4     0     1        1   83018
+5     1     0        0  226805
+6     1     0        1   33990
+7     1     1        0  164206
+8     1     1        1  282751
 
 
 
@@ -4048,6 +3910,73 @@ for i in *trimmed.bam; do
 done
 
 ```
+
+
+
+
+
+
+
+
+
+
+
+# Other analyses performed, but didnt make it into the paper - keeping them for a rainy day
+
+
+## F stats using treemix
+- ended up using q3stats rather than this
+- could run 4 pop analyses, but didnt make sense with so few populations
+
+```bash
+threepop -i treemix.LDpruned.treemix.frq.gz -k 500 > threepop.out
+fourpop -i treemix.LDpruned.treemix.frq.gz -k 500 > fourpop.out
+
+cat threepop.out | grep ";" | grep -v "COLOBUS" | grep -v "LEAF" > threepop.out_2
+cat fourpop.out | grep ";" | grep -v "COLOBUS" | grep -v "LEAF" > fourpop.out_2
+```
+- plots
+```R
+# load libraries
+library(tidyverse)
+
+# load data
+data <- read.table("threepop.out_2",header=F)
+colnames(data) <- c("three_populations", "f_3", "std_error", "z_score")
+
+# plot f_3 (sorted) for each three population test
+#-
+ggplot(data, aes(f_3, reorder(three_populations, -f_3), col = z_score)) +
+     geom_point(size = 2) +
+     geom_segment(aes(x = f_3-std_error, y = three_populations, xend = f_3+std_error, yend = three_populations)) +
+     theme_bw() +
+     labs(x = "f3 statistic" , y = "")
+
+ggsave("plot_treemix_f3_statistics.png")
+
+
+# load data
+data <- read.table("fourpop.out_2",header=F)
+colnames(data) <- c("four_populations", "f_4", "std_error", "z_score")
+
+# plot f_4 (sorted) for each three population test
+#-
+ggplot(data, aes(f_4, reorder(four_populations, -f_4), col = z_score)) +
+     geom_point(size = 2) +
+     geom_segment(aes(x = f_4-std_error, y = four_populations, xend = f_4+std_error, yend = four_populations)) +
+     theme_bw() +
+     labs(x = "f4 statistic" , y = "")
+
+ggsave("plot_treemix_f4_statistics.png")
+
+```
+- f3 stats
+![](../04_analysis/plot_treemix_f3_statistics.png)
+
+- f4 stats
+![](../04_analysis/plot_treemix_f4_statistics.png)
+
+
 
 
 ### Relatedness and kinship between samples in a population
