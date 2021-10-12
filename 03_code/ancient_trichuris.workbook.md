@@ -3061,6 +3061,7 @@ ggplot(data,aes(NUM*50000,PI,col=CHROM, group=pop_id)) +
 
 ggsave("plot_nucleotide_diversity_genomewide.png")
 
+
 ```
 
 ![](../04_analysis/plot_nucleotide_diversity_boxplot.png)
@@ -3134,14 +3135,12 @@ for i in ancient_x_nuclear_3x_animalPhonly.list \
 BABOON_x_nuclear_3x_animalPhonly.list \
 CHN_x_nuclear_3x_animalPhonly.list \
 HND_x_nuclear_3x_animalPhonly.list \
-UGA_x_nuclear_3x_animalPhonly.list \
-AMERICAS_x_nuclear_3x_animalPhonly.list; do \
+UGA_x_nuclear_3x_animalPhonly.list; do \
      for j in ancient_x_nuclear_3x_animalPhonly.list \
      BABOON_x_nuclear_3x_animalPhonly.list \
      CHN_x_nuclear_3x_animalPhonly.list \
      HND_x_nuclear_3x_animalPhonly.list \
-     UGA_x_nuclear_3x_animalPhonly.list \
-     AMERICAS_x_nuclear_3x_animalPhonly.list; do \
+     UGA_x_nuclear_3x_animalPhonly.list; do \
           if [[ "$i" == "$j" ]] || [[ -f ${i%_x_nuclear_3x_animalPhonly.list}_v_${j%_x_nuclear_3x_animalPhonly.list}_50k.windowed.weir.fst ]] || [[ -f ${j%_x_nuclear_3x_animalPhonly.list}_v_${i%_x_nuclear_3x_animalPhonly.list}_50k.windowed.weir.fst ]]; then
                echo "Same, same, move on"
                else
@@ -3149,17 +3148,6 @@ AMERICAS_x_nuclear_3x_animalPhonly.list; do \
           fi;
      done;
 done
-
-leafmonkey_colobus.list
-hq_modern_humanonly.list
-
-vcftools \
---gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz \
---bed chromosome_scaffolds.bed \
---weir-fst-pop leafmonkey_colobus.list \
---weir-fst-pop hq_modern_humanonly.list \
---fst-window-size 50000 \
---out human_vs_LMCG_50k
 
 
 ```
@@ -3226,11 +3214,11 @@ plot_pairwise_fst <- function(file) {
 
 # for main text
 CHN_v_UGA_fst <- plot_pairwise_fst("CHN_v_UGA_50k.windowed.weir.fst")
-UGA_v_AMERICAS <- plot_pairwise_fst("UGA_v_AMERICAS_50k.windowed.weir.fst")
-CHN_v_AMERICAS <- plot_pairwise_fst("CHN_v_AMERICAS_50k.windowed.weir.fst")
+HND_v_UGA <- plot_pairwise_fst("HND_v_UGA_50k.windowed.weir.fst")
+CHN_v_HND <- plot_pairwise_fst("CHN_v_HND_50k.windowed.weir.fst")
 BABOON_v_UGA_fst <- plot_pairwise_fst("BABOON_v_UGA_50k.windowed.weir.fst")
 
-CHN_v_UGA_fst + UGA_v_AMERICAS + CHN_v_AMERICAS + BABOON_v_UGA_fst + plot_layout(ncol=1)
+CHN_v_UGA_fst + HND_v_UGA + CHN_v_HND + BABOON_v_UGA_fst + plot_layout(ncol=1)
 ggsave("plot_pairwise_FST_genomewide.pdf", width=170, height=150, units="mm")
 
 # BABOON_v_UGA_fst <- plot_pairwise_fst("BABOON_v_UGA_50k.windowed.weir.fst")
@@ -3272,9 +3260,9 @@ extract_top_1 <- function(file){
      write.table(data_top1, file=paste0(file,".top1.coords"), row.names = F, col.names = F, quote = F, sep = '\t')
 }
 
-extract_top_1("UGA_v_AMERICAS_50k.windowed.weir.fst")
+extract_top_1("HND_v_UGA_50k.windowed.weir.fst")
 extract_top_1("CHN_v_UGA_50k.windowed.weir.fst")
-extract_top_1("CHN_v_AMERICAS_50k.windowed.weir.fst")
+extract_top_1("CHN_v_HND_50k.windowed.weir.fst")
 extract_top_1("BABOON_v_UGA_50k.windowed.weir.fst")
 
 ```
@@ -3434,17 +3422,6 @@ data %>% group_by_all() %>% summarise(COUNT = n()) %>% mutate(freq = COUNT / sum
 ![](../04_analysis/UGA_CHN_AMERICAS_shared_v_private_variants.pdf)
 
 
-UGA   CHN AMERICAS       n
-<dbl> <dbl>    <dbl>   <int>
-1     0     0        0 1811631
-2     0     0        1  148234
-3     0     1        0  116536
-4     0     1        1   83018
-5     1     0        0  226805
-6     1     0        1   33990
-7     1     1        0  164206
-8     1     1        1  282751
-
 
 
 
@@ -3489,7 +3466,7 @@ ggplot() +
           axis.ticks.y=element_blank())
 
 ggsave("btubulin_variation_gene.png")
-ggsave("btubulin_variation_gene.pdf")
+ggsave("btubulin_variation_gene.pdf", height=2, width=5)
 
 
 file_names <-
