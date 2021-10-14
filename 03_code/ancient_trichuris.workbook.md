@@ -1,5 +1,4 @@
-# Population genomics of modern and ancient *Trichuris trichiura*
-
+# Population genomics of ancimodern and ancient *Trichuris trichiura*
 
 ## Background
 
@@ -785,7 +784,7 @@ ggsave("plot_x-to-autosome_ratio_sexdet.pdf",height=10, width=7, useDingbats=FAL
 
 - count 17 males based on ~0.5x coverage (XY)
 - count 17 females based on ~1X coverage
-     - note 2 with intermediate coverage, likely female by not clear
+     - note 2 with intermediate coverage, likely female but not clear
 
 
 
