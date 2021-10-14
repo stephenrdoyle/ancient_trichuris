@@ -1,4 +1,4 @@
-# Population genomics of ancimodern and ancient *Trichuris trichiura*
+# Population genomics of ancient and modern *Trichuris trichiura*
 
 ## Background
 
@@ -82,8 +82,8 @@ mkdir 00_SCRIPTS 01_REF 02_RAW 03_MAPPING 04_VARIANTS 05_ANALYSIS
 
 ## Reference genome
 - the reference is an unpublished Trichuris trichiura assembly generated in the Parasite Genomics team at Sanger
-- this is a new assembly, rahter than an improvement from the original assembly published by Foth et al (2014)
-     - this assembly is from worms extracted from Peter Nejsum that originated in Uganda, whereas the Foth assembly was from Ecuadorian worms.
+- this is a new PacBio assembly, rahter than an improvement from the original assembly published by Foth et al (2014)
+- this assembly is from worms extracted from Peter Nejsum that originated in Uganda, whereas the Foth assembly was from Ecuadorian worms.
 - this assembly didn't have an annotation when the project started
 
 ### Genome stats
@@ -383,16 +383,10 @@ multiqc *flagstat --title mapping
 
 
 
-<!-- ```shell
-# generate bamstats
-for i in *.bam; do
-     bsub.py --queue small --threads 4 2 stats "samtools stats -r ${WORKING_DIR}/01_REF/trichuris_trichiura.fa --threads 4 ${i} \> ${i}.stats" ; done
-``` -->
-
 
 ### Kraken of trimmed reads post mapping
 - The mapping shows that there is variable mapping rates, and that for some samples there is very poor mapping.
-     - This is particularly the case for the ancient samples, which is to be expected to a degree, given they are both old and collected from the environment.
+- This is particularly the case for the ancient samples, which is to be expected to a degree, given they are both old and collected from the environment.
 - Kraken might give some insight into this, given they might be heavily contaminated with bacteria etc.
 
 ```bash
@@ -427,6 +421,7 @@ multiqc *kraken2report --title kraken
 ```
 
 [Kraken MultiQC report](../04_analysis/kraken_multiqc_report.html)
+
 - the output shows most samples have a small degree of contamination based on hits in the kraken database
 - non have a lot of contamination, which is slightly surprising
 - this alone doesnt explain the mismapping, althoguh, it simply may mean that the putative contaminant is not present in the kraken databased
@@ -854,7 +849,6 @@ eg.
 ### GATK
 
 ```bash
-
 # working dir
 WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
 
@@ -863,12 +857,12 @@ module load gatk/4.1.4.1
 
 # also need htslib for tabix
 module load common-apps/htslib/1.9.229
+
 ```
 
 ### Step 1. make GVCFs per sample
 
 ```bash
-
 mkdir ${WORKING_DIR}/04_VARIANTS/GVCFS
 cd ${WORKING_DIR}/04_VARIANTS/GVCFS
 
@@ -1590,56 +1584,6 @@ bsub.py 1 merge_nuclear_variants "gatk MergeVcfs \
 ```
 
 
-# ### Check depth per genotype per sample, and mask low coverage gts
-# ```
-# bsub.py 1 select_mitoSNPs_GT \
-# "gatk VariantsToTable \
-#  --reference ${REFERENCE} \
-#  --variant ${VCF%.vcf.gz}.mitoALL.filtered.vcf \
-#  --fields CHROM --fields POS --genotype-fields GT --genotype-fields DP \
-#  --output ${VCF%.vcf.gz}.mitoALL.filtered.DP.table"
-#
-#  bsub.py 1 select_nuclearSNPs_GT \
-#  "gatk VariantsToTable \
-#   --reference ${REFERENCE} \
-#   --variant ${VCF%.vcf.gz}.nuclearALL.filtered.vcf \
-#   --fields CHROM --fields POS --genotype-fields GT --genotype-fields DP \
-#   --output ${VCF%.vcf.gz}.nuclearALL.filtered.DP.table"
-#
-#
-#
-# # make per sample depth datasets
-# ncol=$(awk 'NR==1{print NF}' ${VCF%.vcf.gz}.mitoALL.filtered.DP.table)
-# for ((i=3; i<=${ncol}; i +=2)); do cut -f $i,$((i+1)) ${VCF%.vcf.gz}.mitoALL.filtered.DP.table | awk '$1 != "./." {print $2}' > $i.mito.DP; done
-#
-# ncol=$(awk 'NR==1{print NF}' ${VCF%.vcf.gz}.nuclearALL.filtered.DP.table)
-# for ((i=3; i<=${ncol}; i +=2)); do cut -f $i,$((i+1)) ${VCF%.vcf.gz}.nuclearALL.filtered.DP.table | awk '$1 != "./." {print $2}' > $i.nuclear.DP; done
-# ```
-#
-# ```R
-# nameList <- c()
-# for (i in 3:147) { # 21 - odd number for 10 samples
-#   if (i %% 2==1) nameList <- append(nameList,paste0(i,".mito.DP"))
-# }
-#
-# qlist <- matrix(nrow = 73, ncol = 3) # define number of samples (10 samples here)
-# qlist <- data.frame(qlist, row.names=nameList)
-# colnames(qlist)<-c('5%', '10%', '99%')
-#
-# for (i in 1:73) {
-#   DP <- read.table(nameList[i], header = T)
-#   qlist[i,] <- quantile(DP[,1], c(.05, .1, .99), na.rm=T)
-#   d <- density(DP[,1], from=0, to=100, bw=1, na.rm=T)
-#   ggplot(DP,aes(x=DP[,1])) +
-#        geom_density() +
-#        geom_vline(xintercept=c(qlist[i,1],qlist[i,3]), col='red', lwd=1) +
-#        theme_bw() +
-#        labs(title = paste0("Sample: ",colnames(DP)), x= "Coverage")
-#        ggsave(paste0(colnames(DP),"mitoALL.filtered.DP.png"))
-# }
-# ```
-# - example of depth plot - these plots have been made for all samples.
-# ![GVCFall.DP.png](../04_analysis/AN_DNK_COG_EN_0012.DPmitoALL.filtered.DP.png)
 
 
 
@@ -2391,91 +2335,7 @@ ggsave("admixture_plots_k3.pdf", height=1.5, width=10)
 
 - need to determine the optimal K, at least from what the data suggests.
 - usually there is a cross validation approach for tools like STRUCTURE and ADMIXTURE, but there doesnt seem to be one for NGSadmix
-- Guillaume Salle used a MAD approach, calculating admixture for the population, leaving one chromosome out a time.
-- Will try this, using scaffolds longer than 1 Mb to make it manageable.
 
-- NOTE: I did not end up using the following code, hence hashed out, but I am keeping it for future reference
-
-```bash
-# mkdir ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTURE/VALIDATION
-#
-# cat ../../01_REF/trichuris_trichiura.fa.fai | cut -f1 | grep -v "MITO" > chromosomes.list
-#
-# # merge the data from individual chromosomes into a single dataset
-# while read CHROMOSOME; do
-#      cat $(ls -1 CHROMOSOMES_PL/*BEAGLE.PL | head -n1 | sed 's/CHROMOSOMES_PL\///g') | head -n1 > VALIDATION/no_${CHROMOSOME}.merged.validation.PL;
-#      cat CHROMOSOMES_PL/*BEAGLE.PL | grep -v "marker" | grep -v "${CHROMOSOME}" >> VALIDATION/no_${CHROMOSOME}.merged.validation.PL;
-# done < chromosomes.list
-#
-# # run admixture for multiple values of K
-#
-# while read CHROMOSOME; do
-#      for i in 2 3 4 5 6 7 8 9 10; do
-#      bsub.py --threads 4 2 NGS_admix_multiK "NGSadmix -likes VALIDATION/no_${CHROMOSOME}.merged.validation.PL -K ${i} -P 4 -o VALIDATION/no_${CHROMOSOME}_k_${i}_out -minMaf 0.05" ;
-#      done;
-# done  < chromosomes.list
-#
-# # remove unneeded files
-# rm *log *gz
-# ```
-#
-# ```R
-# library(tidyverse)
-
-# rep="./"
-# prefix="no"
-# k=seq(2,10,1)
-# chrl=c('Trichuris_trichiura_3_004','Trichuris_trichiura_1_001','Trichuris_trichiura_3_001','Trichuris_trichiura_3_002','Trichuris_trichiura_1_002','Trichuris_trichiura_3_003','Trichuris_trichiura_1_003','Trichuris_trichiura_00_001','Trichuris_trichiura_1_004','Trichuris_trichiura_1_005','Trichuris_trichiura_3_004')
-# cv1 = array(-1,length(k))
-# cv2 = array(-1,length(k))
-# for(K in k){
-#   for(chr in chrl){
-#     infile=paste(rep,prefix,"_",chr,"_k_",K,"_out.qopt",sep="")
-#
-#     # Admixture
-#     assign(paste0('admix.',chr),t(as.matrix(read.table(infile))))
-#   }
-#   # Med absolute deviation
-#   cv1[K-1] <- mad(c(admix.Trichuris_trichiura_3_004,admix.Trichuris_trichiura_1_001,admix.Trichuris_trichiura_3_001,admix.Trichuris_trichiura_3_002,admix.Trichuris_trichiura_1_002,admix.Trichuris_trichiura_3_003,admix.Trichuris_trichiura_1_003,admix.Trichuris_trichiura_00_001,admix.Trichuris_trichiura_1_004,admix.Trichuris_trichiura_1_005,admix.Trichuris_trichiura_3_004))
-#   # Jackniffing variance
-#   cv2[K-1] <- var(c(admix.Trichuris_trichiura_3_004,admix.Trichuris_trichiura_1_001,admix.Trichuris_trichiura_3_001,admix.Trichuris_trichiura_3_002,admix.Trichuris_trichiura_1_002,admix.Trichuris_trichiura_3_003,admix.Trichuris_trichiura_1_003,admix.Trichuris_trichiura_00_001,admix.Trichuris_trichiura_1_004,admix.Trichuris_trichiura_1_005,admix.Trichuris_trichiura_3_004))
-#   rm(admix.GW_ld.CV1,admix.GW_ld.CV2,admix.GW_ld.CV3,admix.GW_ld.CV4,admix.GW_ld.CV5)
-# }
-# ```
-# - ran Guillaumes approach dropping on chromosome at a time, which was ok.
-# - also reran to generate using different seeds on whole data, and so this is the code to generate the MAD on those data
-# ```R
-# rep="./"
-# k=seq(2,10,1)
-# s=seq(1,5,1)
-# cv1 = array(-1,length(k))
-# cv2 = array(-1,length(k))
-# for(K in k){
-#   for(S in s){
-#     infile=paste(rep,"k_",K,"_s_",S,"_out.qopt",sep="")
-#
-#     # Admixture
-#     assign(paste0('admix.',S),t(as.matrix(read.table(infile))))
-#   }
-#   # Med absolute deviation
-#   cv1[K-1] <- mad(c(admix.1,admix.2,admix.3,admix.4,admix.5))
-#   # Jackniffing variance
-# }
-#
-# # make a plot
-# ggplot() +
-#      geom_point(aes(k,log10(cv1))) +
-#      geom_line(aes(k,log10(cv1))) +
-#      theme_bw() +
-#      labs(x = "Ancestral populations (k)", y = "Median absolute deviation")
-#
-# # save it     
-# ggsave("plot_admixture_validation_MAD.png")
-# ggsave("plot_admixture_validation_MAD.pdf", height = 5, width = 5, useDingbats=FALSE)
-#
-# ```
-# ![](../04_analysis/plot_admixture_validation_MAD.png)
-```
 
 
 ### Clumpak
@@ -2775,7 +2635,7 @@ ggsave("plot_admixtools_f3_statistics.pdf", height = 4, width = 5, useDingbats =
 
 ## SMC++
 - want to calculate historical population sizes
-- also want to follow up on question posed in Soe's draft on the relationship between UGA and DNK samples
+- also want to follow up on question posed in Soe draft on the relationship between UGA and DNK samples
 
 ```bash
 
@@ -3030,7 +2890,6 @@ data <-
 	cbind(pop_id = gsub("_x_nuclear_3x_animalPhonly_50k.windowed.pi","",x), data)
 	})
 
-
 ggplot(data,aes(pop_id,PI,col=pop_id)) +
      geom_jitter() +
      geom_boxplot(fill=NA, col="black") +
@@ -3041,6 +2900,7 @@ ggplot(data,aes(pop_id,PI,col=pop_id)) +
 
 ggsave("plot_nucleotide_diversity_boxplot.png")
 ggsave("plot_nucleotide_diversity_boxplot.pdf", useDingbats=F, height=5, width=5)
+
 
 ggplot(data,aes(NUM*50000,PI,col=CHROM, group=pop_id)) +
      geom_point() +
@@ -3059,7 +2919,6 @@ ggplot(data,aes(NUM*50000,PI,col=CHROM, group=pop_id)) +
      scale_color_npg()
 
 ggsave("plot_nucleotide_diversity_genomewide.png")
-
 
 ```
 
@@ -3107,6 +2966,7 @@ ggplot(data,aes(NUM*50000,TajimaD,col=CHROM, group=pop_id)) +
 
 ggsave("plot_tajimaD_genomewide.png")
 ggsave("plot_tajimaD_genomewide.pdf", useDingbats=F, width=7, height=7)
+
 
 plot_tajD <-
      ggplot(data,aes(NUM*50000,TajimaD,col=pop_id, group=pop_id)) +
@@ -3170,7 +3030,6 @@ data <-
 	cbind(sample_pair = gsub("_50k.windowed.weir.fst","",x), data)
 	})
 
-
 # plot boxplots and distributions of pairwise Fst analyses
 ggplot(data,aes(sample_pair,WEIGHTED_FST,col=sample_pair)) +
      geom_jitter() +
@@ -3218,6 +3077,7 @@ CHN_v_HND <- plot_pairwise_fst("CHN_v_HND_50k.windowed.weir.fst")
 BABOON_v_UGA_fst <- plot_pairwise_fst("BABOON_v_UGA_50k.windowed.weir.fst")
 
 CHN_v_UGA_fst + HND_v_UGA + CHN_v_HND + BABOON_v_UGA_fst + plot_layout(ncol=1)
+
 ggsave("plot_pairwise_FST_genomewide.pdf", width=170, height=150, units="mm")
 
 # BABOON_v_UGA_fst <- plot_pairwise_fst("BABOON_v_UGA_50k.windowed.weir.fst")
@@ -3419,10 +3279,6 @@ data %>% group_by_all() %>% summarise(COUNT = n()) %>% mutate(freq = COUNT / sum
 
 ![](../04_analysis/UGA_CHN_AMERICAS_shared_v_private_variants.png)
 ![](../04_analysis/UGA_CHN_AMERICAS_shared_v_private_variants.pdf)
-
-
-
-
 
 
 
@@ -4042,3 +3898,147 @@ ggsave("kinship_network.png")
 ```
 
 ![](../04_analysis/kinship_network.png)
+
+
+
+
+### Check depth per genotype per sample, and mask low coverage gts
+```
+bsub.py 1 select_mitoSNPs_GT \
+"gatk VariantsToTable \
+ --reference ${REFERENCE} \
+ --variant ${VCF%.vcf.gz}.mitoALL.filtered.vcf \
+ --fields CHROM --fields POS --genotype-fields GT --genotype-fields DP \
+ --output ${VCF%.vcf.gz}.mitoALL.filtered.DP.table"
+
+ bsub.py 1 select_nuclearSNPs_GT \
+ "gatk VariantsToTable \
+  --reference ${REFERENCE} \
+  --variant ${VCF%.vcf.gz}.nuclearALL.filtered.vcf \
+  --fields CHROM --fields POS --genotype-fields GT --genotype-fields DP \
+  --output ${VCF%.vcf.gz}.nuclearALL.filtered.DP.table"
+
+
+
+# make per sample depth datasets
+ncol=$(awk 'NR==1{print NF}' ${VCF%.vcf.gz}.mitoALL.filtered.DP.table)
+for ((i=3; i<=${ncol}; i +=2)); do cut -f $i,$((i+1)) ${VCF%.vcf.gz}.mitoALL.filtered.DP.table | awk '$1 != "./." {print $2}' > $i.mito.DP; done
+
+ncol=$(awk 'NR==1{print NF}' ${VCF%.vcf.gz}.nuclearALL.filtered.DP.table)
+for ((i=3; i<=${ncol}; i +=2)); do cut -f $i,$((i+1)) ${VCF%.vcf.gz}.nuclearALL.filtered.DP.table | awk '$1 != "./." {print $2}' > $i.nuclear.DP; done
+```
+
+```R
+nameList <- c()
+for (i in 3:147) { # 21 - odd number for 10 samples
+  if (i %% 2==1) nameList <- append(nameList,paste0(i,".mito.DP"))
+}
+
+qlist <- matrix(nrow = 73, ncol = 3) # define number of samples (10 samples here)
+qlist <- data.frame(qlist, row.names=nameList)
+colnames(qlist)<-c('5%', '10%', '99%')
+
+for (i in 1:73) {
+  DP <- read.table(nameList[i], header = T)
+  qlist[i,] <- quantile(DP[,1], c(.05, .1, .99), na.rm=T)
+  d <- density(DP[,1], from=0, to=100, bw=1, na.rm=T)
+  ggplot(DP,aes(x=DP[,1])) +
+       geom_density() +
+       geom_vline(xintercept=c(qlist[i,1],qlist[i,3]), col='red', lwd=1) +
+       theme_bw() +
+       labs(title = paste0("Sample: ",colnames(DP)), x= "Coverage")
+       ggsave(paste0(colnames(DP),"mitoALL.filtered.DP.png"))
+}
+
+```
+- example of depth plot - these plots have been made for all samples.
+![GVCFall.DP.png](../04_analysis/AN_DNK_COG_EN_0012.DPmitoALL.filtered.DP.png)
+
+
+
+### Calculating MAD for admix plots
+- Guillaume Salle used a MAD approach, calculating admixture for the population, leaving one chromosome out a time.
+- Will try this, using scaffolds longer than 1 Mb to make it manageable.
+
+- NOTE: I did not end up using the following code, hence hashed out, but I am keeping it for future reference
+
+```bash
+mkdir ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTURE/VALIDATION
+
+cat ../../01_REF/trichuris_trichiura.fa.fai | cut -f1 | grep -v "MITO" > chromosomes.list
+
+# merge the data from individual chromosomes into a single dataset
+while read CHROMOSOME; do
+     cat $(ls -1 CHROMOSOMES_PL/*BEAGLE.PL | head -n1 | sed 's/CHROMOSOMES_PL\///g') | head -n1 > VALIDATION/no_${CHROMOSOME}.merged.validation.PL;
+     cat CHROMOSOMES_PL/*BEAGLE.PL | grep -v "marker" | grep -v "${CHROMOSOME}" >> VALIDATION/no_${CHROMOSOME}.merged.validation.PL;
+done < chromosomes.list
+
+# run admixture for multiple values of K
+
+while read CHROMOSOME; do
+     for i in 2 3 4 5 6 7 8 9 10; do
+     bsub.py --threads 4 2 NGS_admix_multiK "NGSadmix -likes VALIDATION/no_${CHROMOSOME}.merged.validation.PL -K ${i} -P 4 -o VALIDATION/no_${CHROMOSOME}_k_${i}_out -minMaf 0.05" ;
+     done;
+done  < chromosomes.list
+
+# remove unneeded files
+rm *log *gz
+```
+
+```R
+library(tidyverse)
+
+rep="./"
+prefix="no"
+k=seq(2,10,1)
+chrl=c('Trichuris_trichiura_3_004','Trichuris_trichiura_1_001','Trichuris_trichiura_3_001','Trichuris_trichiura_3_002','Trichuris_trichiura_1_002','Trichuris_trichiura_3_003','Trichuris_trichiura_1_003','Trichuris_trichiura_00_001','Trichuris_trichiura_1_004','Trichuris_trichiura_1_005','Trichuris_trichiura_3_004')
+cv1 = array(-1,length(k))
+cv2 = array(-1,length(k))
+for(K in k){
+  for(chr in chrl){
+    infile=paste(rep,prefix,"_",chr,"_k_",K,"_out.qopt",sep="")
+
+    # Admixture
+    assign(paste0('admix.',chr),t(as.matrix(read.table(infile))))
+  }
+  # Med absolute deviation
+  cv1[K-1] <- mad(c(admix.Trichuris_trichiura_3_004,admix.Trichuris_trichiura_1_001,admix.Trichuris_trichiura_3_001,admix.Trichuris_trichiura_3_002,admix.Trichuris_trichiura_1_002,admix.Trichuris_trichiura_3_003,admix.Trichuris_trichiura_1_003,admix.Trichuris_trichiura_00_001,admix.Trichuris_trichiura_1_004,admix.Trichuris_trichiura_1_005,admix.Trichuris_trichiura_3_004))
+  # Jackniffing variance
+  cv2[K-1] <- var(c(admix.Trichuris_trichiura_3_004,admix.Trichuris_trichiura_1_001,admix.Trichuris_trichiura_3_001,admix.Trichuris_trichiura_3_002,admix.Trichuris_trichiura_1_002,admix.Trichuris_trichiura_3_003,admix.Trichuris_trichiura_1_003,admix.Trichuris_trichiura_00_001,admix.Trichuris_trichiura_1_004,admix.Trichuris_trichiura_1_005,admix.Trichuris_trichiura_3_004))
+  rm(admix.GW_ld.CV1,admix.GW_ld.CV2,admix.GW_ld.CV3,admix.GW_ld.CV4,admix.GW_ld.CV5)
+}
+```
+- ran Guillaumes approach dropping on chromosome at a time, which was ok.
+- also reran to generate using different seeds on whole data, and so this is the code to generate the MAD on those data
+```R
+rep="./"
+k=seq(2,10,1)
+s=seq(1,5,1)
+cv1 = array(-1,length(k))
+cv2 = array(-1,length(k))
+for(K in k){
+  for(S in s){
+    infile=paste(rep,"k_",K,"_s_",S,"_out.qopt",sep="")
+
+    # Admixture
+    assign(paste0('admix.',S),t(as.matrix(read.table(infile))))
+  }
+  # Med absolute deviation
+  cv1[K-1] <- mad(c(admix.1,admix.2,admix.3,admix.4,admix.5))
+  # Jackniffing variance
+}
+
+# make a plot
+ggplot() +
+     geom_point(aes(k,log10(cv1))) +
+     geom_line(aes(k,log10(cv1))) +
+     theme_bw() +
+     labs(x = "Ancestral populations (k)", y = "Median absolute deviation")
+
+# save it     
+ggsave("plot_admixture_validation_MAD.png")
+ggsave("plot_admixture_validation_MAD.pdf", height = 5, width = 5, useDingbats=FALSE)
+
+```
+![](../04_analysis/plot_admixture_validation_MAD.png)
+```
