@@ -3725,7 +3725,7 @@ cut -f4 unmapped_proteins.diamond.out | sort | uniq -c | sort -k1nr
 ## Running interproscan on liftoff annotation and making a list of Go terms per gene
 
 ```bash
-# make a proteins file from annotation
+# make a proteins file from annotation
 gffread -y PROTEINS.fa -g trichuris_trichiura.fa liftover_annotation.gff3
 
 # remove stop codons from protein sequences - IPS doesnt like it
