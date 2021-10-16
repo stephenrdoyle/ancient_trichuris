@@ -1113,6 +1113,7 @@ vcftools --vcf TT.filtered-2.vcf.recode.vcf
 vcftools --vcf TT.filtered-2.vcf.recode.vcf --bed ${WORKING_DIR}/01_REF/SNPABLE/mask.bed
 
 # After filtering, kept 8371588 out of a possible 9240001 Sites
+
 ```
 
 
@@ -1465,26 +1466,6 @@ fun_variant_summaries(VCF_nuclear,"nuclear")
 
 
 
-> fun_variant_summaries(VCF_nuclear,"nuclear")
-# A tibble: 16 x 6
-   Variant   `1%`    `5%`    `95%`    `99%` name
-   <fct>    <dbl>   <dbl>    <dbl>    <dbl> <chr>
- 1 Indels  30.9    69.6   4237.    11458.   QUAL_Indels
- 2 SNPs    46.9    72.0   8425.    17223.   QUAL_SNPs
- 3 Indels  52     179      674       771    DP_indels
- 4 SNPs    50     163      688       793    DP_SNPs
- 5 Indels   3.11    8.70    34.4      36.4  QD_indels
- 6 SNPs     3.28    8.98    34.2      36.1  QD_SNPs
- 7 Indels   0       0        7.66     15.0  FS_indels
- 8 SNPs     0       0        9.36     17.4  FS_SNPs
- 9 Indels  38.4    43.4     60        60    MQ_indels
-10 SNPs    38.3    43.6     60        60    MQ_SNPs
-11 Indels  -3.00   -1.61     0.967     1.83 MQRankSum_indels
-12 SNPs    -2.77   -1.38     0.736     1.65 MQRankSum_SNPs
-13 Indels   0.142   0.368    2.83      3.91 SOR_indels
-14 SNPs     0.12    0.316    2.45      3.61 SOR_SNPs
-15 Indels  -2.17   -1.43     1.6       2.19 ReadPosRankSum_indels
-16 SNPs    -1.86   -1.19     1.53      2.17 ReadPosRankSum_SNPs
 
 ```bash
 # apply filtering to SNPs
@@ -1509,27 +1490,6 @@ bsub.py 1 filter_nuclearINDELs "gatk VariantFiltration \
 
 
 
-> fun_variant_summaries(VCF_mito,"mitochondrial")
-
-# A tibble: 16 x 6
-   Variant     `1%`     `5%`      `95%`     `99%` name
-   <fct>      <dbl>    <dbl>      <dbl>     <dbl> <chr>
- 1 Indels   107.     420.    184702.    420374.   QUAL_Indels
- 2 SNPs      67.4    364.    363765.    631570.   QUAL_SNPs
- 3 Indels  6357.    6990      26412.     33076.   DP_indels
- 4 SNPs    5057.    6725.     25953.     30456.   DP_SNPs
- 5 Indels     3.10     6.18      34.5       36.8  QD_indels
- 6 SNPs       1.40     3.69      34.6       36.7  QD_SNPs
- 7 Indels     0        0         21.2       75.7  FS_indels
- 8 SNPs       0        0         33.8      127.   FS_SNPs
- 9 Indels    40.0     43.2       59.9       60    MQ_indels
-10 SNPs      41.3     43.8       60         60    MQ_SNPs
-11 Indels    -3.83    -3.14       1.65       2.57 MQRankSum_indels
-12 SNPs      -6.31    -3.57       0.277      2.49 MQRankSum_SNPs
-13 Indels     0.108    0.284      8.12      10.6  SOR_indels
-14 SNPs       0.114    0.336      7.47      10.6  SOR_SNPs
-15 Indels    -4.50    -2.83       1.85       3.72 ReadPosRankSum_indels
-16 SNPs      -3.90    -1.97       2.05       4.12 ReadPosRankSum_SNPs
 
 bsub.py 1 filter_mitoSNPs "gatk VariantFiltration \
 --reference ${REFERENCE} \
@@ -1804,6 +1764,7 @@ vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --ma
 vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --max-missing 0.8 --keep hq_modern_humanonly.list
 #> After filtering, kept 29 out of 61 Individuals
 #> After filtering, kept 6419884 out of a possible 6933531 Sites
+
 ```
 
 
