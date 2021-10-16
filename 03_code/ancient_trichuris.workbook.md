@@ -2742,9 +2742,11 @@ smc++ estimate -o UGA/ 2.7e-9 SMC_DATA/UGA.*.smc.gz
 
 # plot
 smc++ plot -g 0.33 -c SMCPP_UGA.pdf UGA/model.final.json
+
 ```
 
 - plot all smcpp plots together
+
 ```R
 # load libraries
 library(tidyverse)
@@ -2835,6 +2837,7 @@ vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --FILTE
 
 
 ### plot nucleotide diversities
+
 ```R
 # load libraries
 library(tidyverse)
@@ -2888,6 +2891,7 @@ ggsave("plot_nucleotide_diversity_genomewide.png")
 
 
 ### plot Tajimas D
+
 ```R
 
 library(tidyverse)
