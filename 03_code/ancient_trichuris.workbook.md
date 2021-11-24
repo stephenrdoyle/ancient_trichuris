@@ -3274,16 +3274,38 @@ exons <- read.table("btubulin.exons.bed", header=T)
 nuc <- read.table("out.sites.pi", header=T)
 resistant_snps <- read.table("btubulin.canonicalresistantSNPs.bed",header=T)
 
+allele_freq <- read.table("BZ_allele_freq.frq2", header=F, sep="\t", skip=1)
+colnames(allele_freq) <- c("chrom", "pos", "alleles", "total_alleles", "ref", "ref_freq", "var", "var_freq")
+
+# original
+# ggplot() +
+#      geom_segment(data=exons, aes(x=min(start),xend=max(end),y=0.5,yend=0.5),col="black", size=2) +
+#      geom_rect(data=exons,aes(xmin=start,ymin=0,xmax=end,ymax=1),fill="grey80") +
+#      ylim(-0.5,1.5) +
+#      labs(title="Beta-tubulin (TTRE_0000877201)",x="Genomic position (bp)", y="") +
+#      geom_segment(data=resistant_snps, aes(x=start,xend=end,y=0,yend=1),col="orange", size=1) +
+#      geom_segment(data=nuc, aes(x=POS,xend=POS,y=0,yend=1,col=PI), size=2) +
+#      theme_bw() + theme(axis.title.y=element_blank(),
+#           axis.text.y=element_blank(),
+#           axis.ticks.y=element_blank())
+
+# post peer review
 ggplot() +
-     geom_segment(data=exons, aes(x=min(start),xend=max(end),y=0.5,yend=0.5),col="black", size=2) +
-     geom_rect(data=exons,aes(xmin=start,ymin=0,xmax=end,ymax=1),fill="grey80") +
-     ylim(-0.5,1.5) +
+     geom_segment(data=exons, aes(x=min(start),xend=max(end),y=0,yend=0),col="black", size=2) +
+     geom_rect(data=exons,aes(xmin=start,ymin=-0.1,xmax=end,ymax=0.1),fill="grey80") +
+     ylim(-1,1) +
      labs(title="Beta-tubulin (TTRE_0000877201)",x="Genomic position (bp)", y="") +
-     geom_segment(data=resistant_snps, aes(x=start,xend=end,y=0,yend=1),col="orange", size=1) +
-     geom_segment(data=nuc, aes(x=POS,xend=POS,y=0,yend=1,col=PI), size=2) +
+     geom_segment(data=resistant_snps, aes(x=start,xend=end,y=-0.1,yend=0.1),col="orange", size=1) +
+     geom_segment(data=nuc, aes(x=POS, xend=POS, y=0, yend=PI, col=PI), size=1) +
+     geom_point(data=nuc, aes(x=POS, y=PI), stat='identity', fill="black", size=3) +
+     geom_segment(data=allele_freq, aes(x=pos, xend=pos, y=0, yend=-var_freq, col=var_freq), size=1) +
+     geom_point(data=allele_freq, aes(x=pos, y=-var_freq), stat='identity', fill="black", size=3) +
      theme_bw() + theme(axis.title.y=element_blank(),
-          axis.text.y=element_blank(),
-          axis.ticks.y=element_blank())
+           axis.text.y=element_blank(),
+           axis.ticks.y=element_blank())
+
+
+
 
 ggsave("btubulin_variation_gene.png")
 ggsave("btubulin_variation_gene.pdf", height=2, width=5)
