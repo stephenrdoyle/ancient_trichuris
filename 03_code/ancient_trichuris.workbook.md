@@ -1660,7 +1660,7 @@ vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --keep-
 - need to determine the degree of missingness for both mtDNA and nuclear datasets,
      - per site
      - per sample
-- will use this to define some thresholds to exclude additonal variants and potentially some samples.
+- will use this to define some thresholds to exclude additional variants and potentially some samples.
      - given the variation in mapping depth, it is clear that some samples are going to have to be removed.
      - need to find the balance between maximising samples/variants and removing junk that might influnce true signal
 
@@ -3252,14 +3252,33 @@ data %>% group_by_all() %>% summarise(COUNT = n()) %>% mutate(freq = COUNT / sum
 ## Analysis of variation within beta tubulin
 ```bash
 vcftools \
-     --gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz \
-     --bed btubulin.exons.bed \
-     --site-pi \
-     --keep mod_human_samples.list \
-     --maf 0.01
+      --gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz \
+      --bed btubulin.exons.bed \
+      --site-pi \
+      --keep mod_human_samples.list \
+      --maf 0.01 \
+      --out BZ_nuc_div
 
 #> After filtering, kept 42 out of 73 Individuals
 #> After filtering, kept 9 out of a possible 6571976 Sites
+
+vcftools \
+      --gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz \
+      --bed btubulin.exons.bed \
+      --freq \
+      --keep mod_human_samples.list \
+      --maf 0.01 \
+      --out BZ_allele_freq
+
+vcftools \
+      --gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz \
+      --bed btubulin.exons.bed \
+      --hardy \
+      --keep mod_human_samples.list \
+      --maf 0.01 \
+      --out BZ_hardy
+
+
 
 ```
 
@@ -3268,6 +3287,8 @@ vcftools \
 library(tidyverse)
 library(ggsci)
 library(patchwork)
+library(viridis)
+library(ggrepel)
 
 # load data
 exons <- read.table("btubulin.exons.bed", header=T)
@@ -3289,26 +3310,29 @@ colnames(allele_freq) <- c("chrom", "pos", "alleles", "total_alleles", "ref", "r
 #           axis.text.y=element_blank(),
 #           axis.ticks.y=element_blank())
 
+# ggsave("btubulin_variation_gene.png")
+# ggsave("btubulin_variation_gene.pdf", height=2, width=5)
+
+
 # post peer review
 ggplot() +
-     geom_segment(data=exons, aes(x=min(start),xend=max(end),y=0,yend=0),col="black", size=2) +
-     geom_rect(data=exons,aes(xmin=start,ymin=-0.1,xmax=end,ymax=0.1),fill="grey80") +
+     geom_segment(data=exons, aes(x=min(start), xend=max(end),y=0,yend=0), col="black", size=2) +
+     geom_rect(data=exons, aes(xmin=start,ymin=-0.1, xmax=end, ymax=0.1), fill="grey80") +
      ylim(-1,1) +
-     labs(title="Beta-tubulin (TTRE_0000877201)",x="Genomic position (bp)", y="") +
-     geom_segment(data=resistant_snps, aes(x=start,xend=end,y=-0.1,yend=0.1),col="orange", size=1) +
+     labs(title="Beta-tubulin (TTRE_0000877201)",x="Genomic position (bp)", y="Minor allele frequency (neg) + Nucleotide diversity (pos)", color="Frequency") +
+     geom_segment(data=resistant_snps, aes(x=start, xend=end, y=-0.1, yend=0.1),col="red", size=1) +
+     geom_text_repel(data=resistant_snps, aes(x=start, y=0, label=start), col="red", box.padding = 0.5, max.overlaps = Inf, nudge_y = 0.75) +
      geom_segment(data=nuc, aes(x=POS, xend=POS, y=0, yend=PI, col=PI), size=1) +
-     geom_point(data=nuc, aes(x=POS, y=PI), stat='identity', fill="black", size=3) +
+     geom_point(data=nuc, aes(x=POS, y=PI, col=PI), size=3) +
      geom_segment(data=allele_freq, aes(x=pos, xend=pos, y=0, yend=-var_freq, col=var_freq), size=1) +
-     geom_point(data=allele_freq, aes(x=pos, y=-var_freq), stat='identity', fill="black", size=3) +
-     theme_bw() + theme(axis.title.y=element_blank(),
-           axis.text.y=element_blank(),
-           axis.ticks.y=element_blank())
+     geom_point(data=allele_freq, aes(x=pos, y=-var_freq, col=var_freq), size=3) +
+     theme_bw() + scale_colour_viridis()  + scale_fill_viridis()
 
 
 
 
-ggsave("btubulin_variation_gene.png")
-ggsave("btubulin_variation_gene.pdf", height=2, width=5)
+ggsave("btubulin_variation_gene_R1.png")
+ggsave("btubulin_variation_gene_R1.pdf", height=2, width=5)
 
 
 file_names <-
