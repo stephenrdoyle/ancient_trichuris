@@ -448,3 +448,172 @@ data %>% group_by_all() %>% summarise(COUNT = n()) %>% mutate(freq = COUNT / sum
 
 ![](../04_analysis/UGA_CHN_AMERICAS_shared_v_private_variants.png)
 ![](../04_analysis/UGA_CHN_AMERICAS_shared_v_private_variants.pdf)
+
+
+
+
+
+
+## Ancient DNA analyses
+
+
+```bash
+# working directory
+cd  ~/lustre118_link/trichuris_trichiura/05_ANALYSIS/POOLSEQ
+```
+
+
+```R
+library(tidyverse)
+library(ggrepel)
+library(patchwork)
+library(ggsci)
+
+data <- read.table("curated_data_npstats_age.txt", header=T)
+
+ggplot(data) +
+     geom_smooth(aes(Age,Pi), method = "lm", colour="grey") +
+     geom_point(aes(Age,Pi, colour=Country), size=3) +
+     geom_text_repel(aes(Age,Pi,label=Population), size=3) +
+     ylim(0,0.015) + xlim(800,2020) +
+     theme_bw() + labs(x="Estimated age of sampling location", y="Nucleotide diversity (Pi)") +
+     scale_colour_npg()
+
+ggsave("ancient_sites_Pi_over_time.png", height=2, width=7.5)
+ggsave("ancient_sites_Pi_over_time.pdf", height=2, width=7.5, useDingbats=FALSE)
+
+
+
+```
+
+Figure: [map](../04_analysis/genomewide_genetic_variation/ancient_sites_Pi_over_time.pdf)
+- new main text figure
+![ancient_map](../04_analysis/genomewide_genetic_variation/ancient_sites_Pi_over_time.png)
+
+
+
+
+
+## Heterozygosity vs coverage
+```R
+library(tidyverse)
+library(ggpmisc)
+
+data <- read.table("heterozygosity_x_coverage.txt", header = T)
+
+formula <- x ~ y
+
+ggplot(data,aes(F,COV)) +
+     geom_point() + xlim(0,1) +
+     labs(x="Heterozygosity (F)", y="Coverage") +
+     facet_grid(POPULATION~.) + theme_bw() +
+     geom_smooth(method = "lm", se = FALSE)+
+     stat_fit_glance(method = 'lm',
+          method.args = list(formula = formula),
+          geom = 'text',
+          aes(label = paste("P-value = ", signif(..p.value.., digits = 3), sep = "")),
+          label.x = 0.5, label.y = 0.5, size = 3) +
+     stat_poly_eq(aes(label = paste(..rr.label..)),
+          label.x = 0.5, label.y = 0.15, formula = formula, parse = TRUE, size = 3)
+
+ggsave("heterozygosity_x_coverage.png")
+ggsave("heterozygosity_x_coverage.pdf", height=7, width=7, useDingbats=FALSE)
+```
+
+![heterozygosity_x_coverage](../04_analysis/genomewide_genetic_variation/heterozygosity_x_coverage.png)
+
+
+
+
+
+
+### Relatedness and kinship between samples in a population
+- Want to know to what degree individual worms from a population are related to each other.
+- can do this via calculating kinship coefficients, to determine 1st, 2nd, 3rd degree relatives
+
+
+```bash
+# run vcftools to calculated relatedness
+vcftools --gzvcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz --relatedness2 --max-missing 1
+
+# extract relevant pairwise comparisons for making the network.
+#--- note only want within population comparisons, rather than between populations
+#--- also want to remove self v self.
+>allpops.relatedness2
+for i in CHN DNK_COZ_PH HND UGA_DK UGA_KAB ; do
+     awk -v name=$i '$1~name && $2~name {print $0,name}' OFS="\t" out.relatedness2 |\
+     awk '{if($1!=$2) print $8,$1,$2,$7}' OFS="\t" >> allpops.relatedness2;
+done
+
+# make a file with population groups for colouring the network in
+cut -f 1,2 allpops.relatedness2 | sort | uniq > metadata.txt
+```
+
+
+```R
+# load libraries
+# https://briatte.github.io/ggnet/
+library(tidyverse)
+library(GGally)
+library(network)
+library(sna)
+library(ggplot2)
+
+
+# read data
+data <- read.table("allpops.relatedness2")
+metadata <- read.table("metadata.txt")
+
+
+# convert kinship coefficients into a coded 1st, 2nd, 3rd degree relatives
+data_1 <-
+     data %>%
+     mutate(V4 = if_else(V4 >= 0.05 & V4 < 0.10125, 0.5,
+               if_else(V4 >= 0.10125 & V4 < 0.1925, 1,
+               if_else(V4 >= 0.1925 & V4 < 0.375, 2, 0))))
+
+# coding:
+#0 degree = 0.5
+#1st degree = 0.25 (0.1925-0.375)
+#2nd degree = 0.125 (0.10125-0.1925)
+#3rd degree = 0.0675 (0.05-0.10125)
+#4th degree = 0.03375
+
+# convert data from paired observations to a matrix of observations
+data_2 <-
+     data_1 %>%
+     unique() %>%
+     pivot_wider(., id_cols=V2, names_from=V3, values_from=V4, values_fill=0)
+
+data_3 <- as.data.frame(data_2, row.names=F)
+
+# clean up matrix
+data_4 <-
+     data_3 %>%
+     remove_rownames %>%
+     column_to_rownames(var="V2")
+
+data_4.1 <- as.matrix(data_4)
+
+# make the network
+data_5 <- network(data_4.1, ignore.eval = FALSE, names.eval = "kinship")
+
+# add the population metaddata
+data_5 %v% "Population" = metadata$V1
+data_5 %v% "Host" = metadata$V3
+
+# set colours for populations
+col =  c("CHN" = "#E64B35B2", "DNK_COZ_PH" = "#00A087B2", "HND" = "#8491B4B2", "NLD" = "#91D1C2B2", "UGA_KAB" = "#DC0000B2", "UGA_DK" = "#DC0000B8")
+
+#set.edge.attribute(data_5, "lty", ifelse(data_5 %e% "kinship" = 3, 1, ifelse(data_5 %e% "kinship" = 2, 2, 3)))
+
+# plot the network
+ggnet2(data_5, edge.size = "kinship", color = "Population", palette = "Set1", size=4, shape="Host")
+
+# save it
+ggsave("kinship_network.pdf", useDingbats=F, height=8, width=8)
+ggsave("kinship_network.png")
+
+```
+
+![](../04_analysis/kinship/kinship_network.png)
