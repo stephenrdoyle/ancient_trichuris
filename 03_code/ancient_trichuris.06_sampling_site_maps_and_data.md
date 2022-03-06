@@ -191,6 +191,6 @@ ggsave("ancient_sites_fst_map.png", height=3.5, width=7.5)
 ggsave("ancient_sites_fst_map.pdf", height=3.5, width=7.5, useDingbats=FALSE)
 ```
 
-Figure: [map](../04_analysis/sampling_sites_and_data/samplingsites_time.pdf)
+Figure: [map](../04_analysis/sampling_sites_and_data/ancient_sites_fst_map.pdf)
 - new main text figure
-![ancient_map](../04_analysis/sampling_sites_and_data/samplingsites_time.png)
+![ancient_map](../04_analysis/sampling_sites_and_data/ancient_sites_fst_map.png)
