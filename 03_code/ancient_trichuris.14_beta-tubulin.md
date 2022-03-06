@@ -134,3 +134,4 @@ ggsave("btubulin_variation_scaffold.png")
 ggsave("btubulin_variation_scaffold.pdf")
 
 ```
+![](../04_analysis/btub/btubulin_variation_scaffold.png)
