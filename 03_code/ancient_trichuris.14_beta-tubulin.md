@@ -78,10 +78,13 @@ ggplot() +
      theme_bw() + scale_colour_viridis()  + scale_fill_viridis()
 
 
-
-
 ggsave("btubulin_variation_gene_R1.png")
 ggsave("btubulin_variation_gene_R1.pdf", height=2, width=5)
+
+
+
+
+
 
 
 file_names <-
@@ -134,4 +137,7 @@ ggsave("btubulin_variation_scaffold.png")
 ggsave("btubulin_variation_scaffold.pdf")
 
 ```
+
+![](../04_analysis/btub/btubulin_variation_gene_R1.png)
+
 ![](../04_analysis/btub/btubulin_variation_scaffold.png)
