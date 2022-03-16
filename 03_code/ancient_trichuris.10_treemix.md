@@ -15,17 +15,18 @@ vcftools \
 --gzvcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf.gz \
 --max-missing 1 \
 --keep ../../04_VARIANTS/GATK_HC_MERGED/nuclear_3x_animal.list \
+--bed ../../01_REF/trichuris_trichiura.autosomeLG.bed \
 --recode --stdout | gzip > treemix.vcf.gz
 
 ./ldPruning.sh treemix.vcf.gz
 
 # before pruning
 vcftools --gzvcf treemix.vcf.gz
-#> After filtering, kept 356541 out of a possible 356541 Sites
+#> After filtering, kept 180443 out of a possible 356541 Sites
 
 # after pruning
 vcftools --gzvcf treemix.LDpruned.vcf.gz
-#> After filtering, kept 109195 out of a possible 109195 Sites
+#> After filtering, kept 53671 out of a possible 109195 Sites
 
 bcftools query -l treemix.vcf.gz | awk '{split($1,pop,"."); print $1"\t"$1"\t"pop[2]}' > data.clust
 
@@ -75,12 +76,12 @@ for(edge in 0:5){
      plot_tree(cex=0.8,paste0(prefix,".m_",edge,".s_4"))
      title(paste(edge,"edges"))
 }
-
+dev.off()
 
 for(edge in 0:5){
      pdf(paste0("plot_treemix_tree_m-",edge,".pdf"))
-     plot_tree(cex=0.8,paste0(prefix,".m_",edge,".s_4"))
-     plot_resid(stem=paste0(prefix,".m_",edge,".s_4"),pop_order="populations.list")
+     plot_tree(cex=0.8,paste0(prefix,".m_",edge,".s_3"))
+     plot_resid(stem=paste0(prefix,".m_",edge,".s_3"),pop_order="populations.list")
      title(paste(edge,"edges"))
      dev.off()
 }
@@ -94,7 +95,7 @@ for(edge in 0:5){
      dev.off()
 }
 
-dev.off()
+
 
 # Estimating the optimal number of migration edges : https://rdrr.io/cran/OptM/#vignettes
 # run in the folder with the treemix output files

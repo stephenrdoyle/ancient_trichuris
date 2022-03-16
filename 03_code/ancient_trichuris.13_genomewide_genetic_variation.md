@@ -471,13 +471,18 @@ library(ggsci)
 
 data <- read.table("curated_data_npstats_age.txt", header=T)
 
+country_colours <-
+     c("Denmark" = "#3C5488",
+     "Holland" = "#9DAAC4",
+     "Lithuania" = "#0F1522")
+
 ggplot(data) +
      geom_smooth(aes(Age,Pi), method = "lm", colour="grey") +
-     geom_point(aes(Age,Pi, colour=Country), size=3) +
-     geom_text_repel(aes(Age,Pi,label=Population), size=3) +
+     geom_point(aes(Age, Pi, colour = Country), size=3) +
+     geom_text_repel(aes(Age, Pi, label=Population), size=3) +
      ylim(0,0.015) + xlim(800,2020) +
      theme_bw() + labs(x="Estimated age of sampling location", y="Nucleotide diversity (Pi)") +
-     scale_colour_npg()
+     scale_colour_manual(values = country_colours)
 
 ggsave("ancient_sites_Pi_over_time.png", height=2, width=7.5)
 ggsave("ancient_sites_Pi_over_time.pdf", height=2, width=7.5, useDingbats=FALSE)
@@ -604,6 +609,18 @@ data_5 %v% "Host" = metadata$V3
 
 # set colours for populations
 col =  c("CHN" = "#E64B35B2", "DNK_COZ_PH" = "#00A087B2", "HND" = "#8491B4B2", "NLD" = "#91D1C2B2", "UGA_KAB" = "#DC0000B2", "UGA_DK" = "#DC0000B8")
+
+col <-
+     c("CHN" = "#00A087",
+     "CMR" = "#902F21",
+     "DNK" = "#3C5488",
+     "ESP" = "#E7EAF0",
+     "HND" = "#4DBBD5",
+     "NLD" = "#9DAAC4",
+     "UGA" = "#E64B35",
+     "LTU" = "#0F1522",
+     "TZA" = "#F2A59A")
+
 
 #set.edge.attribute(data_5, "lty", ifelse(data_5 %e% "kinship" = 3, 1, ifelse(data_5 %e% "kinship" = 2, 2, 3)))
 

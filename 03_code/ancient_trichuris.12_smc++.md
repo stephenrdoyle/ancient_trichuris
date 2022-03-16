@@ -14,11 +14,14 @@ ln -s /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/04_VARIANTS/GATK_
 
 conda activate smcpp
 
-export LD_LIBRARY_PATH=/lustre/scratch118/infgen/team133/sd21/software/anaconda2/envs/smcpp/lib/
+export LD_LIBRARY_PATH=/lustre/scratch118/infgen/team333/sd21/software/anaconda2/envs/smcpp/lib/
 
 module load common-apps/htslib/1.9.229
 
-cat ../../01_REF/trichuris_trichiura.fa.fai | cut -f1 | grep -v "MITO" > chromosomes.list
+#cat ../../01_REF/trichuris_trichiura.fa.fai | cut -f1 | grep -v "MITO" > chromosomes.list
+# post revision, just running on autosomes
+cat ../../01_REF/trichuris_trichiura.fa.fai | cut -f1 | grep "Trichuris_trichiura_2\|Trichuris_trichiura_3" > chromosomes.list
+
 
 #--- plot per populations
 # HND

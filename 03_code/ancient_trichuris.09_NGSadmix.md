@@ -28,8 +28,10 @@ done
 
 head -n1 Trichuris_trichiura_3_009.BEAGLE.PL > chromosome.PL
 
-cat Trichuris_trichiura_1_001.BEAGLE.PL Trichuris_trichiura_1_002.BEAGLE.PL Trichuris_trichiura_1_003.BEAGLE.PL Trichuris_trichiura_1_004.BEAGLE.PL Trichuris_trichiura_1_005.BEAGLE.PL Trichuris_trichiura_1_006.BEAGLE.PL Trichuris_trichiura_1_007.BEAGLE.PL Trichuris_trichiura_2_001.BEAGLE.PL Trichuris_trichiura_3_001.BEAGLE.PL Trichuris_trichiura_3_002.BEAGLE.PL Trichuris_trichiura_3_003.BEAGLE.PL Trichuris_trichiura_3_004.BEAGLE.PL Trichuris_trichiura_3_005.BEAGLE.PL Trichuris_trichiura_3_006.BEAGLE.PL Trichuris_trichiura_3_007.BEAGLE.PL Trichuris_trichiura_3_008.BEAGLE.PL Trichuris_trichiura_3_009.BEAGLE.PL Trichuris_trichiura_3_010.BEAGLE.PL | grep -v "marker" | sort -t ":" -k1,1 -k2,2n >> chromosome.PL
+# cat Trichuris_trichiura_1_001.BEAGLE.PL Trichuris_trichiura_1_002.BEAGLE.PL Trichuris_trichiura_1_003.BEAGLE.PL Trichuris_trichiura_1_004.BEAGLE.PL Trichuris_trichiura_1_005.BEAGLE.PL Trichuris_trichiura_1_006.BEAGLE.PL Trichuris_trichiura_1_007.BEAGLE.PL Trichuris_trichiura_2_001.BEAGLE.PL Trichuris_trichiura_3_001.BEAGLE.PL Trichuris_trichiura_3_002.BEAGLE.PL Trichuris_trichiura_3_003.BEAGLE.PL Trichuris_trichiura_3_004.BEAGLE.PL Trichuris_trichiura_3_005.BEAGLE.PL Trichuris_trichiura_3_006.BEAGLE.PL Trichuris_trichiura_3_007.BEAGLE.PL Trichuris_trichiura_3_008.BEAGLE.PL Trichuris_trichiura_3_009.BEAGLE.PL Trichuris_trichiura_3_010.BEAGLE.PL | grep -v "marker" | sort -t ":" -k1,1 -k2,2n >> chromosome.PL
 
+# post revision update - only used autosomal variants
+cat Trichuris_trichiura_2_001.BEAGLE.PL Trichuris_trichiura_3_001.BEAGLE.PL Trichuris_trichiura_3_002.BEAGLE.PL Trichuris_trichiura_3_003.BEAGLE.PL Trichuris_trichiura_3_004.BEAGLE.PL Trichuris_trichiura_3_005.BEAGLE.PL Trichuris_trichiura_3_006.BEAGLE.PL Trichuris_trichiura_3_007.BEAGLE.PL Trichuris_trichiura_3_008.BEAGLE.PL Trichuris_trichiura_3_009.BEAGLE.PL Trichuris_trichiura_3_010.BEAGLE.PL | grep -v "marker" | sort -t ":" -k1,1 -k2,2n >> chromosome.PL
 
 cd ../
 
@@ -80,10 +82,10 @@ ggplot(data,aes(sample_ID,value,fill=variable)) +
           axis.text.x = element_blank(),
           #axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
           panel.grid = element_blank()) +
-     scale_fill_npg(guide = FALSE)
+     scale_fill_npg(guide = "none")
 }
 
-s = 4
+s = 3
 # run function for each value of K
 k_2_plot <- plot_admixture(paste0("k_2_s_",s,"_out.qopt"), "K = 2")
 k_3_plot <- plot_admixture(paste0("k_3_s_",s,"_out.qopt"), "K = 3")
@@ -107,7 +109,7 @@ ggsave("admixture_plots_k3.pdf", height=1.5, width=10)
 
 ```
 
-![](../04_analysis/admixture_plots_k2-10.png)
+![](../04_analysis/admixture/admixture_plots_k2-10.png)
 
 - need to determine the optimal K, at least from what the data suggests.
 - usually there is a cross validation approach for tools like STRUCTURE and ADMIXTURE, but there doesnt seem to be one for NGSadmix
@@ -118,7 +120,7 @@ ggsave("admixture_plots_k3.pdf", height=1.5, width=10)
 - rather that the above code, I ended up using Clumpak as suggested here: https://github.com/alexkrohn/AmargosaVoleTutorials/blob/master/ngsAdmix_tutorial.md
 
 ```bash
-(for log in `ls *.log`; do
+(for log in `ls k*.log`; do
      grep -Po 'like=\K[^ ]+' $log;
 done) > logfile
 
@@ -136,6 +138,7 @@ write.table(logs[, c(2, 1)], "logfile_formatted", row.names = F,
     col.names = F, quote = F)
 
 ```
+
 
 - open clumpak and upload the data
 - the output suggests k=3 is the optimal ancestral number, which I guess is consistent with the PCA which produces three main clusters.
