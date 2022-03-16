@@ -6,8 +6,7 @@ Given it is a "global diversity" study, worth having a world map with sampling s
 setwd("/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/MAP")
 
 # load libraries
-library(ggplot2)
-library(dplyr)
+library(tidyverse)
 require(maps)
 library(ggrepel)
 library(patchwork)
@@ -19,15 +18,27 @@ world_map <- map_data("world")
 # load metadata
 data <- read.delim("map_metadata.txt", sep="\t", header=T)
 
+
+country_colours <-
+     c("CHN" = "#00A087",
+     "CMR" = "#902F21",
+     "DNK" = "#3C5488",
+     "ESP" = "#E7EAF0",
+     "HND" = "#4DBBD5",
+     "NLD" = "#9DAAC4",
+     "UGA" = "#E64B35",
+     "LTU" = "#0F1522",
+     "TZA" = "#F2A59A")
+
 # make a map
 ggplot() +
-     geom_polygon(data = world_map, aes(x = world_map$long, y = world_map$lat, group = world_map$group), fill="grey90") +
-     geom_point(data = data, aes(x = LONGITUDE, y = LATITUDE, colour = REGION, shape = SAMPLE_AGE), size=3) +
+     geom_polygon(data = world_map, aes(x = long, y = lat, group = group), fill="grey90") +
+     geom_point(data = data, aes(x = LONGITUDE, y = LATITUDE, colour = COUNTRY_ID, shape = SAMPLE_AGE), size=3) +
      geom_text_repel(data = data, aes(x = LONGITUDE, y = LATITUDE, label = paste0(COUNTRY," (",POPULATION_ID,"); n = ", SAMPLE_N)), size=3, max.overlaps = Inf) +
      theme_void() +
      ylim(-55,85) +
      labs(title="A", colour="", shape="") +
-     scale_colour_npg()
+     scale_colour_manual(values = country_colours)
 
 # save it
 ggsave("worldmap_samplingsites.png", height=5, width=12)
