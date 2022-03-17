@@ -634,3 +634,356 @@ ggsave("kinship_network.png")
 ```
 
 ![](../04_analysis/kinship/kinship_network.png)
+
+
+
+
+
+# Running pixy to calculate nucleotide diversity, dXY and Fst between groups
+```bash
+conda activate pixy
+
+cp ../../04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz .
+
+gunzip nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz
+bgzip nuclear_samples3x_missing0.8_animalPhonly.recode.vcf
+tabix -p vcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz
+
+bsub.py --queue yesterday --threads 2 10 pixy \
+"pixy --stats pi fst dxy \
+     --vcf nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz \
+     --populations populations.list \
+     --window_size 20000 \
+     --bypass_invariant_check 'yes' \
+     --n_cores 2"
+
+```
+
+### analyses of nucleotide diversity (Pi)
+```R
+# load libraries
+library(tidyverse)
+library(patchwork)
+library(ggridges)
+
+# get nucleotide diversity (pi) data from pixy output
+pi_data <- read.table("pixy_pi.txt", header=T)
+
+
+# subset for ancient samples
+pi_data_an <- pi_data %>%
+     filter(pop=="AN" & !str_detect(chromosome, "^Trichuris_trichiura_00"))
+pi_data_HND <- pi_data %>%
+     filter(pop=="HND" & !str_detect(chromosome, "^Trichuris_trichiura_00"))
+pi_data_CHN <- pi_data %>%
+     filter(pop=="CHN" & !str_detect(chromosome, "^Trichuris_trichiura_00"))
+
+# filter pi data to remove small scaffolds not in the linkage groups, and to number the rows per group to help with plotting
+pi_data <- pi_data %>%
+     filter(!str_detect(chromosome, "^Trichuris_trichiura_00")) %>%
+     group_by(pop) %>%
+     mutate(position = 1:n())
+
+
+# get position for vertical lines used in plot to delineate the linkage groups
+pi_data %>%
+     group_by(chromosome) %>%
+     summarise(max = max(position, na.rm = TRUE))
+
+
+# plot 1 - genome wide plots per population
+plot_1 <- ggplot(pi_data, aes(position*20000, log10(avg_pi), col=chromosome)) +
+     geom_point(size=0.75) +
+     facet_grid(pop~.) +
+     scale_colour_cyclical(values = c("#3030D0", "#9090F0")) +
+     theme_bw() +
+     geom_vline(xintercept=c(1123*20000,2581*20000),size=0.5)+
+     labs(x="Genomic Position", y="Nucleotide Diversity (Pi)")
+
+
+# calculate the median value of pi per group
+pi_data_2 <- pi_data %>%
+     group_by(pop) %>%
+     summarise(median = median(avg_pi, na.rm = TRUE))
+
+
+# set some colours per group
+country_colours <-
+     c("CHN" = "#00A087",
+     "BABOON" = "#3C5488",
+     "HND" = "#4DBBD5",
+     "UGA" = "#E64B35",
+     "AN" = "#9DAAC4")
+
+# plot 2 - density plots of pi per group
+plot_2 <- ggplot(pi_data, aes(avg_pi), guide="none") +
+     geom_density(aes(fill=pop, col=pop)) +
+     theme_bw() +
+     facet_grid(pop~.) +
+     xlim(0,0.25) +
+     geom_vline(data=pi_data_2,aes(xintercept=median),linetype="dashed") +
+     scale_fill_manual(values=country_colours, guide="none") +
+     scale_colour_manual(values=country_colours, guide="none")+
+     labs(x="Nucleotide Diversity (Pi)", y="Density")
+
+# bring it together
+plot_1 + plot_2 +  plot_layout(widths = c(5, 1))
+
+ggsave("plots_genomewide_and_density_Pi.pdf", width=7, height=6, useDingbats=FALSE)
+````
+
+### check nucleotide diversity of autosomes vs sex chromosome
+```bash
+# load libraries
+library(tidyverse)
+library(ggsci)
+
+# load data
+pi_data <- read.table("pixy_pi.txt", header=T)
+
+
+# differentiate between sex chromosome and autosome, to plot each
+pi_data <- pi_data %>%
+     mutate(chr_type = ifelse(str_detect(chromosome, "^Trichuris_trichiura_1"), "sexchr", "autosome"))
+
+# calculate the median Pi for each for plotting, and checking the ratio of sex-to-autosome diversity. Should be about 0.75, as Trichuris is XX/XY
+pi_data_median <- pi_data %>%
+     group_by(chr_type) %>%
+     summarise(median = median(avg_pi, na.rm = TRUE))
+
+#    chr_type median
+#     <chr>     <dbl>
+#   1 autosome 0.0736
+#   2 sexchr   0.0501
+
+# 0.0501 / 0.0736 = 0.68 (not far off 0.75 expected of diversity on sex chromosome relative to autosome)
+
+# set colours for each group
+country_colours <-
+     c("sexchr" = "#00A087",
+     "autosome" = "#3C5488")
+
+# plot - density of Pi per sex and autosome group
+ggplot(pi_data, aes(avg_pi), guide="none") +
+     geom_density(aes(fill=chr_type, col=chr_type)) +
+     theme_bw() +
+     facet_grid(chr_type~.) +
+     xlim(0,0.25) +
+     geom_vline(data=pi_data_median,aes(xintercept=median),linetype="dashed") +
+     scale_fill_npg(guide="none") +
+     scale_colour_npg(guide="none")+
+     labs(x="Nucleotide Diversity (Pi)", y="Density")
+
+```
+
+
+### dXY and Fst
+- need to recreate datasets showing dXY and Fst for
+     - CHN vs UGA
+     - HND vs UGA
+     - CHN vs HND
+     - BABOON vs UGA
+
+```bash
+# load libraries
+library(tidyverse)
+library(ggridges)
+
+# load data
+dxy_data <- read.table("pixy_dxy.txt", header=T)
+fst_data <- read.table("pixy_fst.txt", header=T)
+
+# add some columns
+dxy_data$data_type <- "Dxy"
+dxy_data <- mutate(dxy_data,
+     comparison = paste(pop1, pop2, sep = '_v_'))
+
+fst_data$data_type <- "Fst"
+fst_data <- mutate(fst_data,
+     comparison = paste(pop1, pop2, sep = '_v_'))
+
+# subset and merge dataframes
+dxy_data_sub <- dxy_data %>% select(comparison,data_type,chromosome,window_pos_1,window_pos_2,avg_dxy)
+colnames(dxy_data_sub) <- c("comparison","data_type","chromosome","window_pos_1","window_pos_2","value")
+
+fst_data_sub <- fst_data %>% select(comparison,data_type,chromosome,window_pos_1,window_pos_2,avg_wc_fst)
+colnames(fst_data_sub) <- c("comparison","data_type","chromosome","window_pos_1","window_pos_2","value")
+
+# cheeky fix to get matching rows from both datasets
+tmp_dxy <- semi_join(dxy_data_sub, fst_data_sub, by=c("comparison", "chromosome", "window_pos_1", "window_pos_2"))
+tmp_fst <- semi_join(fst_data_sub, dxy_data_sub,  by=c("comparison", "chromosome", "window_pos_1", "window_pos_2"))
+
+# join the datasets together to create a single dataframe
+data <- full_join(tmp_dxy, tmp_fst)
+
+# add numbering to help with plotting
+data <- data %>%
+     filter(!str_detect(chromosome, "^Trichuris_trichiura_00")) %>%
+     group_by(comparison, data_type) %>%
+     mutate(position = 1:n())
+
+# get position for vertical lines used in plot to delineate the linkage groups
+data %>%
+     group_by(chromosome) %>%
+     summarise(max = max(position, na.rm = TRUE))
+
+# # A tibble: 17 × 2
+#    chromosome                  max
+#    <chr>                     <int>
+#  1 Trichuris_trichiura_1_001   562
+#  2 Trichuris_trichiura_1_002   815
+#  3 Trichuris_trichiura_1_003   916
+#  4 Trichuris_trichiura_1_004   965
+#  5 Trichuris_trichiura_1_005  1024
+#  6 Trichuris_trichiura_1_006  1066
+#  7 Trichuris_trichiura_1_007  1083 <<<<
+#  8 Trichuris_trichiura_2_001  2520 <<<<
+#  9 Trichuris_trichiura_3_001  2971
+# 10 Trichuris_trichiura_3_002  3246
+# 11 Trichuris_trichiura_3_003  3375
+# 12 Trichuris_trichiura_3_004  3431
+# 13 Trichuris_trichiura_3_005  3464
+# 14 Trichuris_trichiura_3_006  3490
+# 15 Trichuris_trichiura_3_007  3507
+# 16 Trichuris_trichiura_3_008  3522
+# 17 Trichuris_trichiura_3_009  3531
+
+# plotted Fst and Dxy together, but it is very noisy.
+# #subset by comparison
+# data_CHNvUGA <- data %>% filter(comparison=="UGA_v_CHN")
+# data_HNDvUGA <- data %>% filter(comparison=="HND_v_UGA")
+# data_HNDvCHN <- data %>% filter(comparison=="HND_v_CHN")
+# data_BABOONvUGA <- data %>% filter(comparison=="BABOON_v_UGA")
+#
+#
+# # plot
+# plot_fst_dxy <- function(data){
+#      ggplot(data, aes(position*20000, value, col=chromosome)) +
+#      geom_point(size=0.5) +
+#      scale_colour_cyclical(values = c("#3030D0", "#9090F0")) +
+#      geom_vline(xintercept=c(1083*20000,2520*20000))+
+#      facet_grid(data_type~comparison) +
+#      ylim(0,1) +
+#      theme_bw() +
+#      labs(x="Genomic Position", y="Genetic differentiation")
+# }
+#
+# plot_CHNvUGA <- plot_fst_dxy(data_CHNvUGA)
+# plot_HNDvUGA <- plot_fst_dxy(data_HNDvUGA)
+# plot_HNDvCHN <- plot_fst_dxy(data_HNDvCHN)
+# plot_BABOONvUGA <- plot_fst_dxy(data_BABOONvUGA)
+#
+# plot_CHNvUGA + plot_HNDvUGA + plot_HNDvCHN + plot_BABOONvUGA + plot_layout(ncol=1)
+
+# subset data to get only fst values
+data_fst <- data %>% filter(data_type=="Fst" & (comparison=="UGA_v_CHN" | comparison=="HND_v_UGA" | comparison=="HND_v_CHN" | comparison=="BABOON_v_UGA"))
+
+# median values for density plots
+data_fst_median <- data_fst %>%
+     group_by(comparison) %>%
+     summarise(median = median(value, na.rm = TRUE))
+
+# genomewide plot of fst values for each pairwise comparison
+plot_fst_gw <- ggplot(data_fst, aes(position*20000, value, col=chromosome)) +
+      geom_point(size=0.5) +
+      scale_colour_cyclical(values = c("#3030D0", "#9090F0")) +
+      geom_vline(xintercept=c(1083*20000,2520*20000),size=0.5)+
+      facet_grid(comparison~.) +
+      ylim(0,1) +
+      theme_bw() +
+      labs(x="Genomic Position", y="Genetic differentiation")
+
+plot_fst_density <- ggplot(data_fst, aes(value, col=comparison, fill=comparison)) +
+     geom_density(show.legend = FALSE) +
+     facet_grid(comparison~.) +
+     theme_bw() + xlim(0,1) +
+     geom_vline(data=data_fst_median,aes(xintercept=median),linetype="dashed")+
+     labs(x="Genetic differentiation (Fst)", y="Density") +
+     theme()
+
+plot_fst_gw + plot_fst_density +  plot_layout(widths = c(5, 1))
+
+
+# dxy data
+# subset data to get only dxy values
+data_dxy <- data %>% filter(data_type=="Dxy" & (comparison=="UGA_v_CHN" | comparison=="HND_v_UGA" | comparison=="HND_v_CHN" | comparison=="BABOON_v_UGA"))
+
+# median values for density plots
+data_dxy_median <- data_dxy %>%
+     group_by(comparison) %>%
+     summarise(median = median(value, na.rm = TRUE))
+
+# genomewide plot of dxy values for each pairwise comparison
+plot_dxy_gw <- ggplot(data_dxy, aes(position*20000, value, col=chromosome)) +
+      geom_point(size=0.5) +
+      scale_colour_cyclical(values = c("#3030D0", "#9090F0")) +
+      geom_vline(xintercept=c(1083*20000,2520*20000),size=0.5)+
+      facet_grid(comparison~.) +
+      ylim(0,1) +
+      theme_bw() +
+      labs(x="Genomic Position", y="Genetic differentiation")
+
+plot_dxy_density <- ggplot(data_dxy, aes(value, col=comparison, fill=comparison)) +
+     geom_density(show.legend = FALSE) +
+     facet_grid(comparison~.) +
+     theme_bw() + xlim(0,1) +
+     geom_vline(data=data_dxy_median,aes(xintercept=median),linetype="dashed")+
+     labs(x="Genetic differentiation (Fst)", y="Density") +
+     theme()
+
+plot_dxy_gw + plot_dxy_density +  plot_layout(widths = c(5, 1))
+
+
+
+
+# using a function to allow me to put the facets in the order I want
+#--- function
+plot_gw <- function(pair, type){
+
+tmp_data <- data %>% filter(data_type==type & comparison==pair )
+
+tmp_data_median <- tmp_data %>%
+     group_by(comparison) %>%
+     summarise(median = median(value, na.rm = TRUE))
+
+plot_gw <- ggplot(tmp_data, aes(position*20000, value, col=chromosome)) +
+     geom_vline(xintercept=c(1083*20000,2520*20000), size=0.5, linetype="dashed")+
+     geom_point(size=0.25) +
+     scale_colour_cyclical(values = c("#3030D0", "#9090F0")) +
+     ylim(0,1) +
+     theme_bw() +
+     labs(x="Genomic Position", y="Genetic differentiation")
+
+plot_density <- ggplot(tmp_data, aes(value, col=comparison, fill=comparison)) +
+     geom_density(show.legend = FALSE) +
+     theme_bw() + xlim(0,1) +
+     facet_grid(comparison~.) +
+     geom_vline(data=tmp_data_median,aes(xintercept=median),linetype="dashed")+
+     labs(x="Genetic differentiation", y="Density") +
+     theme()
+
+plot_gw + plot_density + plot_layout(widths = c(5, 1))
+
+}
+
+# make fst plots and assemble them
+plot_UGA_v_CHN_fst <- plot_gw("UGA_v_CHN", "Fst")
+plot_HND_v_UGA_fst <- plot_gw("HND_v_UGA", "Fst")
+plot_HND_v_CHN_fst <- plot_gw("HND_v_CHN", "Fst")
+plot_BABOON_v_UGA_fst <- plot_gw("BABOON_v_UGA", "Fst")
+
+plot_UGA_v_CHN_fst / plot_HND_v_UGA_fst / plot_HND_v_CHN_fst / plot_BABOON_v_UGA_fst
+
+ggsave("plots_genomewide_and_density_fst.pdf", width=7, height=5, useDingbats=FALSE)
+
+# make dxy plots and assemble them
+plot_UGA_v_CHN_dxy <- plot_gw("UGA_v_CHN","Dxy")
+plot_UGA_v_CHN_dxy <- plot_gw("HND_v_UGA","Dxy")
+plot_HND_v_CHN_dxy <- plot_gw("HND_v_CHN","Dxy")
+plot_BABOON_v_UGA_dxy <- plot_gw("BABOON_v_UGA","Dxy")
+
+plot_UGA_v_CHN_dxy / plot_UGA_v_CHN_dxy / plot_HND_v_CHN_dxy / plot_BABOON_v_UGA_dxy / plot_layout(ncol=1)
+
+ggsave("plots_genomewide_and_density_dxy.pdf", width=7, height=6, useDingbats=FALSE)
+
+```

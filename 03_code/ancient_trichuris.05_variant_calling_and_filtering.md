@@ -950,3 +950,115 @@ gzip -f mito_samples3x_missing0.8.recode.vcf
 #> After filtering, kept 1159 out of a possible 1888 Sites
 
 ```
+
+
+
+
+
+
+
+
+
+
+# Generate an ALL SITES variant set for running pixy properly
+
+
+# working dir
+WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
+
+# load gatk
+module load gatk/4.1.4.1
+
+# also need htslib for tabix
+module load common-apps/htslib/1.9.229
+
+
+# make a new directory for the merged GVCFS
+mkdir ${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED_ALLSITES
+cd ${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED_ALLSITES
+
+# make a list of GVCFs to be merged
+ls -1 ${WORKING_DIR}/04_VARIANTS/GVCFS/*complete/*gz > ${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED_ALLSITES/gvcf.list
+
+GVCF_LIST=${WORKING_DIR}/04_VARIANTS/GATK_HC_MERGED_ALLSITES/gvcf.list
+
+REFERENCE=${WORKING_DIR}/01_REF/trichuris_trichiura.fa
+
+
+# setup the run files
+n=1
+while read SEQUENCE; do
+     echo -e "gatk CombineGVCFs -R ${REFERENCE} --intervals ${SEQUENCE} \\" > ${n}.run_merge_gvcfs.tmp.${SEQUENCE}
+     while read SAMPLE; do
+          echo -e "--variant ${SAMPLE} \\" >> ${n}.run_merge_gvcfs.tmp.${SEQUENCE};
+     done < ${GVCF_LIST}
+     echo -e "--output ${SEQUENCE}.cohort.g.vcf.gz" >> ${n}.run_merge_gvcfs.tmp.${SEQUENCE};
+     let "n+=1";
+done < ${WORKING_DIR}/04_VARIANTS/sequences.list
+
+chmod a+x *.run_merge_gvcfs.tmp.*
+
+# run
+for i in *.run_merge_gvcfs.tmp.*; do
+     bsub.py --queue long --threads 4 10 merge_vcfs "./${i}";
+done
+
+# threads seem to make a big difference in run time, even though they are not a parameter in the tool
+
+```
+
+
+
+
+### Step 3. Split merged GVCF into individual sequences, and then genotype to generate a VCF
+
+```bash
+
+# split each chromosome up into separate jobs, and run genotyping on each individually.
+n=1
+
+while read SEQUENCE; do
+     echo -e "gatk GenotypeGVCFs \
+     -R ${REFERENCE} \
+     -V ${SEQUENCE}.cohort.g.vcf.gz \
+     --intervals ${SEQUENCE} \
+     --all-sites \
+     --heterozygosity 0.015 \
+     --indel-heterozygosity 0.01 \
+     --annotation DepthPerAlleleBySample --annotation Coverage --annotation ExcessHet --annotation FisherStrand --annotation MappingQualityRankSumTest --annotation StrandOddsRatio --annotation RMSMappingQuality --annotation ReadPosRankSumTest --annotation DepthPerSampleHC --annotation QualByDepth \
+     -O ${n}.${SEQUENCE}.cohort.vcf.gz" > run_hc_genotype.${SEQUENCE}.tmp.job_${n};
+     let "n+=1";
+done < ${WORKING_DIR}/04_VARIANTS/sequences.list
+
+chmod a+x run_hc_genotype*
+
+mkdir LOGFILES
+
+# setup job conditions
+JOBS=$( ls -1 run_hc_* | wc -l )
+ID="U$(date +%s)"
+
+# run
+bsub -q long -R'span[hosts=1] select[mem>20000] rusage[mem=20000]' -n 4 -M20000 -J GATK_HC_GENOTYPE_${ID}_[1-$JOBS] -e LOGFILES/GATK_HC_GENOTYPE_${ID}_[1-$JOBS].e -o LOGFILES/GATK_HC_GENOTYPE_${ID}_[1-$JOBS].o "./run_hc_*\$LSB_JOBINDEX"
+
+```
+
+
+### Step 4. Bring the files together
+
+```bash
+
+# make list of vcfs
+ls -1 *.cohort.vcf.gz | sort -n > vcf_files.list
+
+# merge them
+vcf-concat --files vcf_files.list > Trichuris_trichiura.cohort.allsites.vcf;
+     bgzip Trichuris_trichiura.cohort.allsites.vcf;
+     tabix -p vcf Trichuris_trichiura.cohort.allsites.vcf.gz
+
+# clean up
+rm run*
+rm ^[0-9]*
+rm *.g.vcf.gz*
+
+```
