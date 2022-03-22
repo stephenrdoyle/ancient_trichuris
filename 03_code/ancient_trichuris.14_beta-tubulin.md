@@ -80,64 +80,64 @@ ggplot() +
 
 ggsave("btubulin_variation_gene_R1.png")
 ggsave("btubulin_variation_gene_R1.pdf", height=2, width=5)
-
-
-
-
-
-
-
-file_names <-
-     list.files(path = "./",pattern = "_x_nuclear_3x_animalPhonly_50k.windowed.pi")
-
-      # load data using file names, and make a formatted data frame
-nucdiv <-
-     purrr::map_df(file_names, function(x) {
- 	data <- read.delim(x, header = T, sep="\t")
-     data <- tibble::rowid_to_column(data, "NUM")
- 	cbind(pop_id = gsub("_x_nuclear_3x_animalPhonly_50k.windowed.pi","",x), data)
- 	})
-
-nucdiv <-
-     dplyr::filter(nucdiv, grepl('Trichuris_trichiura_1_001', CHROM))
-
-
-plot_btub_pi <-
-     ggplot(nucdiv,aes(NUM*50000,PI,col=CHROM, group=pop_id)) +
-     geom_point() +
-     labs(x = "Genomic position (bp)" , y = "Nucleotide diversity (Pi)", col=NA) +
-     facet_grid(pop_id~.) +
-     theme_bw() + theme(legend.position = "none") +
-     geom_vline(xintercept=c(10684531,10686350))
-
-
-file_names <- list.files(path = "./",pattern = "_x_nuclear_3x_animalPhonly_50k.Tajima.D")
-
-tajD <-
-     purrr::map_df(file_names, function(x) {
-          data <- read.delim(x, header = T, sep="\t")
-          data <- tibble::rowid_to_column(data, "NUM")
-      	cbind(pop_id = gsub("_x_nuclear_3x_animalPhonly_50k.Tajima.D","",x), data)
-      	})
-
-tajD <- dplyr::filter(tajD, grepl('Trichuris_trichiura_1_001', CHROM))
-
-
-plot_btub_taj <-
-     ggplot(tajD,aes(NUM*50000,TajimaD,col=CHROM, group=pop_id)) +
-     geom_point() +
-     labs(x = "Genomic position (bp)" , y = "Tajimas D", col=NA) +
-     facet_grid(pop_id~.) +
-     theme_bw() + theme(legend.position = "none") +
-     geom_vline(xintercept=c(10684531,10686350))
-
-plot_btub_pi + plot_btub_taj + plot_layout(ncol=2)
-
-ggsave("btubulin_variation_scaffold.png")
-ggsave("btubulin_variation_scaffold.pdf")
-
 ```
 
-![](../04_analysis/btub/btubulin_variation_gene_R1.png)
 
+
+
+### Reanalysis of nucleotide diversity around beta-tubulin
+```bash
+# working directory
+/lustre/scratch118/infgen/team333/sd21/trichuris_trichiura/05_ANALYSIS/DXY
+```
+
+```R
+library(tidyverse)
+library(patchwork)
+
+data <- read.table("trichuris_allsites_pi.txt", header=T)
+
+chr <- filter(data,chromosome=="Trichuris_trichiura_1_001")
+chr <- mutate(chr, colour = ifelse(10684531>window_pos_1 & 10684531<window_pos_2, "1", "0.5"))
+chr <- chr %>%
+     group_by(pop) %>%
+     mutate(position = 1:n())
+
+plot_1 <- ggplot(chr, aes(position*20000, avg_pi, col=colour, size=colour)) +
+     geom_point() +
+     facet_grid(pop~.) +
+     geom_vline(xintercept=c(10684531,10686350), linetype="dashed", size=0.5) +
+     labs(x = "Genomic position (bp)" , y = "Nucleotide diversity") +
+     scale_colour_manual(values = c("#9090F0", "#3030D0")) +
+     scale_size_manual(values=c("0.5" = 0.5, "1" = 2)) +
+     theme_bw() + theme(legend.position="none")
+
+
+# rearrange Pi data to determine where btubulin sits in the distribution of pi
+chr_sort <- arrange(chr,avg_pi)
+chr_sort <-
+     chr_sort %>%
+     group_by(pop) %>%
+     mutate(position = 1:n())
+chr_sort_quantile <-
+     chr_sort %>%
+     group_by(pop) %>%
+     summarise(enframe(quantile(avg_pi, c(0.05,0.95)), "quantile", "avg_pi"))
+
+
+plot_2 <- ggplot(chr_sort) +
+     geom_hline(data=chr_sort_quantile,aes(yintercept=c(avg_pi)), linetype="dashed", size=0.5) +
+     geom_point(aes(position, avg_pi, col=colour, size=colour)) + facet_grid(pop~.) + theme_bw() +
+     scale_colour_manual(values = c("#9090F0", "#3030D0")) +
+     labs(x = "Position sorted by Pi" , y = "Nucleotide diversity") +
+     scale_size_manual(values=c("0.5" = 0.5, "1" = 2)) +
+     theme(legend.position="none",
+          axis.text.x=element_blank(),
+         axis.ticks.x=element_blank())
+
+plot_1 + plot_2
+
+ggsave("btubulin_variation_scaffold.png")
+ggsave("btubulin_variation_scaffold.pdf", useDingbats=F, width=7, height=5)
+```
 ![](../04_analysis/btub/btubulin_variation_scaffold.png)
