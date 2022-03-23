@@ -279,7 +279,7 @@ ggsave("plot_pairwise_FST_genomewide.pdf", width=170, height=150, units="mm")
 
 ### extracting top 1% of Fst values for each comparison
 
-```R
+<!-- ```R
 
 extract_top_1 <- function(file){
      require(tidyverse)
@@ -293,17 +293,64 @@ extract_top_1("CHN_v_UGA_50k.windowed.weir.fst")
 extract_top_1("CHN_v_HND_50k.windowed.weir.fst")
 extract_top_1("BABOON_v_UGA_50k.windowed.weir.fst")
 
+``` -->
+
+
+```R
+library(tidyverse)
+
+extract_top <- function(comparison, percent){
+data <- read.table("trichuris_allsites_fst.txt", header=T)
+data <- mutate(data, pairwise = paste(pop1, pop2, sep = '_v_'))
+
+quantile <- (100-percent)/100
+
+data_top_auto <- data %>%
+     filter(chromosome!="Trichuris_trichiura_MITO") %>%
+     filter(!str_detect(chromosome, "^Trichuris_trichiura_1")) %>%
+     filter(!str_detect(chromosome, "^Trichuris_trichiura_00")) %>%
+     filter(pairwise==comparison) %>%
+     filter(avg_wc_fst > quantile(avg_wc_fst, quantile, na.rm=T)) %>%
+     select(chromosome, window_pos_1, window_pos_2, avg_wc_fst)
+
+data_top_sex <- data %>%
+     filter(str_detect(chromosome, "^Trichuris_trichiura_1")) %>%
+     filter(pairwise==comparison) %>%
+     filter(avg_wc_fst > quantile(avg_wc_fst, quantile, na.rm=T)) %>%
+     select(chromosome,window_pos_1,window_pos_2,avg_wc_fst)
+
+data_top_other <- data %>%
+     filter(chromosome!="Trichuris_trichiura_MITO") %>%
+     filter(str_detect(chromosome, "^Trichuris_trichiura_00")) %>%
+     filter(pairwise==comparison) %>%
+     filter(avg_wc_fst > quantile(avg_wc_fst, quantile, na.rm=T)) %>%
+     select(chromosome, window_pos_1, window_pos_2, avg_wc_fst)
+
+data_top <- full_join(data_top_auto,data_top_sex)
+data_top <- full_join(data_top,data_top_other)
+
+write.table(data_top, file=paste0(comparison,".top_",percent,".coords"), row.names = F, col.names = F, quote = F, sep = '\t')
+}
+
+extract_top("HND_v_UGA", 5)
+extract_top("UGA_v_CHN", 5)
+extract_top("HND_v_CHN", 5)
+extract_top("BABOON_v_UGA", 5)
 ```
+
+ln -s ../../01_REF/LIFTOFF/liftover_annotation.gff3
+
+
 
 ```bash
 # extract the overlapping genes in the top 1% datasets
-for i in *top1.coords; do
+for i in *top_?.coords; do
      bedtools intersect -b ${i} -a liftover_annotation.gff3 -wb |\
      awk '$3=="gene" {print $9}' | cut -f1 -d ";" | cut -f2 -d ":" \
      > ${i%.coords}.genes;
 done
 
-for i in *top1.coords; do
+for i in *top_?.coords; do
      bedtools intersect -b ${i} -a liftover_annotation.gff3 -wb |\
      awk -F '[\t]' '$3=="gene" {print $10,$11,$12,$13,$4,$5,$9}' OFS="\t" | cut -f1 -d ";" | sed 's/ID=gene://g' \
      > ${i%.coords}.intersect;
@@ -316,7 +363,25 @@ cat liftover_annotation.gff3 |\
      > liftover_annotation.genelist
 
 # use gProfiler to determine intersection
-#>> no enriched genes found for any comparison
+
+
+# extract gene ID information from top differentated genes
+for FILE in *.top_5.genes; do
+     while read GENE; do
+          DATA=$(grep ${GENE} liftover_annotation.gff3 |\
+          awk -F'[\t]' '{if($3=="gene") print $9}' |\
+          grep -o "description=.*;" |\
+          sed 's/;/\t/g' );\
+          echo -e "${GENE}\t${DATA}";
+     done < ${FILE} > ${FILE}_descriptions.txt;
+done
+
+# gProfiler output
+UGA vs HND: https://biit.cs.ut.ee/gplink/l/qk_WBF0pSI
+UGA vs BABOON: https://biit.cs.ut.ee/gplink/l/5nu0UvV9T_
+
+
+
 
 ```
 

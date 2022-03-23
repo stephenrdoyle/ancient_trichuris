@@ -1,8 +1,35 @@
 # Genome analyses
 
-## BUSCO
+## Contents:
+- Reference genome
+- Genome completeness using BUSCO
+- Transfer of gene models using LiftOff
+- Running interproscan on liftoff annotation
 
 
+
+## Reference genome
+- the reference is an unpublished Trichuris trichiura assembly generated in the Parasite Genomics team at Sanger
+- this is a new PacBio assembly, rahter than an improvement from the original assembly published by Foth et al (2014)
+- this assembly is from worms extracted from Peter Nejsum that originated in Uganda, whereas the Foth assembly was from Ecuadorian worms.
+- this assembly didn't have an annotation when the project started
+
+### Genome stats
+- genome stats of the new assembly
+     - sum = 80573711, n = 113, ave = 713041.69, largest = 29164577
+     - N50 = 11299416, n = 2
+     - N60 = 9167782, n = 3
+     - N70 = 5100676, n = 5
+     - N80 = 2017282, n = 7
+     - N90 = 643749, n = 14
+     - N100 = 1808, n = 113
+     - N_count = 250000
+     - Gaps = 25
+
+
+
+
+## Genome completeness using BUSCO
 ```bash
 
 export PATH="/nfs/users/nfs_s/sd21/lustre118_link/software/anaconda2/pkgs/augustus-3.1-0/bin:$PATH"
@@ -42,7 +69,7 @@ bsub.py --threads 20 --queue long 20 busco_tt_old "busco -i trichuris_trichiura.
 
 
 
-## Liftoff
+## Transfer of gene models using LiftOff
 - need to identify genes in new genome assembly, which does not yet have a stable annotations
 - propose to simply lift over gene models from original annotation, simply for the purpose of asking, what genes are present
 - doesnt have to be perfect
@@ -52,11 +79,8 @@ bsub.py --threads 20 --queue long 20 busco_tt_old "busco -i trichuris_trichiura.
 ```bash
 
 conda activate py37
-
 pip3 install liftoff --user
-
 conda install -c bioconda minimap2
-
 
 wget ftp://ftp.ebi.ac.uk/pub/databases/wormbase/parasite/releases/WBPS15/species/trichuris_trichiura/PRJEB535/trichuris_trichiura.PRJEB535.WBPS15.annotations.gff3.gz
 
@@ -70,7 +94,6 @@ wc -l unmapped_features.txt
 
 awk $3="gene" '{print}' newversion.gff
 #> 8451 genes
-
 
 
 # to be cross-compatible with Apollo, which has the same genome version but with updated scaffold names (changed by Faye after I had started the analysis), had to run the following on the genome and annotation
@@ -152,9 +175,7 @@ rm run_split*
 
 ```
 
-
-
-# run diamond to query species
+### run diamond to query species
 ```bash
 # load diamond
 module load diamond/0.9.24--ha888412_1
@@ -241,7 +262,7 @@ cut -f4 unmapped_proteins.diamond.out | sort | uniq -c | sort -k1nr
 
 
 
-## Running interproscan on liftoff annotation and making a list of Go terms per gene
+## Running interproscan on liftoff annotation
 
 ```bash
 # make a proteins file from annotation
@@ -266,110 +287,5 @@ awk '$3=="mRNA" {print $0}' OFS="\t" liftover_annotation.gff3.go.gff | grep "Ont
 
 # work through columns to split multiple go terms per gene into one term per gene, repeating the gene name if multiple GO terms present
 awk '{for(i=2; i<=NF; i++) {print $1,$i}}' OFS="\t" annotation_GO_per_gene.txt > annotation_GO_per_gene_split.txt
-
-```
-
-
-
-
-
-
-
-
-
-## mitochondrial Genome annotation
-- first, want to map get protein coding gene annotations onto reference assembly, which doesnt have any annotations
-- using liftoff () to transfer from
-- didnt realise this, but the mito genome in the assembly is quite different to Foth et al.
-     - only about 81% similarity
-- blastn at NCBI identified KT449826.1 as a much better match
-     - this had an annotation, so using that as the liftover
-     - downloaded both the fasta and GFF3 from NCBI
-
-```bash
-cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_REF
-
-conda activate liftoff
-
-liftoff -g KT449826.1.gff3 Trichuris_trichiura_MITO.fasta KT449826.1.fa -o Trichuris_trichiura_MITO.gff3
-
-```
-
-# make a mask of non-protein-coding regions
-```bash
-cat Trichuris_trichiura_MITO.fasta.fai | cut -f1,2 > mito.genome
-
-bedtools complement -i Trichuris_trichiura_MITO.gff3 -g mito.genome > mito.mask.bed
-
-```
-
-
-```bash
-cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/PHYLOGENY
-
-# downloaded reference fastas from ENA/ncbi
-KT449822.1_Trichuris_suis.fa
-KT449823.1_Trichuris_suis.fa
-KT449824.1_Trichuris_sp._baboon.fa
-KT449825.1_Trichuris_sp.TTB2.fa
-KT449826.1_Trichuris_trichiura.fa
-NC_002681.1_Trichinella_spiralis.fa
-NC_017747.1_Trichuris_suis.fa
-NC_017750.1_Trichuris_trichiura.fa
-NC_018596.1_Trichuris_discolor.fa
-NC_018597.1_Trichuris_ovis.fa
-NC_028621.1_Trichuris_muris.fa
-
-
-ln -s ../../04_VARIANTS/GATK_HC_MERGED/mito_samples3x_missing0.8.recode.vcf
-
-bgzip mito_samples3x_missing0.8.recode.vcf
-tabix -p vcf mito_samples3x_missing0.8.recode.vcf.gz
-
-bcftools query --list-samples mito_samples3x_missing0.8.recode.vcf > samples.list
-
-REF=../../01_REF/trichuris_trichiura.fa
-MITO_REF=Trichuris_trichiura_MITO
-VCF=mito_samples3x_missing0.8.recode.vcf.gz
-
-while read SAMPLE; do \
-     samtools faidx ${REF} ${MITO_REF} | bcftools consensus ${VCF} --missing N --output ${SAMPLE}.mito.fa --sample ${SAMPLE};
-done < samples.list
-
-# # mask to only include protein coding regions
-# while read SAMPLE; do \
-#      samtools faidx ${REF} ${MITO_REF} | bcftools consensus ${VCF} --mask /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_REF/mito.mask.bed --missing N --output ${SAMPLE}.mito.fa --sample ${SAMPLE};
-# done < samples.list
-
-
-# fix sample names in the file
-for i in *.mito.fa; do \
-     sed -i "s/Trichuris_trichiura_MITO/${i%.mito.fa}/" ${i};
-done
-
-# bring all of the pseudoreferences together with the ENA/NCBI references
-cat *mito.fa > all_pseudoreferences.fa
-
-
-module load mafft/7.407=1-c1
-
-bsub.py --threads 20 10 mafft "mafft --thread 20 --maxiterate 1000 --globalpair all_pseudoreferences.fa \> AN_MN_pseudomtDNA.aln"
-
-bsub.py --threads 20 10 mafft_refs "mafft --thread 20 --maxiterate 1000 --globalpair refs.fa \> refs.aln"
-
-```
-
-```bash
-for i in *trimmed.bam; do
-     bcftools mpileup -C 50 --min-MQ 20 --min-BQ 30 --skip-indels ${i} --fasta-ref ../01_REF/trichuris_trichiura.fa --regions Trichuris_trichiura_MITO | bcftools call --ploidy 1 -c -Oz -o ${i%.trimmed.bam}.vcf.gz
-
-     tabix ${i%.trimmed.bam}.vcf.gz
-
-     bedtools complement -i ${i%.trimmed.bam}.vcf.gz -g mito.genome > mask.bed
-
-     bcftools consensus --mask mask.bed --missing N -f ../01_REF/Trichuris_trichiura_MITO.fasta ${i%.trimmed.bam}.vcf.gz -o ${i%.trimmed.bam}.fa
-
-     sed -i "s/Trichuris_trichiura_MITO/${i%.trimmed.bam}/g" ${i%.trimmed.bam}.fa;
-done
 
 ```

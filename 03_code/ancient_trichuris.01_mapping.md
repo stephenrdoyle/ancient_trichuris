@@ -1,45 +1,26 @@
-## working directory
+# Mapping
+
+## Contents
+- Project setup
+- Prepare reference genome
+- Raw sequence data
+- metadata
+- trimming of the raw reads
+- FIX: merge duplicate ancient read sets
+- Mapping
+
+
+## Project setup
+
 ```bash
+# working directory
 cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
 WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
 
-```
-
-## Project setup
-```shell
 mkdir 00_SCRIPTS 01_REF 02_RAW 03_MAPPING 04_VARIANTS 05_ANALYSIS
 ```
----
 
-## Reference genome
-- the reference is an unpublished Trichuris trichiura assembly generated in the Parasite Genomics team at Sanger
-- this is a new PacBio assembly, rahter than an improvement from the original assembly published by Foth et al (2014)
-- this assembly is from worms extracted from Peter Nejsum that originated in Uganda, whereas the Foth assembly was from Ecuadorian worms.
-- this assembly didn't have an annotation when the project started
-
-### Genome stats
-- genome stats of the new assembly
-     - sum = 80573711, n = 113, ave = 713041.69, largest = 29164577
-     - N50 = 11299416, n = 2
-     - N60 = 9167782, n = 3
-     - N70 = 5100676, n = 5
-     - N80 = 2017282, n = 7
-     - N90 = 643749, n = 14
-     - N100 = 1808, n = 113
-     - N_count = 250000
-     - Gaps = 25
-
-### BUSCO stats
-- BUSCO stats of the assembly (see below for commands and comparison against old assembly)
-     - C:81.4%[S:79.3%,D:2.1%],F:1.7%,M:16.9%,n:978
-     - 797	Complete BUSCOs (C)
-     - 776	Complete and single-copy BUSCOs (S)
-     - 21	Complete and duplicated BUSCOs (D)
-     - 17	Fragmented BUSCOs (F)
-     - 164	Missing BUSCOs (M)
-     - 978	Total BUSCO groups searched
-
-
+## Prepare reference genome
 ```bash
 cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/01_REF
 
@@ -85,7 +66,7 @@ pf data --type lane --id 6929_8 -l ./ --filetype fastq
 - GoogleSheet:  https://docs.google.com/spreadsheets/d/1PiapiaZZw0g0i3lN0feXxqEVupvaAuOm0IViXnZPFqk/edit?usp=sharing
 
 ---
-## trimming
+## trimming of the raw reads
 - trimming using AdapterRemoval, which seems to be used for a few different ancient DNA projects. I think it is because it trims and merges, which generally improves the mapping scores off some poor qual end of reads.
 - Tool: https://buildmedia.readthedocs.org/media/pdf/adapterremoval/latest/adapterremoval.pdf
 
@@ -147,7 +128,7 @@ NEW_NAME=${2}
 
 
 
-### FIX: merge duplicate ancient read sets
+## FIX: merge duplicate ancient read sets
 These seem to have been a single sample, extracted twice (or in two ways, perhaps two washes of a column) and sequenced individually. Given the low coverage, these should be merged (I think).
 
 ```bash

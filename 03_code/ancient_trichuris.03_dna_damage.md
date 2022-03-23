@@ -1,4 +1,4 @@
-## Damage
+# DNA Damage
 - need to check to what degree deanimation (increased frequency of C > T and G > A) has affected the DNA used for sequencing
 - this is a common artefact in ancient samples - this is expected from ancient reads, and will likely affect the older samples more.
 - Not expecting this in the modern samples

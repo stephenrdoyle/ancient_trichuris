@@ -1,5 +1,13 @@
-## Genome coverage
+# Genome coverage
 
+## Contents
+- Genome wide coverage
+- Generate quantitative stats on coverage for supplementary tables
+- generate some coverage plots
+- Genome-wide coverage to determine worm sex
+
+
+## Genome wide coverage
 ```bash
 cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/03_MAPPING/COV_STATS
 
@@ -46,7 +54,7 @@ rm *.tmp
 
 ```
 
-### Generate quantitative stats on coverage for supplementary tables etc
+## Generate quantitative stats on coverage for supplementary tables etc
 
 ```bash
 # extract mtDNA and nuclear (mean & stddev) data
@@ -63,7 +71,7 @@ done > nuc_mtDNA_coverage.stat
 
 
 
-### generate some coverage plots,
+## generate some coverage plots,
 - particularly to compare relative coverage between sex chromosome scaffolds and autosomes to determine sex of individual sample
 
 ```R
@@ -111,7 +119,7 @@ ggsave("nuc_mito_cov_ratio.png")
 ![](../04_analysis/nuc_mito_cov_ratio.png)
 
 
-### Genome-wide coverage to determine worm sex
+## Genome-wide coverage to determine worm sex
 - using genome wide coverage data to iner the sex of the worms.
 - we know that "Trichuris_trichiura_1" lingage group is the X chromosome based on synteny with Trichuris muris
 - a ratio of this LG to other scaffolds should give the sex of the individual worms,

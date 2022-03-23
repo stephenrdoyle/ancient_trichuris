@@ -1,10 +1,26 @@
-## SNP calling
+# Variant calling and filtering
+
+## Contents
+- GATK setup
+- Genome scope to estimate heterozyosity
+- GATK
+- Filter the VCF - SNPable
+- Filter the VCF - hardfilter
+- Querying SNP and INDEL QC profiles to determine thresholds for filters
+- Applying filters to the variants
+- Generate an ALL SITES variant set for running pixy
+
+
+
+
+
+## GATK setup
 - Using GATK haplotypecaller to call SNPs
 - First pass QC: --min-base-quality-score 20 --minimum-mapping-quality 30
 - scripts below split jobs by sample and by sequence, generating GVCFs, and then once done, merging them back together again. It does this by generating small jobs submitted in arrays to perform tasks in parallel, greatly speeding up the overall job time.
 
 
-### Genome scope
+## Genome scope to estimate heterozyosity
 - Using genomescope to estimate heterozygosity from a couple of samples which can be used as an input to GATK genotyping
 
 ```bash
@@ -60,7 +76,7 @@ eg.
 
 
 
-### GATK
+## GATK
 
 ```bash
 # working dir
@@ -147,8 +163,6 @@ done < ${BAM_LIST}
 
 ```
 
-
-
 ### Step 2. Gather the GVCFs to generate a merged GVCF
 
 ```bash
@@ -187,9 +201,6 @@ done
 
 ```
 
-
-
-
 ### Step 3. Split merged GVCF into individual sequences, and then genotype to generate a VCF
 
 ```bash
@@ -222,7 +233,6 @@ bsub -q long -R'span[hosts=1] select[mem>10000] rusage[mem=10000]' -n 4 -M10000 
 
 ```
 
-
 ### Step 4. Bring the files together
 
 ```bash
@@ -243,8 +253,7 @@ rm *.g.vcf.gz*
 ```
 
 
-### Step 5. Filter the VCF
-#### SNPable
+## Filter the VCF - SNPable
 Using Heng Li's "SNPable regions" to identify unique regions fo the genome in which mapping tends to be more reliable. Martin did this, so thought i'd give it a go to be consistent
 
 http://lh3lh3.users.sourceforge.net/snpable.shtml
@@ -310,7 +319,7 @@ done
 - this is an interesting strategy - perhaps worth exploring for other projects, esp when just popgen SNPs are being used (not every position for, eg, SNPeff).
 
 
-#### Hard filters
+## Hard filters
 
 ```bash
 mkdir ${WORKING_DIR}/04_VARIANTS/SNP_FILTER
@@ -332,7 +341,7 @@ vcftools --vcf TT.filtered-2.vcf.recode.vcf --bed ${WORKING_DIR}/01_REF/SNPABLE/
 
 
 
-### Querying SNP and INDEL QC profiles to determine thresholds for filters
+## Querying SNP and INDEL QC profiles to determine thresholds for filters
 Adapted from https://evodify.com/gatk-in-non-model-organism/
 
 ```bash
@@ -611,7 +620,7 @@ fun_variant_summaries(VCF_nuclear,"nuclear")
 
 
 
-
+## Applying filters to the variants
 ```bash
 # apply filtering to SNPs
 WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
@@ -672,7 +681,7 @@ done
 
 
 
-### Merge VCFs
+## Merge VCFs
 
 ```bash
 
@@ -692,7 +701,7 @@ bsub.py 1 merge_nuclear_variants "gatk MergeVcfs \
 
 
 
-### Filter genotypes based on depth per genotype
+## Filter genotypes based on depth per genotype
 - depth is so variable, so not going to think to hard about this. Want to try capture as many sites in the ancient samples
 - found some papers that used min 3X with at least 80% coverage
      - eg. https://science.sciencemag.org/content/sci/suppl/2018/07/03/361.6397.81.DC1/aao4776-Leathlobhair-SM.pdf
@@ -915,7 +924,7 @@ vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --ma
 
 
 
-### Max-missing
+## Max-missing
 
 ```bash
 
@@ -960,9 +969,9 @@ gzip -f mito_samples3x_missing0.8.recode.vcf
 
 
 
-# Generate an ALL SITES variant set for running pixy properly
+## Generate an ALL SITES variant set for running pixy properly
 
-
+```bash
 # working dir
 WORKING_DIR=/nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura
 
