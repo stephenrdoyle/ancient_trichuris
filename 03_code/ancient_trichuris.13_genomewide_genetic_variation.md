@@ -160,6 +160,7 @@ ggsave("plots_genomewide_and_density_Pi.png")
 
 ````
 
+![](../04_analysis/genomewide_genetic_variation/plots_genomewide_and_density_Pi.png)
 
 
 
@@ -442,6 +443,11 @@ ggsave("plots_genomewide_and_density_dxy.png")
 
 ```
 
+- to go in the main text
+![](../04_analysis/genomewide_genetic_variation/plots_genomewide_and_density_fst.png)
+
+- to go in the supplementary text
+![](../04_analysis/genomewide_genetic_variation/plots_genomewide_and_density_dxy.png)
 
 
 
@@ -669,7 +675,7 @@ data %>% group_by_all() %>% summarise(COUNT = n()) %>% mutate(freq = COUNT / sum
 - shared by UGA and Americas, not China = 33990 / total = 3.220152718%
 
 ![](../04_analysis/UGA_CHN_AMERICAS_shared_v_private_variants.png)
-![](../04_analysis/UGA_CHN_AMERICAS_shared_v_private_variants.pdf)
+
 
 
 
@@ -747,7 +753,7 @@ ggsave("heterozygosity_x_coverage.png")
 ggsave("heterozygosity_x_coverage.pdf", height=7, width=7, useDingbats=FALSE)
 ```
 
-![heterozygosity_x_coverage](../04_analysis/genomewide_genetic_variation/heterozygosity_x_coverage.png)
+![](../04_analysis/genomewide_genetic_variation/heterozygosity_x_coverage.png)
 
 
 
