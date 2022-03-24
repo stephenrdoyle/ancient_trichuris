@@ -88,7 +88,7 @@ ggsave("btubulin_variation_gene_R1.png")
 ggsave("btubulin_variation_gene_R1.pdf", height=2, width=5)
 ```
 
-
+![](../04_analysis/btub/btubulin_variation_gene_R1.png)
 
 
 ## Reanalysis of nucleotide diversity around beta-tubulin
