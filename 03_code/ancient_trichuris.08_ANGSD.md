@@ -43,10 +43,10 @@ dev.off()
 
 ```
 - IBS for nuclear markers
-![](../04_analysis/nuclear_ibs_heatmap.png)
+![](../04_analysis/angsd/nuclear_ibs_heatmap.png)
 
 - covariance of IBS for nuclear markers
-![](../04_analysis/nuclear_covariance_heatmap.png)
+![](../04_analysis/angsd/nuclear_covariance_heatmap.png)
 
 
 
