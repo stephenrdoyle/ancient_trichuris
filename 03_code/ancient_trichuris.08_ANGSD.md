@@ -42,10 +42,11 @@ heatmap.2(cov_data, trace="none", margins=c(12,12))
 dev.off()
 
 ```
+- IBS for nuclear markers
+![](../04_analysis/nuclear_ibs_heatmap.png)
 
-Figure: [IBS for nuclear markers](../04_analysis/nuclear_ibs_heatmap.pdf)
-
-Figure: [covariance of IBS for nuclear markers](../04_analysis/nuclear_covariance_heatmap.pdf)
+- covariance of IBS for nuclear markers
+![](../04_analysis/nuclear_covariance_heatmap.png)
 
 
 
@@ -110,4 +111,11 @@ autosomal_data <- cbind(autosomal_metadata,autosomal_mds)
 plot_3 <- ggplot(autosomal_data, aes(mds1,mds2, col=V2)) + geom_point() + theme_bw() + labs(title="autosomal variants")
 
 plot_1 + plot_2 + plot_3 + plot_layout(ncol=3)
+
+ggsave("plot_mds_single_allele_mito_zoom_nuc.png")
 ```
+- single allele sampling, using plots consistent with figure 1
+- shows that they are almost identical between this plot and figure 1
+- conclusion is that the Figure 1 data are not significantly influenced by coverage or missingness
+
+![](../04_analysis/angsd/plot_mds_single_allele_mito_zoom_nuc.png)
