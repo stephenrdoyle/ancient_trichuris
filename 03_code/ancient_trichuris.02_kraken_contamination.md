@@ -40,7 +40,7 @@ multiqc *kraken2report --title kraken
 
 ```
 
-![Kraken MultiQC report](../04_analysis/kraken/kraken_multiqc_report.html)
+[Kraken MultiQC report](../04_analysis/kraken/kraken_multiqc_report.html)
 
 
 - the output shows most samples have a small degree of contamination based on hits in the kraken database
