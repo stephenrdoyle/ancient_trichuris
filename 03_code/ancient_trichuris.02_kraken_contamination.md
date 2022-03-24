@@ -1,7 +1,7 @@
 # Kraken
 
 ## Contents
-- kraken - modern samples 
+- kraken - modern samples
 - kraken - ancient samples
 
 of trimmed reads post mapping
@@ -40,7 +40,7 @@ multiqc *kraken2report --title kraken
 
 ```
 
-[Kraken MultiQC report](../04_analysis/kraken_multiqc_report.html)
+[Kraken MultiQC report](../04_analysis/kraken/kraken_multiqc_report.html)
 
 - the output shows most samples have a small degree of contamination based on hits in the kraken database
 - non have a lot of contamination, which is slightly surprising

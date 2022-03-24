@@ -203,61 +203,64 @@ cut -f4 unmapped_proteins.diamond.out | sort | uniq -c | sort -k1nr
 
 ```
 
-796 of 1000 hits classified as contaminants
-204 not in uniprot refseq database
+- 796 of 1000 hits classified as contaminants
+- 204 not in uniprot refseq database
 
-588 83333 Escherichia coli K-12
-204  No hit
-161 224308     Bacillus subtilis
-13 6239   Caenorhabditis elegans
- 3 10090  Mus musculus
- 3 224911 Bradyrhizobium diazoefficiens
- 3 243274 Thermotoga maritima
- 2 100226 Streptomyces coelicolor
- 2 1111708     Synechocystis sp
- 2 122586 Neisseria meningitidis
- 2 190304 Fusobacterium nucleatum
- 2 208964 Pseudomonas aeruginosa
- 2 224324 Aquifex aeolicus
- 2 7955   Danio rerio
- 1 243090 Rhodopirellula baltica
- 1 243230 Deinococcus radiodurans
- 1 243232 Methanocaldococcus jannaschii
- 1 273057 Saccharolobus solfataricus
- 1 44689 Dictyostelium discoideum
- 1 515635 Dictyoglomus turgidum
- 1 7227 Drosophila melanogaster
- 1 83332 Mycobacterium tuberculosis
- 1 8364 Xenopus tropicalis
- 1 85962 Helicobacter pylori
- 1 9913 Bos taurus
+- 588 83333 Escherichia coli K-12
+- 204  No hit
+- 161 224308     Bacillus subtilis
+- 13 6239   Caenorhabditis elegans
+-  3 10090  Mus musculus
+-  3 224911 Bradyrhizobium diazoefficiens
+-  3 243274 Thermotoga maritima
+-  2 100226 Streptomyces coelicolor
+-  2 1111708     Synechocystis sp
+-  2 122586 Neisseria meningitidis
+-  2 190304 Fusobacterium nucleatum
+-  2 208964 Pseudomonas aeruginosa
+-  2 224324 Aquifex aeolicus
+-  2 7955   Danio rerio
+-  1 243090 Rhodopirellula baltica
+-  1 243230 Deinococcus radiodurans
+-  1 243232 Methanocaldococcus jannaschii
+-  1 273057 Saccharolobus solfataricus
+-  1 44689 Dictyostelium discoideum
+-  1 515635 Dictyoglomus turgidum
+-  1 7227 Drosophila melanogaster
+-  1 83332 Mycobacterium tuberculosis
+-  1 8364 Xenopus tropicalis
+-  1 85962 Helicobacter pylori
+-  1 9913 Bos taurus
 
+```bash
  cut -f13 unmapped_cds.diamond.out | sort | uniq -c | sort -k1nr
-     598 83333 Escherichia coli K-12
-     206
-     161 224308  Bacillus subtilis
-      13 6239
-       3 10090
-       3 224911
-       3 243274
-       2 100226
-       2 1111708
-       2 122586
-       2 190304
-       2 208964
-       2 224324
-       2 7955
-       1 243090
-       1 243230
-       1 243232
-       1 273057
-       1 44689
-       1 515635
-       1 7227
-       1 83332
-       1 8364
-       1 85962
-       1 9913
+```
+
+-      598 83333 Escherichia coli K-12
+-      206
+-      161 224308  Bacillus subtilis
+-       13 6239
+-        3 10090
+-        3 224911
+-        3 243274
+-        2 100226
+-        2 1111708
+-        2 122586
+-        2 190304
+-        2 208964
+-        2 224324
+-        2 7955
+-        1 243090
+-        1 243230
+-        1 243232
+-        1 273057
+-        1 44689
+-        1 515635
+-        1 7227
+-        1 83332
+-        1 8364
+-        1 85962
+-        1 9913
 
 
 
