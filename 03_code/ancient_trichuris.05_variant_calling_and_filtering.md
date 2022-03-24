@@ -1,23 +1,19 @@
 # Variant calling and filtering
 
 ## Contents
-- GATK setup
 - Genome scope to estimate heterozyosity
 - GATK
 - Filter the VCF - SNPable
 - Filter the VCF - hardfilter
 - Querying SNP and INDEL QC profiles to determine thresholds for filters
 - Applying filters to the variants
+- merge VCFs
+- Filter genotypes based on depth per genotype
+- Sample missingness
 - Generate an ALL SITES variant set for running pixy
 
 
 
-
-
-## GATK setup
-- Using GATK haplotypecaller to call SNPs
-- First pass QC: --min-base-quality-score 20 --minimum-mapping-quality 30
-- scripts below split jobs by sample and by sequence, generating GVCFs, and then once done, merging them back together again. It does this by generating small jobs submitted in arrays to perform tasks in parallel, greatly speeding up the overall job time.
 
 
 ## Genome scope to estimate heterozyosity
@@ -77,6 +73,9 @@ eg.
 
 
 ## GATK
+- Using GATK haplotypecaller to call SNPs
+- First pass QC: --min-base-quality-score 20 --minimum-mapping-quality 30
+- scripts below split jobs by sample and by sequence, generating GVCFs, and then once done, merging them back together again. It does this by generating small jobs submitted in arrays to perform tasks in parallel, greatly speeding up the overall job time.
 
 ```bash
 # working dir
@@ -810,7 +809,7 @@ vcftools --vcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf --keep-
 
 
 
-## missingness
+## Sample missingness
 - need to determine the degree of missingness for both mtDNA and nuclear datasets,
      - per site
      - per sample
@@ -924,7 +923,7 @@ vcftools --vcf Trichuris_trichiura.cohort.nuclear_variants.final.recode.vcf --ma
 
 
 
-## Max-missing
+### Max-missing
 
 ```bash
 

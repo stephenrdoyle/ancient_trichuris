@@ -1,4 +1,10 @@
-# Kraken of trimmed reads post mapping
+# Kraken
+
+## Contents
+- kraken - modern samples 
+- kraken - ancient samples
+
+of trimmed reads post mapping
 - The mapping shows that there is variable mapping rates, and that for some samples there is very poor mapping.
 - This is particularly the case for the ancient samples, which is to be expected to a degree, given they are both old and collected from the environment.
 - Kraken might give some insight into this, given they might be heavily contaminated with bacteria etc.

@@ -1,9 +1,14 @@
-## Treemix
+# Treemix
 - https://ppp.readthedocs.io/en/latest/PPP_pages/examples.html
 - https://speciationgenomics.github.io/Treemix/
 
-```bash
+## Contents
+- Treemix
+- plotting treemix data
+- Estimating the optimal number of migration edges
+- calculate the variance explained by the data
 
+```bash
 conda activate py-popgen
 
 export LD_LIBRARY_PATH=/lustre/scratch118/infgen/team133/sd21/software/anaconda2/envs/py-popgen/lib/
@@ -57,7 +62,7 @@ done
 
 ```
 
-- make some plots
+## plotting treemix data
 
 ```R
 
@@ -94,10 +99,12 @@ for(edge in 0:5){
      title(paste(edge,"edges")
      dev.off()
 }
+```
 
 
-
-# Estimating the optimal number of migration edges : https://rdrr.io/cran/OptM/#vignettes
+## Estimating the optimal number of migration edges
+- : https://rdrr.io/cran/OptM/#vignettes
+```R
 # run in the folder with the treemix output files
 #install.packages("OptM")
 
@@ -120,7 +127,7 @@ title(paste(1,"edges"))
 
 ```
 
-### calculate the variance explained by the data
+## calculate the variance explained by the data
 - https://github.com/darencard/RADpipe/blob/master/treemixVarianceExplained.R
 
 ```bash

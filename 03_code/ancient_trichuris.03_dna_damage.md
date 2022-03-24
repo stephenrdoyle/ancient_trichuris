@@ -1,8 +1,16 @@
 # DNA Damage
+
+## Contents
+- pmdtools
+- plot deamination frequencies
+- trim bases from reads in bam to remove deamination
+
 - need to check to what degree deanimation (increased frequency of C > T and G > A) has affected the DNA used for sequencing
 - this is a common artefact in ancient samples - this is expected from ancient reads, and will likely affect the older samples more.
 - Not expecting this in the modern samples
 
+
+## pmdtools
 ```bash
 # To view deamination-derived damage patterns in a simple table, without separating CpG sites
 #samtools view AN_DNK_COG_EN_002.bam | python pmdtools.0.60.py --deamination
@@ -31,6 +39,7 @@ done < ../ancient.sample_list_v2
 
 ```
 
+## plot deamination frequencies
 - where "plotPMD.R" is:
 
 ```R
@@ -105,7 +114,7 @@ done
 ```
 
 
-### trim bases from reads in bam
+## trim bases from reads in bam
 Using "bamUtils trimBam" to remove the 5' and 3' 2 bp from mapped reads
 
 ```bash

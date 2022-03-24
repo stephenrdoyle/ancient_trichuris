@@ -1,3 +1,9 @@
+## Beta tubulin
+
+## Contents
+- Analysis of variation within beta tubulin
+- Reanalysis of nucleotide diversity around beta-tubulin - post peer review
+
 ## Analysis of variation within beta tubulin
 ```bash
 vcftools \
@@ -85,7 +91,7 @@ ggsave("btubulin_variation_gene_R1.pdf", height=2, width=5)
 
 
 
-### Reanalysis of nucleotide diversity around beta-tubulin
+## Reanalysis of nucleotide diversity around beta-tubulin
 ```bash
 # working directory
 /lustre/scratch118/infgen/team333/sd21/trichuris_trichiura/05_ANALYSIS/DXY

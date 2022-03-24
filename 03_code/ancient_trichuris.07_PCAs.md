@@ -1,4 +1,10 @@
-## PCA of genetic variation
+# Principle component analysis to explore genetic diversity
+
+## Contents
+- PCA of mitochondrial variants
+- PCA of nuclear variants
+
+## PCA of mitochondrial variation
 
 ```bash
 # working directory
@@ -184,7 +190,7 @@ Figure: [plot_PCA_mito_samples3x_missing0.8_noLF](plot_PCA_mito_samples3x_missin
 ![](../04_analysis/PCA/plot_PCA_mito_samples3x_missing0.8_noLF.png)
 
 
-### Nuclear variants
+## PCA of nuclear variants
 - human + animal + 2 ancients
 - "nuclear_3x_animal.list"
 

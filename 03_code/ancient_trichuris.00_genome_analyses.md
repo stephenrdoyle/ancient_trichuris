@@ -63,7 +63,7 @@ bsub.py --threads 20 --queue long 20 busco_tt_old "busco -i trichuris_trichiura.
           - 164	Missing BUSCOs (M)
           - 978	Total BUSCO groups searched
 
-
+- stats are slightly worse for the new assembly. Givne the new assembly incorporated PacBio data, I wonder to what degree it was polished....
 
 
 

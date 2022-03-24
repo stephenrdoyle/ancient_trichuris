@@ -1,5 +1,12 @@
-## Sampling sites
-### World map
+# Sampling sites
+
+## Contents
+- World map
+- Sampling timepoints
+- Map of ancient DNA sites, with Fst data showing degree of connectivity between populations
+
+
+## World map
 Given it is a "global diversity" study, worth having a world map with sampling sites, distinction between ancient and modern samples, and the fact that some some from humans, animals, and the environment (ancient).
 
 ```R
@@ -52,7 +59,7 @@ ggsave("worldmap_samplingsites.pdf", height=5, width=12, useDingbats=FALSE)
 
 
 
-### Sampling timepoints
+## Sampling timepoints
 
 ```R
 library(ggplot2)
@@ -178,8 +185,6 @@ scale_bar <- function(lon, lat, distance_lon, distance_lat, distance_legend, dis
     }
     return(res)
 }
-
-
 
 
 data <- read.delim("map_metadata_ancient.txt", sep="\t", header=T)

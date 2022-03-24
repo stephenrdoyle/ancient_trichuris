@@ -1,5 +1,12 @@
-## NGSadmix
+# NGSadmix
 
+## Contents
+- Admixture plots
+- Clumpak to determine optimal K
+
+
+
+## Admixture plots
 ```bash
 
 mkdir /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTURE
@@ -116,7 +123,7 @@ ggsave("admixture_plots_k3.pdf", height=1.5, width=10)
 
 
 
-### Clumpak
+## Clumpak to determine optimal K
 - rather that the above code, I ended up using Clumpak as suggested here: https://github.com/alexkrohn/AmargosaVoleTutorials/blob/master/ngsAdmix_tutorial.md
 
 ```bash

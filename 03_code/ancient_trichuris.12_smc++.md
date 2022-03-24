@@ -1,4 +1,14 @@
-## SMC++
+# Population history using SMC++
+
+## Contents
+- run smc++
+- plot all smcpp plots together
+
+
+
+
+
+## run smc++
 - want to calculate historical population sizes
 - also want to follow up on question posed in Soe draft on the relationship between UGA and DNK samples
 
@@ -152,7 +162,7 @@ smc++ plot -g 0.33 -c SMCPP_UGA.pdf UGA/model.final.json
 
 ```
 
-- plot all smcpp plots together
+## plot all smcpp plots together
 
 ```R
 # load libraries

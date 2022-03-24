@@ -1,4 +1,12 @@
-## ADMIXTOOLS
+# ADMIXTOOLS
+
+## Contents
+- Prepared data and run admixtools
+- plotting admix data
+
+
+
+
 - ADMIXTOOLS is a widely used software package for calculating admixture statistics and testing population admixture hypotheses.
 - need to convert vcf to eigenstrat format first
      - followed workflow from here: https://speciationgenomics.github.io/ADMIXTOOLS_admixr/
@@ -15,7 +23,7 @@
                - conda install -c bioconda admixtools
 
 
-### Prepared data and run admixtools
+## Prepared data and run admixtools
 
 ```bash
 
@@ -91,7 +99,7 @@ inbreed: YES
 
 ```
 
-- make a plot
+## plotting admix data
 
 ```R
 # load libraries

@@ -1,4 +1,11 @@
-## ANGSD
+# ANGSD
+
+## Contents
+- IBS and Coviance matrices
+- Single allele analyses of mitochondrial and nuclear variants
+
+
+## IBS and Coviance matrices
 - exploring the use of ANGSD, whcih can use genotype likelihoods for a number of analyses. Probably good for the low coverage datasets
 - started off calculating "identity by state" (IBS), which is another way of showing genetic similarity between samples
 
@@ -42,7 +49,10 @@ Figure: [covariance of IBS for nuclear markers](../04_analysis/nuclear_covarianc
 
 
 
-# mitochondrial variants
+## Single allele analyses of mitochondrial and nuclear variants
+```bash
+#mitochondrial variants
+
 zcat ../../04_VARIANTS/GATK_HC_MERGED/mito_samples3x_missing0.8.recode.vcf.gz | cut -f1,2 | grep -v "#" > mito_variable_positions.txt
 
 /nfs/users/nfs_s/sd21/lustre118_link/software/ANCIENT/angsd/angsd sites index mito_variable_positions.txt
@@ -66,7 +76,8 @@ bsub.py --queue yesterday 10 autoANGSD "/nfs/users/nfs_s/sd21/lustre118_link/sof
 
 cat mito.bam.list | sed -e 's/.*\///' -e 's/.trimmed.bam//g' | awk -F '[_]' '{print $0,$2,$3}' OFS="\t" > mito.metadata.txt
 cat autosomal.bam.list | sed -e 's/.*\///' -e 's/.trimmed.bam//g' | awk -F '[_]' '{print $0,$2,$3}' OFS="\t" > autosomal.metadata.txt
-
+```
+```R
 # plots
 library(tidyverse)
 library(patchwork)
@@ -99,3 +110,4 @@ autosomal_data <- cbind(autosomal_metadata,autosomal_mds)
 plot_3 <- ggplot(autosomal_data, aes(mds1,mds2, col=V2)) + geom_point() + theme_bw() + labs(title="autosomal variants")
 
 plot_1 + plot_2 + plot_3 + plot_layout(ncol=3)
+```
