@@ -1,5 +1,7 @@
 # Genome analyses
 
+Author: Stephen Doyle, stephen.doyle[at]sanger.ac.uk
+
 ## Contents:
 - Reference genome
 - Genome completeness using BUSCO
@@ -10,7 +12,7 @@
 
 ## Reference genome
 - the reference is an unpublished Trichuris trichiura assembly generated in the Parasite Genomics team at Sanger
-- this is a new PacBio assembly, rahter than an improvement from the original assembly published by Foth et al (2014)
+- this is a new PacBio assembly, rather than an improvement from the original assembly published by Foth et al (2014)
 - this assembly is from worms extracted from Peter Nejsum that originated in Uganda, whereas the Foth assembly was from Ecuadorian worms.
 - this assembly didn't have an annotation when the project started
 

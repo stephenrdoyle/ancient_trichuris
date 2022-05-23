@@ -1,5 +1,7 @@
 # NGSadmix
 
+Author: Stephen Doyle, stephen.doyle[at]sanger.ac.uk
+
 ## Contents
 - Admixture plots
 - Clumpak to determine optimal K

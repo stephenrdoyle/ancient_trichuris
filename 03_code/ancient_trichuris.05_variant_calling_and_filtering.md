@@ -1,5 +1,7 @@
 # Variant calling and filtering
 
+Author: Stephen Doyle, stephen.doyle[at]sanger.ac.uk
+
 ## Contents
 - Genome scope to estimate heterozyosity
 - GATK

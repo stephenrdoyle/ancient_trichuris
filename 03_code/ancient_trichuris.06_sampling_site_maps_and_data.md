@@ -1,5 +1,7 @@
 # Sampling sites
 
+Author: Stephen Doyle, stephen.doyle[at]sanger.ac.uk
+
 ## Contents
 - World map
 - Sampling timepoints

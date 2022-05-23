@@ -1,5 +1,7 @@
 # Genome-wide genetic variation
 
+Author: Stephen Doyle, stephen.doyle[at]sanger.ac.uk
+
 ## Contents
 - Running pixy to calculate nucleotide diversity, dXY and Fst between groups
 - analyses of nucleotide diversity (Pi)
@@ -715,6 +717,15 @@ ggplot(data) +
 ggsave("ancient_sites_Pi_over_time.png", height=2, width=7.5)
 ggsave("ancient_sites_Pi_over_time.pdf", height=2, width=7.5, useDingbats=FALSE)
 
+
+
+ggplot(data2) +
+     geom_smooth(aes(Age,Pi), method = "lm", colour="grey") +
+     geom_point(aes(Age, Pi, colour = Country), size=3) +
+     geom_text_repel(aes(Age, Pi, label=Population), size=3) +
+     ylim(0,0.015) + xlim(800,2020) +
+     theme_bw() + labs(x="Estimated age of sampling location", y="Nucleotide diversity (Pi)") +
+     scale_colour_manual(values = country_colours)
 
 
 ```

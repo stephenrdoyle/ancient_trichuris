@@ -1,5 +1,7 @@
 # Principle component analysis to explore genetic diversity
 
+Author: Stephen Doyle, stephen.doyle[at]sanger.ac.uk
+
 ## Contents
 - PCA of mitochondrial variants
 - PCA of nuclear variants

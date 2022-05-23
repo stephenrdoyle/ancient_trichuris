@@ -1,5 +1,7 @@
 ## Beta tubulin
 
+Author: Stephen Doyle, stephen.doyle[at]sanger.ac.uk
+
 ## Contents
 - Analysis of variation within beta tubulin
 - Reanalysis of nucleotide diversity around beta-tubulin - post peer review

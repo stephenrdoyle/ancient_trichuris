@@ -1,5 +1,7 @@
 # Kraken
 
+Author: Stephen Doyle, stephen.doyle[at]sanger.ac.uk
+
 ## Contents
 - kraken - modern samples
 - kraken - ancient samples

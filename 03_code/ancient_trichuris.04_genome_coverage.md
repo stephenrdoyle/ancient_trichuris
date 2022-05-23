@@ -1,5 +1,7 @@
 # Genome coverage
 
+Author: Stephen Doyle, stephen.doyle[at]sanger.ac.uk
+
 ## Contents
 - Genome wide coverage
 - Generate quantitative stats on coverage for supplementary tables

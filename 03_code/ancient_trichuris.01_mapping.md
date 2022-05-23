@@ -1,5 +1,7 @@
 # Mapping
 
+Author: Stephen Doyle, stephen.doyle[at]sanger.ac.uk
+
 ## Contents
 - Project setup
 - Prepare reference genome

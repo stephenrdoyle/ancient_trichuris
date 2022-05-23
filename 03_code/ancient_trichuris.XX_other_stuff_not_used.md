@@ -1,5 +1,6 @@
 # Other analyses performed, but didnt make it into the paper - keeping them for a rainy day
 
+Author: Stephen Doyle, stephen.doyle[at]sanger.ac.uk
 
 ## F stats using treemix
 - ended up using q3stats rather than this

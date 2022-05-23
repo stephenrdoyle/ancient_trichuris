@@ -1,5 +1,7 @@
 # Population history using SMC++
 
+Author: Stephen Doyle, stephen.doyle[at]sanger.ac.uk
+
 ## Contents
 - run smc++
 - plot all smcpp plots together

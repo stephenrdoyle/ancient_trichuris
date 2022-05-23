@@ -1,5 +1,7 @@
 # ANGSD
 
+Author: Stephen Doyle, stephen.doyle[at]sanger.ac.uk
+
 ## Contents
 - IBS and Coviance matrices
 - Single allele analyses of mitochondrial and nuclear variants

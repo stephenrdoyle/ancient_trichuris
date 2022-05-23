@@ -1,4 +1,7 @@
 # Treemix
+
+Author: Stephen Doyle, stephen.doyle[at]sanger.ac.uk
+
 - https://ppp.readthedocs.io/en/latest/PPP_pages/examples.html
 - https://speciationgenomics.github.io/Treemix/
 

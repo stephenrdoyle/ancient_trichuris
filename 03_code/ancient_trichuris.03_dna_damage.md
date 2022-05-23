@@ -1,5 +1,7 @@
 # DNA Damage
 
+Author: Stephen Doyle, stephen.doyle[at]sanger.ac.uk
+
 ## Contents
 - pmdtools
 - plot deamination frequencies

@@ -1,5 +1,7 @@
 # ADMIXTOOLS
 
+Author: Stephen Doyle, stephen.doyle[at]sanger.ac.uk
+
 ## Contents
 - Prepared data and run admixtools
 - plotting admix data
